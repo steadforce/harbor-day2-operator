@@ -1,0 +1,71 @@
+name: Create and publish k8s workbench container image
+
+on:
+  push:
+    branches:
+    - "**"
+    tags:
+    - "v*.*.*"
+  pull_request:
+    branches:
+    - "main"
+
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: harbor-day2-operator
+
+jobs:
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    - uses: hadolint/hadolint-action@v3.1.0
+      with:
+        dockerfile: Dockerfile
+    - uses: ricardochaves/python-lint@v1.4.0
+      with:
+        use-pylint: false
+        use-flake8: false
+        use-black: false
+        use-mypy: false
+        use-isort: false
+    - name: Log in to the container registry
+      uses: docker/login-action@a9794064588be971151ec5e7144cb535bcb56e36
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Extract metadata (tags, labels) for container
+      id: meta
+      uses: docker/metadata-action@35e9aff4f5d665b5aa8a8f2adffaf8a1b5f49cc0
+      with:
+        images: ${{ env.REGISTRY }}/steadforce/steadops/workbenches/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha
+    - name: Build container image for tests
+      uses: docker/build-push-action@4fad532b9fdbfb80f436784834374a1c11834153
+      with:
+        context: .
+        push: false
+        tags: ${{ env.IMAGE_NAME }}:test
+    - name: Test harbor tool
+      run: |
+        docker run --rm ${{ env.IMAGE_NAME }}:test harbor
+    - name: Tag and push tested container image
+      uses: docker/build-push-action@4fad532b9fdbfb80f436784834374a1c11834153
+      with:
+        context: .
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
