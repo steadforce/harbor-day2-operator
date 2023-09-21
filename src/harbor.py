@@ -62,12 +62,11 @@ async def main() -> None:
     await sync_harbor_config(harbor_config=harbor_config)
 
     # Sync registries
-    print("Syncing registries")
+    print("SYNCING REGISTRIES")
     registries_config = json.load(
         open(config_folder_path + "/registries.json")
     )
-    for registry in registries_config:
-        await sync_registry(Registry(**registry))
+    await sync_registries(target_registries=registries_config)
 
     # Sync projects
     print("Syncing projects")
@@ -100,11 +99,41 @@ async def sync_harbor_config(harbor_config: Configurations):
     await client.update_config(harbor_config)
 
 
-async def sync_registry(registry: Registry):
-    try:
-        await client.create_registry(registry=registry)
-    except Conflict:
-        print(f'Registry "{registry.name}" already exists')
+async def sync_registries(target_registries: [Registry]):
+    current_registries = await client.get_registries()
+    current_registry_names = [
+        current_registry.name for current_registry in current_registries
+    ]
+    current_registry_id = [
+        current_registry.id for current_registry in current_registries
+    ]
+    target_registry_names = [
+        target_registry["name"] for target_registry in target_registries
+    ]
+
+    # Delete all registries not defined in config file
+    for current_registry in current_registries:
+        if current_registry.name not in target_registry_names:
+            print(
+                f'- Deleting registry "{current_registry.name}" since it is not defined in config files'
+            )
+            await client.delete_registry(id=current_registry.id)
+
+    # Modify existing registries or create new ones
+    for target_registry in target_registries:
+        # Modify existing registry
+        if target_registry["name"] in current_registry_names:
+            registry_id = current_registry_id[
+                current_registry_names.index(target_registry["name"])
+            ]
+            print(f'- Syncing registry "{target_registry["name"]}"')
+            await client.update_registry(
+                id=registry_id, registry=target_registry
+            )
+        # Create new registry
+        else:
+            print(f'- Creating new registry "{target_registry["name"]}"')
+            await client.create_registry(registry=target_registry)
 
 
 async def sync_robot_account(robot: Robot):
