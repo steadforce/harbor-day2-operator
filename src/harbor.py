@@ -69,10 +69,9 @@ async def main() -> None:
     await sync_registries(target_registries=registries_config)
 
     # Sync projects
-    print("Syncing projects")
+    print("SYNCING PROJECTS")
     projects_config = json.load(open(config_folder_path + "/projects.json"))
-    for project in projects_config:
-        await sync_project(Project(**project))
+    await sync_projects(target_projects=projects_config)
 
     # Sync robot accounts
     print("Syncing robots")
@@ -157,11 +156,37 @@ async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
             )
 
 
-async def sync_project(project: Project) -> None:
-    try:
-        await client.create_project(project=project)
-    except Conflict:
-        print(f'Project "{project.project_name}" already exists')
+async def sync_projects(target_projects: [Project]) -> None:
+    current_projects = await client.get_projects()
+    current_project_names = [
+        current_project.name for current_project in current_projects
+    ]
+    target_project_names = [
+        target_project["project_name"] for target_project in target_projects
+    ]
+
+    # Delete all projects not defined in config file
+    for current_project in current_projects:
+        if current_project.name not in target_project_names:
+            print(
+                f'- Deleting project "{current_project.name}" since it is not defined in config files'
+            )
+            await client.delete_project(
+                project_name_or_id=current_project.name
+            )
+
+    # Modify existing projects or create new ones
+    for target_project in target_projects:
+        # Modify existing project
+        if target_project["project_name"] in current_project_names:
+            print(f'- Syncing project "{target_project["project_name"]}"')
+            await client.update_project(
+                project_name_or_id=current_project.name, project=target_project
+            )
+        # Create new project
+        else:
+            print(f'- Creating new project "{target_project["project_name"]}"')
+            await client.create_project(project=target_project)
 
 
 async def sync_project_members(project) -> None:
