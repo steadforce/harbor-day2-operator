@@ -72,6 +72,16 @@ async def main() -> None:
     print("SYNCING PROJECTS")
     projects_config = json.load(open(config_folder_path + "/projects.json"))
     await sync_projects(target_projects=projects_config)
+    print("")
+
+    # Sync project members and their roles
+    print("SYNCING PROJECT MEMBERS")
+    project_members_config = json.load(
+        open(config_folder_path + "/project-members.json")
+    )
+    for project in project_members_config:
+        await sync_project_members(project=project)
+    print("")
 
     # Sync robot accounts
     print("SYNCING ROBOT ACCOUNTS")
@@ -80,18 +90,11 @@ async def main() -> None:
     print("")
 
     # Sync webhooks
-    print("Syncing webhooks")
+    print("SYNCING WEBHOOKS")
     webhooks_config = json.load(open(config_folder_path + "/webhooks.json"))
     for webhook in webhooks_config:
         await sync_webhook(**webhook)
-
-    # Sync project members and their roles
-    print("Syncing project members")
-    project_members_config = json.load(
-        open(config_folder_path + "/project-members.json")
-    )
-    for project in project_members_config:
-        await sync_project_members(project=project)
+    print("")
 
 
 async def sync_harbor_config(harbor_config: Configurations):
@@ -184,16 +187,51 @@ async def sync_robot_accounts(target_robots: [Robot]):
 
 
 async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
-    # WEbhooks for AA, abbott, aek, aertze kammer  chatbot, steadop
-    for policy in policies:
-        try:
-            await client.create_webhook_policy(
-                project_name_or_id=project_name, policy=policy
-            )
-        except Conflict:
+    print(f'PROJECT: "{project_name}"')
+
+    target_policies = policies
+    current_policies = await client.get_webhook_policies(
+        project_name_or_id=project_name
+    )
+    current_policy_names = [
+        current_policy.name for current_policy in current_policies
+    ]
+    current_policy_id = [
+        current_policy.id for current_policy in current_policies
+    ]
+    target_policy_names = [
+        target_policy["name"] for target_policy in target_policies
+    ]
+
+    # Delete all policies not defined in config file
+    for current_policy in current_policies:
+        if current_policy.name not in target_policy_names:
             print(
-                f'Webhook "{policy["name"]}" in project "{project_name}" \
-                    already exists'
+                f'- Deleting policy "{current_policy.name}" since it is not defined in config files'
+            )
+            await client.delete_webhook_policy(
+                project_name_or_id=project_name,
+                webhook_policy_id=current_policy.id,
+            )
+
+    # Modify existing policies or create new ones
+    for target_policy in target_policies:
+        # Modify existing policy
+        if target_policy["name"] in current_policy_names:
+            policy_id = current_policy_id[
+                current_policy_names.index(target_policy["name"])
+            ]
+            print(f'- Syncing policy "{target_policy["name"]}"')
+            await client.update_webhook_policy(
+                project_name_or_id=project_name,
+                webhook_policy_id=policy_id,
+                policy=target_policy,
+            )
+        # Create new policy
+        else:
+            print(f'- Creating new policy "{target_policy["name"]}"')
+            await client.create_webhook_policy(
+                project_name_or_id=project_name, policy=target_policy
             )
 
 
