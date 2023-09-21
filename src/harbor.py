@@ -191,7 +191,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
             except Conflict:
                 print(
                     f'  => ERROR: "{robot_name_prefix + target_robot["name"]}"'
-                    " already present"
+                    " already present. Manually delete this account to create"
+                    " an updated one"
                 )
 
 
