@@ -42,15 +42,17 @@ client = HarborAsyncClient(
 
 async def main() -> None:
     # Wait for healthy harbor
-    print("Waiting for Harbor to be healthy")
+    print("WAITING FOR HEALTHY HARBOR")
     await wait_until_healthy()
+    print("")
 
     # Update admin password
-    print("Update admin password")
+    print("UPDATE ADMIN PASSWROD")
     await sync_admin_password()
+    print("")
 
     # Sync harbor configuration
-    print("Syncing Harbor configuration")
+    print("SYNCING HARBOR CONFIGURATION")
     harbor_config = json.load(
         open(config_folder_path + "/configurations.json")
     )
@@ -60,6 +62,7 @@ async def main() -> None:
     )
     harbor_config.oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
     await sync_harbor_config(harbor_config=harbor_config)
+    print("")
 
     # Sync registries
     print("SYNCING REGISTRIES")
@@ -67,6 +70,7 @@ async def main() -> None:
         open(config_folder_path + "/registries.json")
     )
     await sync_registries(target_registries=registries_config)
+    print("")
 
     # Sync projects
     print("SYNCING PROJECTS")
@@ -270,6 +274,7 @@ async def sync_projects(target_projects: [Project]) -> None:
 
 async def sync_project_members(project) -> None:
     project_name = project["project_name"]
+    print(f'PROJECT: "{project_name}"')
 
     current_members = await client.get_project_members(
         project_name_or_id=project_name
@@ -289,7 +294,7 @@ async def sync_project_members(project) -> None:
             target_member.entity_name for target_member in target_members
         ]:
             print(
-                f'Removing "{current_member.entity_name}" from project \
+                f'- Removing "{current_member.entity_name}" from project \
                     "{project_name}"'
             )
             await client.remove_project_member(
@@ -302,7 +307,7 @@ async def sync_project_members(project) -> None:
         member_id = get_member_id(current_members, member.entity_name)
         # Sync existing members' project role
         if member_id:
-            print(f'Syncing project role of "{member.entity_name}"')
+            print(f'- Syncing project role of "{member.entity_name}"')
             await client.update_project_member_role(
                 project_name_or_id=project_name,
                 member_id=member_id,
@@ -311,8 +316,7 @@ async def sync_project_members(project) -> None:
         # Add new member
         else:
             print(
-                f'Adding new member "{member.entity_name}" to project \
-                    "{project_name}"'
+                f'- Adding new member "{member.entity_name}" to project "{project_name}"'
             )
             try:
                 await client.add_project_member_user(
@@ -322,8 +326,7 @@ async def sync_project_members(project) -> None:
                 )
             except NotFound:
                 print(
-                    f'User "{member.entity_name}" not found. Make sure the \
-                        user has logged into harbor at least once'
+                    f'  => ERROR: User "{member.entity_name}" not found. Make sure the user has logged into harbor at least once'
                 )
 
 
@@ -331,9 +334,9 @@ async def wait_until_healthy() -> None:
     while True:
         health = await client.health_check()
         if health.status == "healthy":
-            print("Harbor is healthy")
+            print("- Harbor is healthy")
             break
-        print("Waiting for harbor to become healthy...")
+        print("- Waiting for harbor to become healthy...")
         sleep(5)
 
 
@@ -352,11 +355,10 @@ async def sync_admin_password() -> None:
             old_password=old_admin_password,
             new_password=new_admin_password,
         )
-        print("Updated admin password")
+        print("- Updated admin password")
     except Unauthorized:
         print(
-            'Admin password remains unchanged since it is not the initial \
-                "Harbor12345" password'
+            '- Admin password remains unchanged since it is not the initial "Harbor12345" password'
         )
 
 
