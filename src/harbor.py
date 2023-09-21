@@ -259,12 +259,12 @@ async def sync_projects(target_projects: [Project]) -> None:
     for current_project in current_projects:
         if current_project.name not in target_project_names:
             print(
-                f'- Deleting project "{current_project.name}" since it is not'
-                " defined in config files"
-            )
-            await client.delete_project(
-                project_name_or_id=current_project.name
-            )
+                    f'- Deleting project "{current_project.name}" since it is'
+                    " empty and not defined in config files"
+                )
+                await client.delete_project(
+                    project_name_or_id=current_project.name
+                )
 
     # Modify existing projects or create new ones
     for target_project in target_projects:
