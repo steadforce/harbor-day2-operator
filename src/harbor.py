@@ -31,6 +31,8 @@ new_admin_password = os.environ.get("ADMIN_PASSWORD")
 api_url = os.environ.get("HARBOR_API_URL")
 config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
 robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
+oidc_client_secret = os.environ.get("OIDC_STATIC_CLIENT_TOKEN")
+oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
 
 client = HarborAsyncClient(
     url=api_url,
@@ -58,10 +60,8 @@ async def main() -> None:
         open(config_folder_path + "/configurations.json")
     )
     harbor_config = Configurations(**harbor_config)
-    harbor_config.oidc_client_secret = os.environ.get(
-        "OIDC_STATIC_CLIENT_TOKEN"
-    )
-    harbor_config.oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
+    harbor_config.oidc_client_secret = oidc_client_secret
+    harbor_config.oidc_endpoint = oidc_endpoint
     await sync_harbor_config(harbor_config=harbor_config)
     print("")
 
