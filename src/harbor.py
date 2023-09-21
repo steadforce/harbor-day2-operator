@@ -30,6 +30,7 @@ old_admin_password = "Harbor12345"
 new_admin_password = os.environ.get("ADMIN_PASSWORD")
 api_url = os.environ.get("HARBOR_API_URL")
 config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
+robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
 
 client = HarborAsyncClient(
     url=api_url,
