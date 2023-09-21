@@ -29,6 +29,7 @@ admin_username = "admin"
 old_admin_password = "Harbor12345"
 new_admin_password = os.environ.get("ADMIN_PASSWORD")
 api_url = os.environ.get("HARBOR_API_URL")
+config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
 
 client = HarborAsyncClient(
     url=api_url,
@@ -50,7 +51,9 @@ async def main() -> None:
 
     # Sync harbor configuration
     print("Syncing Harbor configuration")
-    harbor_config = json.load(open("scripts/configurations.json"))
+    harbor_config = json.load(
+        open(config_folder_path + "/configurations.json")
+    )
     harbor_config = Configurations(**harbor_config)
     harbor_config.oidc_client_secret = os.environ.get(
         "OIDC_STATIC_CLIENT_TOKEN"
@@ -60,31 +63,35 @@ async def main() -> None:
 
     # Sync registries
     print("Syncing registries")
-    registries_config = json.load(open("scripts/registries.json"))
+    registries_config = json.load(
+        open(config_folder_path + "/registries.json")
+    )
     for registry in registries_config:
         await sync_registry(Registry(**registry))
 
     # Sync projects
     print("Syncing projects")
-    projects_config = json.load(open("scripts/projects.json"))
+    projects_config = json.load(open(config_folder_path + "/projects.json"))
     for project in projects_config:
         await sync_project(Project(**project))
 
     # Sync robot accounts
     print("Syncing robots")
-    robot_config = json.load(open("scripts/robots.json"))
+    robot_config = json.load(open(config_folder_path + "/robots.json"))
     for robot in robot_config:
         await sync_robot_account(Robot(**robot))
 
     # Sync webhooks
     print("Syncing webhooks")
-    webhooks_config = json.load(open("scripts/webhooks.json"))
+    webhooks_config = json.load(open(config_folder_path + "/webhooks.json"))
     for webhook in webhooks_config:
         await sync_webhook(**webhook)
 
     # Sync project members and their roles
     print("Syncing project members")
-    project_members_config = json.load(open("scripts/project-members.json"))
+    project_members_config = json.load(
+        open(config_folder_path + "/project-members.json")
+    )
     for project in project_members_config:
         await sync_project_members(project=project)
 
