@@ -302,8 +302,8 @@ async def sync_project_members(project) -> None:
             target_member.entity_name for target_member in target_members
         ]:
             print(
-                f'- Removing "{current_member.entity_name}" from project      '
-                f'               "{project_name}"'
+                f'- Removing "{current_member.entity_name}" from project'
+                f' "{project_name}"'
             )
             await client.remove_project_member(
                 project_name_or_id=project_name,
