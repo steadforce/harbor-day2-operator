@@ -258,12 +258,21 @@ async def sync_projects(target_projects: [Project]) -> None:
     # Delete all projects not defined in config file
     for current_project in current_projects:
         if current_project.name not in target_project_names:
-            print(
+            repositories = await client.get_repositories(
+                project_name=current_project.name
+            )
+            if len(repositories) == 0:
+                print(
                     f'- Deleting project "{current_project.name}" since it is'
                     " empty and not defined in config files"
                 )
                 await client.delete_project(
                     project_name_or_id=current_project.name
+                )
+            else:
+                print(
+                    f'- Deletion of project "{current_project.name}" not'
+                    " possible since it is not empty"
                 )
 
     # Modify existing projects or create new ones
