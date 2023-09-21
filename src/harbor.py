@@ -74,10 +74,10 @@ async def main() -> None:
     await sync_projects(target_projects=projects_config)
 
     # Sync robot accounts
-    print("Syncing robots")
+    print("SYNCING ROBOT ACCOUNTS")
     robot_config = json.load(open(config_folder_path + "/robots.json"))
-    for robot in robot_config:
-        await sync_robot_account(Robot(**robot))
+    await sync_robot_accounts(target_robots=robot_config)
+    print("")
 
     # Sync webhooks
     print("Syncing webhooks")
@@ -135,11 +135,52 @@ async def sync_registries(target_registries: [Registry]):
             await client.create_registry(registry=target_registry)
 
 
-async def sync_robot_account(robot: Robot):
-    try:
-        await client.create_robot(robot)
-    except Conflict:
-        print(f'Robot account "{robot.name}" already exists')
+async def sync_robot_accounts(target_robots: [Robot]):
+    current_robots = await client.get_robots()
+    current_robot_names = [
+        current_robot.name for current_robot in current_robots
+    ]
+    current_robot_id = [current_robot.id for current_robot in current_robots]
+
+    # Harbor appends a prefix to all robot account names
+    # To compare against our target robot account names, we have to add the prefix
+    target_robot_names_with_prefix = [
+        robot_name_prefix + target_robot["name"]
+        for target_robot in target_robots
+    ]
+
+    # Delete all robots not defined in config file
+    for current_robot in current_robots:
+        if current_robot.name not in target_robot_names_with_prefix:
+            print(
+                f'- Deleting robot "{current_robot.name}" since it is not defined in config files'
+            )
+            await client.delete_robot(robot_id=current_robot.id)
+
+    # Modify existing robots or create new ones
+    for target_robot in target_robots:
+        # Modify existing robot
+        if robot_name_prefix + target_robot["name"] in current_robot_names:
+            robot_id = current_robot_id[
+                current_robot_names.index(
+                    robot_name_prefix + target_robot["name"]
+                )
+            ]
+            target_robot = Robot(**target_robot)
+            target_robot.name = robot_name_prefix + target_robot.name
+            print(f'- Syncing robot "{target_robot.name}".')
+            await client.update_robot(robot_id=robot_id, robot=target_robot)
+        # Create new robot
+        else:
+            print(
+                f'- Creating new robot "{robot_name_prefix + target_robot["name"]}"'
+            )
+            try:
+                await client.create_robot(robot=target_robot)
+            except Conflict:
+                print(
+                    f'  => ERROR: "{robot_name_prefix + target_robot["name"]}" already present'
+                )
 
 
 async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
