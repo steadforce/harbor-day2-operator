@@ -122,7 +122,8 @@ async def sync_registries(target_registries: [Registry]):
     for current_registry in current_registries:
         if current_registry.name not in target_registry_names:
             print(
-                f'- Deleting registry "{current_registry.name}" since it is not defined in config files'
+                f'- Deleting registry "{current_registry.name}" since it is'
+                " not defined in config files"
             )
             await client.delete_registry(id=current_registry.id)
 
@@ -151,7 +152,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
     current_robot_id = [current_robot.id for current_robot in current_robots]
 
     # Harbor appends a prefix to all robot account names
-    # To compare against our target robot account names, we have to add the prefix
+    # To compare against our target robot names, we have to add the prefix
     target_robot_names_with_prefix = [
         robot_name_prefix + target_robot["name"]
         for target_robot in target_robots
@@ -161,7 +162,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
     for current_robot in current_robots:
         if current_robot.name not in target_robot_names_with_prefix:
             print(
-                f'- Deleting robot "{current_robot.name}" since it is not defined in config files'
+                f'- Deleting robot "{current_robot.name}" since it is not'
+                " defined in config files"
             )
             await client.delete_robot(robot_id=current_robot.id)
 
@@ -181,13 +183,15 @@ async def sync_robot_accounts(target_robots: [Robot]):
         # Create new robot
         else:
             print(
-                f'- Creating new robot "{robot_name_prefix + target_robot["name"]}"'
+                "- Creating new robot"
+                f" \"{robot_name_prefix + target_robot['name']}\""
             )
             try:
                 await client.create_robot(robot=target_robot)
             except Conflict:
                 print(
-                    f'  => ERROR: "{robot_name_prefix + target_robot["name"]}" already present'
+                    f'  => ERROR: "{robot_name_prefix + target_robot["name"]}"'
+                    " already present"
                 )
 
 
@@ -212,7 +216,8 @@ async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
     for current_policy in current_policies:
         if current_policy.name not in target_policy_names:
             print(
-                f'- Deleting policy "{current_policy.name}" since it is not defined in config files'
+                f'- Deleting policy "{current_policy.name}" since it is not'
+                " defined in config files"
             )
             await client.delete_webhook_policy(
                 project_name_or_id=project_name,
@@ -253,7 +258,8 @@ async def sync_projects(target_projects: [Project]) -> None:
     for current_project in current_projects:
         if current_project.name not in target_project_names:
             print(
-                f'- Deleting project "{current_project.name}" since it is not defined in config files'
+                f'- Deleting project "{current_project.name}" since it is not'
+                " defined in config files"
             )
             await client.delete_project(
                 project_name_or_id=current_project.name
@@ -295,8 +301,8 @@ async def sync_project_members(project) -> None:
             target_member.entity_name for target_member in target_members
         ]:
             print(
-                f'- Removing "{current_member.entity_name}" from project \
-                    "{project_name}"'
+                f'- Removing "{current_member.entity_name}" from project      '
+                f'               "{project_name}"'
             )
             await client.remove_project_member(
                 project_name_or_id=project_name,
@@ -317,7 +323,8 @@ async def sync_project_members(project) -> None:
         # Add new member
         else:
             print(
-                f'- Adding new member "{member.entity_name}" to project "{project_name}"'
+                f'- Adding new member "{member.entity_name}" to project'
+                f' "{project_name}"'
             )
             try:
                 await client.add_project_member_user(
@@ -327,7 +334,8 @@ async def sync_project_members(project) -> None:
                 )
             except NotFound:
                 print(
-                    f'  => ERROR: User "{member.entity_name}" not found. Make sure the user has logged into harbor at least once'
+                    f'  => ERROR: User "{member.entity_name}" not found. Make'
+                    " sure the user has logged into harbor at least once"
                 )
 
 
@@ -359,7 +367,8 @@ async def sync_admin_password() -> None:
         print("- Updated admin password")
     except Unauthorized:
         print(
-            '- Admin password remains unchanged since it is not the initial "Harbor12345" password'
+            "- Admin password remains unchanged since it is not the initial"
+            ' "Harbor12345" password'
         )
 
 
