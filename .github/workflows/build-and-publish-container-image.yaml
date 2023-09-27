@@ -61,7 +61,7 @@ jobs:
         tags: ${{ env.IMAGE_NAME }}:test
     - name: Test harbor tool
       run: |
-        docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/harbor --help || true
+        docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/harbor --help
     - name: Tag and push tested container image
       uses: docker/build-push-action@4fad532b9fdbfb80f436784834374a1c11834153
       with:
