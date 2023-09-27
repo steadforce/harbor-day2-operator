@@ -197,7 +197,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
                 await client.create_robot(robot=target_robot)
             except Conflict:
                 print(
-                    f'  => ERROR: "{robot_name_prefix + target_robot["name"]}"'
+                    f'  => ERROR: "{robot_name_prefix + target_robot.name}"'
                     " already present. Manually delete this account to create"
                     " an updated one"
                 )
