@@ -398,7 +398,7 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="""Harbor Day 2 configurator to sync harbor configurations""",
+        description="""Harbor Day 2 configurator to sync harbor configs""",
     )
     args = parser.parse_args()
     return args
