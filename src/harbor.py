@@ -13,6 +13,7 @@ from harborapi.models import (
     Project,
     ProjectMemberEntity,
 )
+import argparse
 import json
 import os
 from time import sleep
@@ -26,8 +27,8 @@ class ProjectRole(Enum):
 
 
 admin_username = "admin"
-old_admin_password = "Harbor12345"
-new_admin_password = os.environ.get("ADMIN_PASSWORD")
+old_admin_password = os.environ.get("ADMIN_PASSWORD_OLD")
+new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")
 config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
 robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
@@ -44,6 +45,8 @@ client = HarborAsyncClient(
 
 
 async def main() -> None:
+    parse_args()
+
     # Wait for healthy harbor
     print("WAITING FOR HEALTHY HARBOR")
     await wait_until_healthy()
@@ -377,8 +380,8 @@ async def sync_admin_password() -> None:
         print("- Updated admin password")
     except Unauthorized:
         print(
-            "- Admin password remains unchanged since it is not the initial"
-            ' "Harbor12345" password'
+            "- Admin password remains unchanged since it is does not match the"
+            "  old admin password password"
         )
 
 
@@ -388,6 +391,14 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
         if member.entity_name == username:
             return member.id
     return None
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="""Harbor Day 2 configurator to sync harbor configurations""",
+    )
+    args = parser.parse_args()
+    return args
 
 
 asyncio.run(main())
