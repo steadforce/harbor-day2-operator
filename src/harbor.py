@@ -47,7 +47,7 @@ async def main() -> None:
         timeout=100,
         verify=False,
     )
-    
+
     # Wait for healthy harbor
     print("WAITING FOR HEALTHY HARBOR")
     await wait_until_healthy()
