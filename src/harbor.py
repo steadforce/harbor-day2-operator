@@ -35,18 +35,19 @@ robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
 oidc_client_secret = os.environ.get("OIDC_STATIC_CLIENT_TOKEN")
 oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
 
-client = HarborAsyncClient(
-    url=api_url,
-    username=admin_username,
-    secret=new_admin_password,
-    timeout=100,
-    verify=False,
-)
-
 
 async def main() -> None:
     parse_args()
 
+    global client
+    client = HarborAsyncClient(
+        url=api_url,
+        username=admin_username,
+        secret=new_admin_password,
+        timeout=100,
+        verify=False,
+    )
+    
     # Wait for healthy harbor
     print("WAITING FOR HEALTHY HARBOR")
     await wait_until_healthy()
