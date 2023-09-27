@@ -172,14 +172,17 @@ async def sync_robot_accounts(target_robots: [Robot]):
 
     # Modify existing robots or create new ones
     for target_robot in target_robots:
+        target_robot = Robot(**target_robot)
+        target_robot.secret = os.environ.get(
+            target_robot.name.upper().replace("-", "_")
+        )
         # Modify existing robot
-        if robot_name_prefix + target_robot["name"] in current_robot_names:
+        if robot_name_prefix + target_robot.name in current_robot_names:
             robot_id = current_robot_id[
                 current_robot_names.index(
-                    robot_name_prefix + target_robot["name"]
+                    robot_name_prefix + target_robot.name
                 )
             ]
-            target_robot = Robot(**target_robot)
             target_robot.name = robot_name_prefix + target_robot.name
             print(f'- Syncing robot "{target_robot.name}".')
             await client.update_robot(robot_id=robot_id, robot=target_robot)
@@ -187,7 +190,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
         else:
             print(
                 "- Creating new robot"
-                f" \"{robot_name_prefix + target_robot['name']}\""
+                f' "{robot_name_prefix + target_robot.name}"'
             )
             try:
                 await client.create_robot(robot=target_robot)
