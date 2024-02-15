@@ -1,4 +1,5 @@
-FROM python:3.11-alpine as base
+# Stick to Python 3.11 until Nuitka supports Python 3.12
+FROM python:3.11-alpine@sha256:d1975f2182c9962f5daa1ad935eb092e3e32dce11d8105cb3584a31afc7b451b as base
 ENV PYTHONUNBUFFERED 1
 
 FROM base as builder
@@ -31,5 +32,5 @@ COPY tests/ /tests/
 WORKDIR /tests
 RUN python3 -m unittest discover -v -s .
 
-FROM alpine:3.18.3
+FROM alpine:3.19@sha256:6457d53fb065d6f250e1504b9bc42d5b6c65941d57532c072d929dd0628977d0
 COPY --from=native-builder /install/harbor.bin /usr/local/harbor

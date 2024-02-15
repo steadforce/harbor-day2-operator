@@ -1,9 +1,9 @@
 # harbor-day2-operator
-The harbor day2 operator is for automated managment of existing harbor instances using python harbor-api
+The harbor day2 operator is for automated management of existing harbor instances using python harbor-api
 
 ## Linter
 We have activated linter like hadolint for dockerfiles. Please run
-all the linters like dokumented underneath before checkin of source
+all the linters like documented underneath before checkin of source
 code. Pull requests are only accepted when no linting errors occur.
 
 ### hadolint
