@@ -4,7 +4,7 @@ from enum import Enum
 # API calls to configure harbor:
 # See Harbor api: https://harbor.dev.k8s01.steadforce.com/devcenter-api-2.0
 from harborapi import HarborAsyncClient
-from harborapi.exceptions import NotFound, Unauthorized, Conflict
+from harborapi.exceptions import NotFound, Unauthorized, Conflict, BadRequest
 from harborapi.models import (
     Robot,
     Configurations,
@@ -201,6 +201,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
                     " already present. Manually delete this account to create"
                     " an updated one"
                 )
+            except BadRequest as e:
+                print(f'Bad request permission: {e}')
 
 
 async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
