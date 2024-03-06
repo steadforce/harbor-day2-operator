@@ -187,26 +187,25 @@ async def sync_robot_accounts(target_robots: [Robot]):
             target_robot.name.upper().replace("-", "_")
         )
         # Modify existing robot
+        robot_name = construct_target_robot_name(target_robot)
         if robot_name in current_robot_names:
             robot_id = current_robot_id[
-                current_robot_names.index(
-                    construct_target_robot_name(target_robot)
-                )
+                current_robot_names.index(robot_name)
             ]
-            target_robot.name = construct_target_robot_name(target_robot)
+            target_robot.name = robot_name
             print(f'- Syncing robot "{target_robot.name}".')
             await client.update_robot(robot_id=robot_id, robot=target_robot)
         # Create new robot
         else:
             print(
                 "- Creating new robot"
-                f' "{construct_target_robot_name(target_robot)}"'
+                f' "{robot_name}"'
             )
             try:
                 await client.create_robot(robot=target_robot)
             except Conflict as e:
                 print(
-                    f'''  => "{construct_target_robot_name(target_robot)}"
+                    f'''  => "{robot_name}"
                     Harbor Conflict Error: {e}'''
                 )
             except BadRequest as e:
