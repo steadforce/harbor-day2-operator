@@ -148,7 +148,7 @@ async def sync_registries(target_registries: [Registry]):
             await client.create_registry(registry=target_registry)
 
 
-async def construct_target_robot_name(target_robot: Robot) -> str:
+async def construct_full_robot_name(target_robot: Robot) -> str:
     namespace = target_robot.permissions[0].namespace
     if (namespace := target_robot.permissions[0].namespace) is not '*':
         return f'{robot_name_prefix}{namespace}+{target_robot.name}'
@@ -167,7 +167,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
     # robot account names.
     # To compare against our target robot names, we have to add the prefix
     target_robot_names_with_prefix = [
-        construct_target_robot_name(target_robot)
+        construct_full_robot_name(target_robot)
         for target_robot in target_robots
     ]
 
@@ -187,25 +187,25 @@ async def sync_robot_accounts(target_robots: [Robot]):
             target_robot.name.upper().replace("-", "_")
         )
         # Modify existing robot
-        robot_name = construct_target_robot_name(target_robot)
-        if robot_name in current_robot_names:
+        full_robot_name = construct_full_robot_name(target_robot)
+        if full_robot_name in current_robot_names:
             robot_id = current_robot_id[
-                current_robot_names.index(robot_name)
+                current_robot_names.index(full_robot_name)
             ]
-            target_robot.name = robot_name
+            target_robot.name = full_robot_name
             print(f'- Syncing robot "{target_robot.name}".')
             await client.update_robot(robot_id=robot_id, robot=target_robot)
         # Create new robot
         else:
             print(
                 "- Creating new robot"
-                f' "{robot_name}"'
+                f' "{full_robot_name}"'
             )
             try:
                 await client.create_robot(robot=target_robot)
             except Conflict as e:
                 print(
-                    f'''  => "{robot_name}"
+                    f'''  => "{full_robot_name}"
                     Harbor Conflict Error: {e}'''
                 )
             except BadRequest as e:
