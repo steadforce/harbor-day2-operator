@@ -148,6 +148,13 @@ async def sync_registries(target_registries: [Registry]):
             await client.create_registry(registry=target_registry)
 
 
+async def construct_target_robot_name(target_robot: Robot) -> str:
+    if namespace := target_robot.permissions[0].namespace is not '*':
+        return f'{robot_name_prefix}{namespace}+{target_robot.name}'
+    else:
+        return f'{robot_name_prefix}{target_robot.name}'
+
+
 async def sync_robot_accounts(target_robots: [Robot]):
     current_robots = await client.get_robots()
     current_robot_names = [
@@ -155,10 +162,11 @@ async def sync_robot_accounts(target_robots: [Robot]):
     ]
     current_robot_id = [current_robot.id for current_robot in current_robots]
 
-    # Harbor appends a prefix to all robot account names
+    # Harbor appends a prefix and namespace if present to all
+    # robot account names.
     # To compare against our target robot names, we have to add the prefix
     target_robot_names_with_prefix = [
-        robot_name_prefix + target_robot["name"]
+        construct_target_robot_name(target_robot)
         for target_robot in target_robots
     ]
 
@@ -178,26 +186,26 @@ async def sync_robot_accounts(target_robots: [Robot]):
             target_robot.name.upper().replace("-", "_")
         )
         # Modify existing robot
-        if robot_name_prefix + target_robot.name in current_robot_names:
+        if robot_name in current_robot_names:
             robot_id = current_robot_id[
                 current_robot_names.index(
-                    robot_name_prefix + target_robot.name
+                    construct_target_robot_name(target_robot)
                 )
             ]
-            target_robot.name = robot_name_prefix + target_robot.name
+            target_robot.name = construct_target_robot_name(target_robot)
             print(f'- Syncing robot "{target_robot.name}".')
             await client.update_robot(robot_id=robot_id, robot=target_robot)
         # Create new robot
         else:
             print(
                 "- Creating new robot"
-                f' "{robot_name_prefix + target_robot.name}"'
+                f' "{construct_target_robot_name(target_robot)}"'
             )
             try:
                 await client.create_robot(robot=target_robot)
             except Conflict as e:
                 print(
-                    f'''  => ERROR: "{robot_name_prefix + target_robot.name}"
+                    f'''  => "{construct_target_robot_name(target_robot)}"
                     Harbor Conflict Error: {e}'''
                 )
             except BadRequest as e:
