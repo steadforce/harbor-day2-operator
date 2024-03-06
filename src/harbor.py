@@ -167,7 +167,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
     # robot account names.
     # To compare against our target robot names, we have to add the prefix
     target_robot_names_with_prefix = [
-        construct_full_robot_name(target_robot)
+        await construct_full_robot_name(target_robot)
         for target_robot in target_robots
     ]
 
@@ -187,8 +187,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
             target_robot.name.upper().replace("-", "_")
         )
         # Modify existing robot
-        full_robot_name = construct_full_robot_name(target_robot)
-        print(f'Full robot name: {full_robot_name}')
+        full_robot_name = await construct_full_robot_name(target_robot)
         if full_robot_name in current_robot_names:
             robot_id = current_robot_id[
                 current_robot_names.index(full_robot_name)
@@ -200,13 +199,13 @@ async def sync_robot_accounts(target_robots: [Robot]):
         else:
             print(
                 "- Creating new robot"
-                f' {full_robot_name}'
+                f' "{full_robot_name}"'
             )
             try:
                 await client.create_robot(robot=target_robot)
             except Conflict as e:
                 print(
-                    f'''  => {full_robot_name}
+                    f'''  => "{full_robot_name}"
                     Harbor Conflict Error: {e}'''
                 )
             except BadRequest as e:
