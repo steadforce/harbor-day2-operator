@@ -197,7 +197,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
                 await client.create_robot(robot=target_robot)
             except Conflict as e:
                 print(
-                    f'  => ERROR: "{robot_name_prefix + target_robot.name}", Harbor Conflict Error: {e}'
+                    f'''  => ERROR: "{robot_name_prefix + target_robot.name}"
+                    Harbor Conflict Error: {e}'''
                 )
             except BadRequest as e:
                 print(f'Bad request permission: {e}')
