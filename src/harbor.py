@@ -150,9 +150,9 @@ async def sync_registries(target_registries: [Registry]):
 
 async def construct_full_robot_name(target_robot: Robot) -> str:
     if (namespace := target_robot['permissions'][0]['namespace']) != '*':
-        return f'{robot_name_prefix}{namespace}+{target_robot.name}'
+        return f'{robot_name_prefix}{namespace}+{target_robot['name']}'
     else:
-        return f'{robot_name_prefix}{target_robot.name}'
+        return f'{robot_name_prefix}{target_robot['name']}'
 
 
 async def sync_robot_accounts(target_robots: [Robot]):
