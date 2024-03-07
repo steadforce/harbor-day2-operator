@@ -188,6 +188,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
             target_robot.name.upper().replace("-", "_")
         )
         # Modify existing robot
+        print(full_robot_name)
+        print(current_robot_names)
         if full_robot_name in current_robot_names:
             robot_id = current_robot_id[
                 current_robot_names.index(full_robot_name)
