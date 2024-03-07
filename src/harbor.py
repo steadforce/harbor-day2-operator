@@ -149,7 +149,6 @@ async def sync_registries(target_registries: [Registry]):
 
 
 async def construct_full_robot_name(target_robot: Robot) -> str:
-    namespace = target_robot.permissions[0].namespace
     if (namespace := target_robot.permissions[0].namespace) is not '*':
         return f'{robot_name_prefix}{namespace}+{target_robot.name}'
     else:
@@ -188,6 +187,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
         )
         # Modify existing robot
         full_robot_name = await construct_full_robot_name(target_robot)
+        print(f'Full robot name: {full_robot_name}')
         if full_robot_name in current_robot_names:
             robot_id = current_robot_id[
                 current_robot_names.index(full_robot_name)
