@@ -156,8 +156,23 @@ async def construct_full_robot_name(target_robot: Robot) -> str:
 
 
 async def sync_robot_accounts(target_robots: [Robot]):
+    # Get all system level robots
     current_system_robots = await client.get_robots(query='Level=system')
-    current_project_robots = await client.get_robots(query='Level=project')
+
+    # Get all project level robots
+    current_projects = await client.get_projects()
+    current_project_ids = [
+        current_project.project_id
+        for current_project in current_projects
+    ]
+    current_projects_robots = []
+    for current_project_id in current_project_ids:
+        project_robots = await client.get_robots(
+            query=f'Level=project,ProjectID={current_project_id}'
+        )
+        current_projects_robots += project_robots
+
+    # Combine system and project robots to get a list of all robots
     current_robots = current_system_robots + current_project_robots
     current_robot_names = [
         current_robot.name for current_robot in current_robots
