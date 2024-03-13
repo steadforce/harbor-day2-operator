@@ -156,7 +156,7 @@ async def construct_full_robot_name(target_robot: Robot) -> str:
 
 
 async def sync_robot_accounts(target_robots: [Robot]):
-    current_robots = await client.get_robots()
+    current_robots = await client.get_robots(query='Level=*')
     current_robot_names = [
         current_robot.name for current_robot in current_robots
     ]
