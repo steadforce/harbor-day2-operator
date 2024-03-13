@@ -173,7 +173,7 @@ async def sync_robot_accounts(target_robots: [Robot]):
         current_projects_robots += project_robots
 
     # Combine system and project robots to get a list of all robots
-    current_robots = current_system_robots + current_project_robots
+    current_robots = current_system_robots + current_projects_robots
     current_robot_names = [
         current_robot.name for current_robot in current_robots
     ]
