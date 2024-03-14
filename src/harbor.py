@@ -35,6 +35,9 @@ robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
 oidc_client_secret = os.environ.get("OIDC_STATIC_CLIENT_TOKEN")
 oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
 
+# Harbor pagination number of results per request
+pagination_page_size = 1000
+
 
 async def main() -> None:
     parse_args()
@@ -111,7 +114,9 @@ async def sync_harbor_config(harbor_config: Configurations):
 
 
 async def sync_registries(target_registries: [Registry]):
-    current_registries = await client.get_registries()
+    current_registries = await client.get_registries(
+        page_size=pagination_page_size
+    )
     current_registry_names = [
         current_registry.name for current_registry in current_registries
     ]
@@ -157,10 +162,15 @@ async def construct_full_robot_name(target_robot: Robot) -> str:
 
 async def sync_robot_accounts(target_robots: [Robot]):
     # Get all system level robots
-    current_system_robots = await client.get_robots(query='Level=system')
+    current_system_robots = await client.get_robots(
+        query='Level=system',
+        page_size=pagination_page_size
+    )
 
     # Get all project level robots
-    current_projects = await client.get_projects()
+    current_projects = await client.get_projects(
+        page_size=pagination_page_size
+    )
     current_project_ids = [
         current_project.project_id
         for current_project in current_projects
@@ -168,7 +178,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
     current_projects_robots = []
     for current_project_id in current_project_ids:
         project_robots = await client.get_robots(
-            query=f'Level=project,ProjectID={current_project_id}'
+            query=f'Level=project,ProjectID={current_project_id}',
+            page_size=pagination_page_size
         )
         current_projects_robots += project_robots
 
@@ -236,7 +247,8 @@ async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
 
     target_policies = policies
     current_policies = await client.get_webhook_policies(
-        project_name_or_id=project_name
+        project_name_or_id=project_name,
+        page_size=pagination_page_size
     )
     current_policy_names = [
         current_policy.name for current_policy in current_policies
@@ -282,7 +294,9 @@ async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
 
 
 async def sync_projects(target_projects: [Project]) -> None:
-    current_projects = await client.get_projects()
+    current_projects = await client.get_projects(
+        page_size=pagination_page_size
+    )
     current_project_names = [
         current_project.name for current_project in current_projects
     ]
@@ -294,7 +308,8 @@ async def sync_projects(target_projects: [Project]) -> None:
     for current_project in current_projects:
         if current_project.name not in target_project_names:
             repositories = await client.get_repositories(
-                project_name=current_project.name
+                project_name=current_project.name,
+                page_size=pagination_page_size
             )
             if len(repositories) == 0:
                 print(
@@ -329,7 +344,8 @@ async def sync_project_members(project) -> None:
     print(f'PROJECT: "{project_name}"')
 
     current_members = await client.get_project_members(
-        project_name_or_id=project_name
+        project_name_or_id=project_name,
+        page_size=pagination_page_size
     )
     target_members = []
     for project_role in ProjectRole:
