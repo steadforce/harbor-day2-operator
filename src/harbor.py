@@ -36,7 +36,7 @@ oidc_client_secret = os.environ.get("OIDC_STATIC_CLIENT_TOKEN")
 oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
 
 # Harbor pagination number of results per request
-pagination_page_size = 1000
+pagination_page_size = 100
 
 
 async def main() -> None:
