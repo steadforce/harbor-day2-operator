@@ -128,7 +128,7 @@ async def sync_retention_policies(retention_policies: [RetentionPolicy]):
             )
             if retention_policy != current_retention_policy:
                 retention_policies_to_update.append(retention_policy)
-        except NotFound e:
+        except NotFound:
             retention_policies_to_create.append(retention_policy)
     # Update retention policies
     for retention_policy_to_update in retention_policies_to_update:
