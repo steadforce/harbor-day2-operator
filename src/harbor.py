@@ -12,6 +12,7 @@ from harborapi.models import (
     WebhookPolicy,
     Project,
     ProjectMemberEntity,
+    RetentionPolicy,
 )
 import argparse
 import json
@@ -104,6 +105,41 @@ async def main() -> None:
     for webhook in webhooks_config:
         await sync_webhook(**webhook)
     print("")
+
+    # Sync retention policies
+    print('SYNCING RETENTION POLICIES')
+    retention_policies_config = json.load(
+        open(config_folder_path + "/retention-policies.json")
+    )
+    await sync_retention_policies(
+        retention_policies=retention_policies_config
+    )
+
+
+async def sync_retention_policies(retention_policies: [RetentionPolicy]):
+    retention_policies_to_update = []
+    retention_policies_to_create = []
+    # Check for existing retention policies
+    for retention_policy in retention_policies:
+        retention_id = retention_policy.id
+        try:
+            current_retention_policy = await client.get_retention_policy(
+                retention_id
+            )
+            if retention_policy != current_retention_policy:
+                retention_policies_to_update.append(retention_policy)
+        except NotFound:
+            retention_policies_to_create.append(retention_policy)
+    # Update retention policies
+    for retention_policy_to_update in retention_policies_to_update:
+        retention_id = retention_policy_to_update.id
+        await client.update_retention_policy(
+            retention_id,
+            retention_policy_to_update
+        )
+    # Create retention policies
+    for retention_policy_to_create in retention_policies_to_create:
+        await client.create_retention_policy(retention_policy_to_create)
 
 
 async def sync_harbor_config(harbor_config: Configurations):
