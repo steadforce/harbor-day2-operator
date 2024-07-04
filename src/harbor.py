@@ -12,6 +12,7 @@ from harborapi.models import (
     WebhookPolicy,
     Project,
     ProjectMemberEntity,
+    Schedule
 )
 import argparse
 import json
@@ -103,6 +104,12 @@ async def main() -> None:
     webhooks_config = json.load(open(config_folder_path + "/webhooks.json"))
     for webhook in webhooks_config:
         await sync_webhook(**webhook)
+    print("")
+
+    # Sync purge jobs
+    print("SYNCING PURGE JOBS")
+    purge_jobs_config = json.load(open(config_folder_path + "/purge-jobs.json"))
+    await sync_purge_jobs(purge_jobs=purge_jobs_config)
     print("")
 
 
@@ -326,6 +333,10 @@ async def sync_projects(target_projects: [Project]) -> None:
         else:
             print(f'- Creating new project "{target_project["project_name"]}"')
             await client.create_project(project=target_project)
+
+async def sync_purge_jobs(purge_jobs: [Schedule]) -> None:
+    for purge_job in purge_jobs:
+        await client.create_purge_job_schedule(purge_job)
 
 
 async def sync_project_members(project) -> None:
