@@ -147,7 +147,7 @@ Definition of webhooks.
                 }
             ],
             "enabled": true
-        }
+        ]
     }
 ]
 ```
