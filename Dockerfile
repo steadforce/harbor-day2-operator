@@ -32,5 +32,5 @@ COPY tests/ /tests/
 WORKDIR /tests
 RUN python3 -m unittest discover -v -s .
 
-FROM alpine:3.19@sha256:6457d53fb065d6f250e1504b9bc42d5b6c65941d57532c072d929dd0628977d0
+FROM alpine:3.19@sha256:af4785ccdbcd5cde71bfd5b93eabd34250b98651f19fe218c91de6c8d10e21c5
 COPY --from=native-builder /install/harbor.bin /usr/local/harbor
