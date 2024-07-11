@@ -81,7 +81,7 @@ All purge jobs and their schedules.
 ```json
 [
     {
-        "paramters": {
+        "parameters": {
             "audit_retention_hour": 720,
             "dry_run": false,
             "include_operations": "create,delete,pull"
