@@ -20,13 +20,24 @@ code. Pull requests are only accepted when no linting errors occur.
 
 ## Configuration Files
 
+The configuration files are added externally and referenced by the harbor-day2-operator. The configuration files contain all desired settings in json format.
+
 ### configurations.json
 
-General configurations including `auth_mode`, `oidc_auto_onboard` and more oidc settings.
+General configurations for auth and oidc.
 
 ```json
 {
-    "setting": "value"
+    "auth_mode": "oidc_auth",
+    "oidc_auto_onboard": true,
+    "oidc_client_id": "harbor",
+    "oidc_client_secret": "OVERWRITTEN_BY_ENV_VARIABLE",
+    "oidc_endpoint": "OVERWRITTEN_BY_ENV_VARIABLE",
+    "oidc_groups_claim": "group",
+    "oidc_name": "harbor",
+    "oidc_scope": "openid,offline_access,email,groups,profile",
+    "oidc_user_claim": "preferred_username",
+    "oidc_verify_cert": false
 }
 ```
 
@@ -39,7 +50,7 @@ A list of projects and team members with their respective roles.
     {
         "project_name": "Project 1",
         "admin": [],
-        "developer": [],
+        "developer": ["firstname.lastname"],
         "guest": [],
         "maintainer": []
     }
@@ -48,7 +59,7 @@ A list of projects and team members with their respective roles.
 
 ### projects.json
 
-A list of projects and metadata.
+A list of projects and their metadata.
 
 ```json
 [
@@ -65,7 +76,7 @@ A list of projects and metadata.
 
 ### purge-jobs.json
 
-All purge jobs and their schedule.
+All purge jobs and their schedules.
 
 ```json
 [
