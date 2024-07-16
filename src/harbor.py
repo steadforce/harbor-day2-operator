@@ -191,6 +191,18 @@ async def construct_full_robot_name(target_robot: Robot) -> str:
         return f'{robot_name_prefix}{target_robot["name"]}'
 
 
+async def set_robot_secret(robot_name: str, robot_id: int):
+    secret = os.environ.get(
+        robot_name.upper().replace("-", "_")
+    )
+    if secret:
+        print(f'Set secret for {robot_name}')
+        await client.refresh_robot_secret(robot_id, secret)
+    else:
+        print(f'WARN: No secret found for {robot_name}')
+
+
+
 async def sync_robot_accounts(target_robots: [Robot]):
     # Get all system level robots
     current_system_robots = await client.get_robots(
@@ -241,17 +253,16 @@ async def sync_robot_accounts(target_robots: [Robot]):
         full_robot_name = await construct_full_robot_name(target_robot)
         print(f'Full robot name: {full_robot_name}')
         target_robot = Robot(**target_robot)
-        target_robot.secret = os.environ.get(
-            target_robot.name.upper().replace("-", "_")
-        )
         # Modify existing robot
         if full_robot_name in current_robot_names:
             robot_id = current_robot_id[
                 current_robot_names.index(full_robot_name)
             ]
+            short_robot_name = target_robot.name
             target_robot.name = full_robot_name
             print(f'- Syncing robot "{target_robot.name}".')
             await client.update_robot(robot_id=robot_id, robot=target_robot)
+            await set_robot_secret(short_robot_name, robot_id)
         # Create new robot
         else:
             print(
@@ -259,7 +270,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
                 f' "{full_robot_name}"'
             )
             try:
-                await client.create_robot(robot=target_robot)
+                created_robot = await client.create_robot(robot=target_robot)
+                await set_robot_secret(target_robot.name, created_robot.id)
             except Conflict as e:
                 print(
                     f'''  => "{full_robot_name}"
