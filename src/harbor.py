@@ -202,7 +202,6 @@ async def set_robot_secret(robot_name: str, robot_id: int):
         print(f'WARN: No secret found for {robot_name}')
 
 
-
 async def sync_robot_accounts(target_robots: [Robot]):
     # Get all system level robots
     current_system_robots = await client.get_robots(
