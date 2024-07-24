@@ -1,5 +1,5 @@
 # Stick to Python 3.11 until Nuitka supports Python 3.12
-FROM python:3.11-alpine@sha256:d1975f2182c9962f5daa1ad935eb092e3e32dce11d8105cb3584a31afc7b451b as base
+FROM python:3.12-alpine@sha256:7f15e22f496c65cffbbac5e30e7e98d60f3e3b9cc5ee5d51cf3c55ed604787c8 as base
 ENV PYTHONUNBUFFERED 1
 
 FROM base as builder
