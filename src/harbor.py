@@ -446,7 +446,7 @@ async def wait_until_healthy() -> None:
         sleep(5)
 
 
-async def sync_admin_password() -> None:
+async def update_password() -> None:
     try:
         old_password_client = HarborAsyncClient(
             url=api_url,
@@ -468,6 +468,12 @@ async def sync_admin_password() -> None:
             "  old admin password password"
         )
 
+
+async def sync_admin_password() -> None:
+    try:
+        admin = await client.get_current_user()
+    except Unauthorized:
+        update_password()
 
 def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
     """Returns member id of username or None if username is not in members"""
