@@ -475,6 +475,7 @@ async def sync_admin_password() -> None:
     except Unauthorized:
         update_password()
 
+
 def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
     """Returns member id of username or None if username is not in members"""
     for member in members:
