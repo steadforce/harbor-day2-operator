@@ -455,7 +455,7 @@ async def update_password() -> None:
             timeout=10,
             verify=False,
         )
-        admin = await old_password_client.get_current_user()
+        client = await old_password_client.get_current_user()
         await old_password_client.set_user_password(
             user_id=admin.user_id,
             old_password=old_admin_password,
