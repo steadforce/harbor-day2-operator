@@ -12,7 +12,6 @@ from harborapi.models import (
     WebhookPolicy,
     Project,
     ProjectMemberEntity,
-    purgeaudit
     Schedule,
     RetentionPolicy
 )
