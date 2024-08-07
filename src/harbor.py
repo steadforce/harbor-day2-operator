@@ -61,59 +61,86 @@ async def main() -> None:
 
     # Sync harbor configuration
     print("SYNCING HARBOR CONFIGURATION")
-    harbor_config = json.load(
-        open(config_folder_path + "/configurations.json")
-    )
-    harbor_config = Configurations(**harbor_config)
-    harbor_config.oidc_client_secret = oidc_client_secret
-    harbor_config.oidc_endpoint = oidc_endpoint
-    await sync_harbor_config(harbor_config=harbor_config)
+    path = config_folder_path + "/configurations.json"
+    if os.path.exists(path):
+        harbor_config = json.load(open(path))
+        harbor_config = Configurations(**harbor_config)
+        harbor_config.oidc_client_secret = oidc_client_secret
+        harbor_config.oidc_endpoint = oidc_endpoint
+        await sync_harbor_config(harbor_config=harbor_config)
+    else:
+        print("File configurations.json not found")
+        print("Skipping harbor configuration")
     print("")
 
     # Sync registries
     print("SYNCING REGISTRIES")
-    registries_config = json.load(
-        open(config_folder_path + "/registries.json")
-    )
-    await sync_registries(target_registries=registries_config)
+    path = config_folder_path + "/registries.json"
+    if os.path.exists(path):
+        registries_config = json.load(open(path))
+        await sync_registries(target_registries=registries_config)
+    else:
+        print("File registries.json not found")
+        print("Skipping syncing registries")
     print("")
 
     # Sync projects
     print("SYNCING PROJECTS")
-    projects_config = json.load(open(config_folder_path + "/projects.json"))
-    await sync_projects(target_projects=projects_config)
+    path = config_folder_path + "/projects.json"
+    if os.path.exists(path):
+        projects_config = json.load(open(path))
+        await sync_projects(target_projects=projects_config)
+    else:
+        print("File projects.json not found")
+        print("Skipping syncing projects")
     print("")
 
     # Sync project members and their roles
     print("SYNCING PROJECT MEMBERS")
-    project_members_config = json.load(
-        open(config_folder_path + "/project-members.json")
-    )
-    for project in project_members_config:
-        await sync_project_members(project=project)
+    path = config_folder_path + "/project-members.json"
+    if os.path.exists(path):
+        project_members_config = json.load(open(path))
+        for project in project_members_config:
+            await sync_project_members(project=project)
+    else:
+        print("File project-members.json not found")
+        print("Skipping syncing project members")
     print("")
 
     # Sync robot accounts
     print("SYNCING ROBOT ACCOUNTS")
-    robot_config = json.load(open(config_folder_path + "/robots.json"))
-    await sync_robot_accounts(target_robots=robot_config)
+    path = config_folder_path + "/robots.json"
+    if os.path.exists(path):
+        robot_config = json.load(open(path))
+        await sync_robot_accounts(target_robots=robot_config)
+    else:
+        print("File robots.json not found")
+        print("Skipping syncing robot accounts")
     print("")
 
     # Sync webhooks
     print("SYNCING WEBHOOKS")
-    webhooks_config = json.load(open(config_folder_path + "/webhooks.json"))
-    for webhook in webhooks_config:
-        await sync_webhook(**webhook)
+    path = config_folder_path + "/webhooks.json"
+    if os.path.exists(path):
+        webhooks_config = json.load(open(path))
+        for webhook in webhooks_config:
+            await sync_webhook(**webhook)
+    else:
+        print("File webhooks.json not found")
+        print("Skipping syncing webhooks")
     print("")
 
     # Sync retention policies
     print('SYNCING RETENTION POLICIES')
-    retention_policies_config = json.load(
-        open(config_folder_path + "/retention-policies.json")
-    )
-    await sync_retention_policies(
-        retention_policies=retention_policies_config
-    )
+    path = config_folder_path + "/retention-policies.json"
+    if os.path.exists(path):
+        retention_policies_config = json.load(open(path))
+        await sync_retention_policies(
+            retention_policies=retention_policies_config
+        )
+    else:
+        print("File retention-policies.json not found")
+        print("Skipping syncing retention policies")
 
 
 async def sync_retention_policies(retention_policies: [RetentionPolicy]):
