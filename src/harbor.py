@@ -12,7 +12,8 @@ from harborapi.models import (
     WebhookPolicy,
     Project,
     ProjectMemberEntity,
-    RetentionPolicy,
+    Schedule,
+    RetentionPolicy
 )
 import argparse
 import json
@@ -128,6 +129,17 @@ async def main() -> None:
     else:
         print("File webhooks.json not found")
         print("Skipping syncing webhooks")
+    print("")
+
+    # Sync purge jobs
+    print("SYNCING PURGE JOBS")
+    path = config_folder_path + "/purge-jobs.json"
+    if os.path.exists(path):
+        purge_jobs_config = json.load(open(path))
+        await sync_purge_jobs(purge_jobs=purge_jobs_config)
+    else:
+        print("File purge-jobs.json not found")
+        print("Skipping syncing purge jobs")
     print("")
 
     # Sync retention policies
@@ -400,6 +412,11 @@ async def sync_projects(target_projects: [Project]) -> None:
         else:
             print(f'- Creating new project "{target_project["project_name"]}"')
             await client.create_project(project=target_project)
+
+
+async def sync_purge_jobs(purge_jobs: [Schedule]) -> None:
+    for purge_job in purge_jobs:
+        await client.create_purge_job_schedule(purge_job)
 
 
 async def sync_project_members(project) -> None:
