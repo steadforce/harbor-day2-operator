@@ -455,8 +455,6 @@ async def update_password() -> None:
             timeout=10,
             verify=False,
         )
-        client = await old_password_client.get_current_user()
-        print("set new client")
         await old_password_client.set_user_password(
             user_id=admin.user_id,
             old_password=old_admin_password,
@@ -477,7 +475,7 @@ async def sync_admin_password() -> None:
         print("succeeded getting current user")
     except Unauthorized:
         print("failed getting current user")
-        update_password()
+        await update_password()
 
 
 def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
