@@ -108,10 +108,13 @@ async def main() -> None:
 
     # Sync purge jobs
     print("SYNCING PURGE JOBS")
-    purge_jobs_config = json.load(
-        open(config_folder_path + "/purge-jobs.json")
-    )
-    await sync_purge_jobs(purge_jobs=purge_jobs_config)
+    path = config_folder_path + "/purge-jobs.json"
+    if os.path.exists(path):
+        purge_jobs_config = json.load(open(path))
+        await sync_purge_jobs(purge_jobs=purge_jobs_config)
+    else:
+        print("File purge-jobs.json not found")
+        print("Skipping syncing purge jobs")
     print("")
 
 
