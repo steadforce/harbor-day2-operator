@@ -55,7 +55,7 @@ async def main() -> None:
     print("")
 
     # Update admin password
-    print("UPDATE ADMIN PASSWROD")
+    print("UPDATE ADMIN PASSWORD")
     await sync_admin_password()
     print("")
 
@@ -456,6 +456,7 @@ async def update_password() -> None:
             verify=False,
         )
         client = await old_password_client.get_current_user()
+        print("set new client")
         await old_password_client.set_user_password(
             user_id=admin.user_id,
             old_password=old_admin_password,
@@ -471,8 +472,11 @@ async def update_password() -> None:
 
 async def sync_admin_password() -> None:
     try:
+        print("try to get current user")
         admin = await client.get_current_user()
+        print("succeeded getting current user")
     except Unauthorized:
+        print("failed getting current user")
         update_password()
 
 
