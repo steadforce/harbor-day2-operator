@@ -12,7 +12,9 @@ from harborapi.models import (
     WebhookPolicy,
     Project,
     ProjectMemberEntity,
-    Schedule
+    purgeaudit
+    Schedule,
+    RetentionPolicy
 )
 import argparse
 import json
@@ -61,49 +63,73 @@ async def main() -> None:
 
     # Sync harbor configuration
     print("SYNCING HARBOR CONFIGURATION")
-    harbor_config = json.load(
-        open(config_folder_path + "/configurations.json")
-    )
-    harbor_config = Configurations(**harbor_config)
-    harbor_config.oidc_client_secret = oidc_client_secret
-    harbor_config.oidc_endpoint = oidc_endpoint
-    await sync_harbor_config(harbor_config=harbor_config)
+    path = config_folder_path + "/configurations.json"
+    if os.path.exists(path):
+        harbor_config = json.load(open(path))
+        harbor_config = Configurations(**harbor_config)
+        harbor_config.oidc_client_secret = oidc_client_secret
+        harbor_config.oidc_endpoint = oidc_endpoint
+        await sync_harbor_config(harbor_config=harbor_config)
+    else:
+        print("File configurations.json not found")
+        print("Skipping harbor configuration")
     print("")
 
     # Sync registries
     print("SYNCING REGISTRIES")
-    registries_config = json.load(
-        open(config_folder_path + "/registries.json")
-    )
-    await sync_registries(target_registries=registries_config)
+    path = config_folder_path + "/registries.json"
+    if os.path.exists(path):
+        registries_config = json.load(open(path))
+        await sync_registries(target_registries=registries_config)
+    else:
+        print("File registries.json not found")
+        print("Skipping syncing registries")
     print("")
 
     # Sync projects
     print("SYNCING PROJECTS")
-    projects_config = json.load(open(config_folder_path + "/projects.json"))
-    await sync_projects(target_projects=projects_config)
+    path = config_folder_path + "/projects.json"
+    if os.path.exists(path):
+        projects_config = json.load(open(path))
+        await sync_projects(target_projects=projects_config)
+    else:
+        print("File projects.json not found")
+        print("Skipping syncing projects")
     print("")
 
     # Sync project members and their roles
     print("SYNCING PROJECT MEMBERS")
-    project_members_config = json.load(
-        open(config_folder_path + "/project-members.json")
-    )
-    for project in project_members_config:
-        await sync_project_members(project=project)
+    path = config_folder_path + "/project-members.json"
+    if os.path.exists(path):
+        project_members_config = json.load(open(path))
+        for project in project_members_config:
+            await sync_project_members(project=project)
+    else:
+        print("File project-members.json not found")
+        print("Skipping syncing project members")
     print("")
 
     # Sync robot accounts
     print("SYNCING ROBOT ACCOUNTS")
-    robot_config = json.load(open(config_folder_path + "/robots.json"))
-    await sync_robot_accounts(target_robots=robot_config)
+    path = config_folder_path + "/robots.json"
+    if os.path.exists(path):
+        robot_config = json.load(open(path))
+        await sync_robot_accounts(target_robots=robot_config)
+    else:
+        print("File robots.json not found")
+        print("Skipping syncing robot accounts")
     print("")
 
     # Sync webhooks
     print("SYNCING WEBHOOKS")
-    webhooks_config = json.load(open(config_folder_path + "/webhooks.json"))
-    for webhook in webhooks_config:
-        await sync_webhook(**webhook)
+    path = config_folder_path + "/webhooks.json"
+    if os.path.exists(path):
+        webhooks_config = json.load(open(path))
+        for webhook in webhooks_config:
+            await sync_webhook(**webhook)
+    else:
+        print("File webhooks.json not found")
+        print("Skipping syncing webhooks")
     print("")
 
     # Sync purge jobs
@@ -116,6 +142,44 @@ async def main() -> None:
         print("File purge-jobs.json not found")
         print("Skipping syncing purge jobs")
     print("")
+
+    # Sync retention policies
+    print('SYNCING RETENTION POLICIES')
+    path = config_folder_path + "/retention-policies.json"
+    if os.path.exists(path):
+        retention_policies_config = json.load(open(path))
+        await sync_retention_policies(
+            retention_policies=retention_policies_config
+        )
+    else:
+        print("File retention-policies.json not found")
+        print("Skipping syncing retention policies")
+
+
+async def sync_retention_policies(retention_policies: [RetentionPolicy]):
+    retention_policies_to_update = []
+    retention_policies_to_create = []
+    # Check for existing retention policies
+    for retention_policy in retention_policies:
+        retention_id = retention_policy.id
+        try:
+            current_retention_policy = await client.get_retention_policy(
+                retention_id
+            )
+            if retention_policy != current_retention_policy:
+                retention_policies_to_update.append(retention_policy)
+        except NotFound:
+            retention_policies_to_create.append(retention_policy)
+    # Update retention policies
+    for retention_policy_to_update in retention_policies_to_update:
+        retention_id = retention_policy_to_update.id
+        await client.update_retention_policy(
+            retention_id,
+            retention_policy_to_update
+        )
+    # Create retention policies
+    for retention_policy_to_create in retention_policies_to_create:
+        await client.create_retention_policy(retention_policy_to_create)
 
 
 async def sync_harbor_config(harbor_config: Configurations):
@@ -165,6 +229,17 @@ async def construct_full_robot_name(target_robot: Robot) -> str:
         return f'{robot_name_prefix}{namespace}+{target_robot["name"]}'
     else:
         return f'{robot_name_prefix}{target_robot["name"]}'
+
+
+async def set_robot_secret(robot_name: str, robot_id: int):
+    secret = os.environ.get(
+        robot_name.upper().replace("-", "_")
+    )
+    if secret:
+        print(f'Set secret for {robot_name}')
+        await client.refresh_robot_secret(robot_id, secret)
+    else:
+        print(f'WARN: No secret found for {robot_name}')
 
 
 async def sync_robot_accounts(target_robots: [Robot]):
@@ -217,17 +292,16 @@ async def sync_robot_accounts(target_robots: [Robot]):
         full_robot_name = await construct_full_robot_name(target_robot)
         print(f'Full robot name: {full_robot_name}')
         target_robot = Robot(**target_robot)
-        target_robot.secret = os.environ.get(
-            target_robot.name.upper().replace("-", "_")
-        )
         # Modify existing robot
         if full_robot_name in current_robot_names:
             robot_id = current_robot_id[
                 current_robot_names.index(full_robot_name)
             ]
+            short_robot_name = target_robot.name
             target_robot.name = full_robot_name
             print(f'- Syncing robot "{target_robot.name}".')
             await client.update_robot(robot_id=robot_id, robot=target_robot)
+            await set_robot_secret(short_robot_name, robot_id)
         # Create new robot
         else:
             print(
@@ -235,7 +309,8 @@ async def sync_robot_accounts(target_robots: [Robot]):
                 f' "{full_robot_name}"'
             )
             try:
-                await client.create_robot(robot=target_robot)
+                created_robot = await client.create_robot(robot=target_robot)
+                await set_robot_secret(target_robot.name, created_robot.id)
             except Conflict as e:
                 print(
                     f'''  => "{full_robot_name}"
