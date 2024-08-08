@@ -448,6 +448,7 @@ async def wait_until_healthy() -> None:
 
 async def update_password() -> None:
     try:
+        print("Updating password")
         old_password_client = HarborAsyncClient(
             url=api_url,
             username=admin_username,
@@ -471,11 +472,8 @@ async def update_password() -> None:
 
 async def sync_admin_password() -> None:
     try:
-        print("try to get current user")
-        admin = await client.get_current_user()
-        print("succeeded getting current user")
+        await client.get_current_user()
     except Unauthorized:
-        print("failed getting current user")
         await update_password()
 
 
