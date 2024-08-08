@@ -55,7 +55,7 @@ async def main() -> None:
     print("")
 
     # Update admin password
-    print("UPDATE ADMIN PASSWROD")
+    print("UPDATE ADMIN PASSWORD")
     await sync_admin_password()
     print("")
 
@@ -473,8 +473,9 @@ async def wait_until_healthy() -> None:
         sleep(5)
 
 
-async def sync_admin_password() -> None:
+async def update_password() -> None:
     try:
+        print("Updating password")
         old_password_client = HarborAsyncClient(
             url=api_url,
             username=admin_username,
@@ -494,6 +495,13 @@ async def sync_admin_password() -> None:
             "- Admin password remains unchanged since it is does not match the"
             "  old admin password password"
         )
+
+
+async def sync_admin_password() -> None:
+    try:
+        await client.get_current_user()
+    except Unauthorized:
+        await update_password()
 
 
 def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
