@@ -465,8 +465,8 @@ async def update_password() -> None:
         print("- Updated admin password")
     except Unauthorized:
         print(
-            "- Admin password remains unchanged since it is does not match the"
-            "  old admin password password"
+            "  => ERROR: Unable to change the admin password."
+            "  Neither the old nor the new password are correct."
         )
 
 
