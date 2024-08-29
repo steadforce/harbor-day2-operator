@@ -89,24 +89,22 @@ A list of projects and their metadata.
 ]
 ```
 
-### purge-jobs.json
+### purge-job-schedule.json
 
-All purge jobs and their schedules.
+The schedule of the purge job, there can always only be one.
 
 ```json
-[
-    {
-        "parameters": {
-            "audit_retention_hour": 720,
-            "dry_run": false,
-            "include_operations": "create,delete,pull"
-        },
-        "schedule": {
-            "cron": "0 0 0 * * *",
-            "type": "daily"
-        }
+{
+    "parameters": {
+        "audit_retention_hour": 720,
+        "dry_run": false,
+        "include_operations": "create,delete,pull"
+    },
+    "schedule": {
+        "cron": "0 0 0 * * *",
+        "type": "Custom"
     }
-]
+}
 ```
 
 ### registries.json

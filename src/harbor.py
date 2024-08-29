@@ -133,13 +133,13 @@ async def main() -> None:
 
     # Sync purge jobs
     print("SYNCING PURGE JOBS")
-    path = config_folder_path + "/purge-jobs.json"
+    path = config_folder_path + "/purge-job-schedule.json"
     if os.path.exists(path):
         purge_jobs_config = json.load(open(path))
-        await sync_purge_jobs(purge_jobs=purge_jobs_config)
+        await sync_purge_job_schedule(purge_job_schedule=purge_jobs_config)
     else:
-        print("File purge-jobs.json not found")
-        print("Skipping syncing purge jobs")
+        print("File purge-job-schedule.json not found")
+        print("Skipping syncing purge job schedule")
     print("")
 
     # Sync retention policies
@@ -153,6 +153,15 @@ async def main() -> None:
     else:
         print("File retention-policies.json not found")
         print("Skipping syncing retention policies")
+
+
+async def sync_purge_job_schedule(purge_job_schedule: Schedule) -> None:
+    if await client.get_purge_job_schedule() is not None:
+        print("Updating purge job schedule")
+        await client.update_purge_job_schedule(purge_job_schedule)
+    else:
+        print("Creating purge job schedule")
+        await client.create_purge_job_schedule(purge_job_schedule)
 
 
 async def sync_retention_policies(retention_policies: [RetentionPolicy]):
@@ -412,11 +421,6 @@ async def sync_projects(target_projects: [Project]) -> None:
         else:
             print(f'- Creating new project "{target_project["project_name"]}"')
             await client.create_project(project=target_project)
-
-
-async def sync_purge_jobs(purge_jobs: [Schedule]) -> None:
-    for purge_job in purge_jobs:
-        await client.create_purge_job_schedule(purge_job)
 
 
 async def sync_project_members(project) -> None:
