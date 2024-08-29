@@ -107,6 +107,23 @@ The schedule of the purge job, there can always only be one.
 }
 ```
 
+### garbage-collection-schedule.json
+
+The schedule of the purge job, there can always only be one.
+
+```json
+{
+    "parameters": {
+        "delete_untagged": true,
+        "workers": 1
+    },
+    "schedule": {
+        "cron": "0 0 0 * * *",
+        "type": "Custom"
+    }
+}
+```
+
 ### registries.json
 
 All information about registries.

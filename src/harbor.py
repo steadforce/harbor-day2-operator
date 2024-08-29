@@ -131,8 +131,8 @@ async def main() -> None:
         print("Skipping syncing webhooks")
     print("")
 
-    # Sync purge jobs
-    print("SYNCING PURGE JOBS")
+    # Sync purge job schedule
+    print("SYNCING PURGE JOB SCHEDULE")
     path = config_folder_path + "/purge-job-schedule.json"
     if os.path.exists(path):
         purge_jobs_config = json.load(open(path))
@@ -140,6 +140,19 @@ async def main() -> None:
     else:
         print("File purge-job-schedule.json not found")
         print("Skipping syncing purge job schedule")
+    print("")
+
+    # Sync garbage collection schedule
+    print("SYNCING GARBAGE COLLECTION SCHEDULE")
+    path = config_folder_path + "/garbage-collection-schedule.json"
+    if os.path.exists(path):
+        garbage_collection_config = json.load(open(path))
+        await sync_garbage_collection_schedule(
+            garbage_collection_schedule=garbage_collection_config
+        )
+    else:
+        print("File garbage-collection-schedule.json not found")
+        print("Skipping syncing garbage collection schedule")
     print("")
 
     # Sync retention policies
@@ -153,6 +166,17 @@ async def main() -> None:
     else:
         print("File retention-policies.json not found")
         print("Skipping syncing retention policies")
+
+
+async def sync_garbage_collection_schedule(
+    garbage_collection_schedule: Schedule
+) -> None:
+    if await client.get_gc_schedule() is not None:
+        print("Updating garbage collection schedule")
+        await client.update_gc_schedule(purge_job_schedule)
+    else:
+        print("Creating garbage collection schedule")
+        await client.create_gc_schedule(purge_job_schedule)
 
 
 async def sync_purge_job_schedule(purge_job_schedule: Schedule) -> None:
