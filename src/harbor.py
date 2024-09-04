@@ -175,7 +175,7 @@ async def sync_garbage_collection_schedule(
         gc_schedule = await client.get_gc_schedule()
         print("Updating garbage collection schedule")
         await client.update_gc_schedule(garbage_collection_schedule)
-    except:
+    except Exception as e:
         print("Creating garbage collection schedule")
         await client.create_gc_schedule(garbage_collection_schedule)
 
