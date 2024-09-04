@@ -1,1 +1,1 @@
-harborapi==0.25.2
+harborapi==0.25.3
