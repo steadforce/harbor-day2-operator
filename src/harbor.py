@@ -171,10 +171,11 @@ async def main() -> None:
 async def sync_garbage_collection_schedule(
     garbage_collection_schedule: Schedule
 ) -> None:
-    if await client.get_gc_schedule() is not None:
+    try:
+        gc_schedule = await client.get_gc_schedule()
         print("Updating garbage collection schedule")
         await client.update_gc_schedule(garbage_collection_schedule)
-    else:
+    except:
         print("Creating garbage collection schedule")
         await client.create_gc_schedule(garbage_collection_schedule)
 
