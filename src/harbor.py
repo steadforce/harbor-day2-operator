@@ -172,7 +172,7 @@ async def sync_garbage_collection_schedule(
     garbage_collection_schedule: Schedule
 ) -> None:
     try:
-        gc_schedule = await client.get_gc_schedule()
+        await client.get_gc_schedule()
         print("Updating garbage collection schedule")
         await client.update_gc_schedule(garbage_collection_schedule)
     except Exception as e:
@@ -181,7 +181,8 @@ async def sync_garbage_collection_schedule(
 
 
 async def sync_purge_job_schedule(purge_job_schedule: Schedule) -> None:
-    if await client.get_purge_job_schedule() is not None:
+    try:
+        await client.get_purge_job_schedule()
         print("Updating purge job schedule")
         await client.update_purge_job_schedule(purge_job_schedule)
     else:

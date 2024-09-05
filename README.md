@@ -109,7 +109,7 @@ The schedule of the purge job, there can always only be one.
 
 ### garbage-collection-schedule.json
 
-The schedule of the purge job, there can always only be one.
+The schedule of the garbage collection, there can always only be one.
 
 ```json
 {
