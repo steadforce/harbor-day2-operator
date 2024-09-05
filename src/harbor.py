@@ -185,7 +185,7 @@ async def sync_purge_job_schedule(purge_job_schedule: Schedule) -> None:
         await client.get_purge_job_schedule()
         print("Updating purge job schedule")
         await client.update_purge_job_schedule(purge_job_schedule)
-    else:
+    except Exception as e:
         print("Creating purge job schedule")
         await client.create_purge_job_schedule(purge_job_schedule)
 
