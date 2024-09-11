@@ -131,15 +131,28 @@ async def main() -> None:
         print("Skipping syncing webhooks")
     print("")
 
-    # Sync purge jobs
-    print("SYNCING PURGE JOBS")
-    path = config_folder_path + "/purge-jobs.json"
+    # Sync purge job schedule
+    print("SYNCING PURGE JOB SCHEDULE")
+    path = config_folder_path + "/purge-job-schedule.json"
     if os.path.exists(path):
         purge_jobs_config = json.load(open(path))
-        await sync_purge_jobs(purge_jobs=purge_jobs_config)
+        await sync_purge_job_schedule(purge_job_schedule=purge_jobs_config)
     else:
-        print("File purge-jobs.json not found")
-        print("Skipping syncing purge jobs")
+        print("File purge-job-schedule.json not found")
+        print("Skipping syncing purge job schedule")
+    print("")
+
+    # Sync garbage collection schedule
+    print("SYNCING GARBAGE COLLECTION SCHEDULE")
+    path = config_folder_path + "/garbage-collection-schedule.json"
+    if os.path.exists(path):
+        garbage_collection_config = json.load(open(path))
+        await sync_garbage_collection_schedule(
+            garbage_collection_schedule=garbage_collection_config
+        )
+    else:
+        print("File garbage-collection-schedule.json not found")
+        print("Skipping syncing garbage collection schedule")
     print("")
 
     # Sync retention policies
@@ -153,6 +166,28 @@ async def main() -> None:
     else:
         print("File retention-policies.json not found")
         print("Skipping syncing retention policies")
+
+
+async def sync_garbage_collection_schedule(
+    garbage_collection_schedule: Schedule
+) -> None:
+    try:
+        await client.get_gc_schedule()
+        print("Updating garbage collection schedule")
+        await client.update_gc_schedule(garbage_collection_schedule)
+    except Exception as e:
+        print("Creating garbage collection schedule")
+        await client.create_gc_schedule(garbage_collection_schedule)
+
+
+async def sync_purge_job_schedule(purge_job_schedule: Schedule) -> None:
+    try:
+        await client.get_purge_job_schedule()
+        print("Updating purge job schedule")
+        await client.update_purge_job_schedule(purge_job_schedule)
+    except Exception as e:
+        print("Creating purge job schedule")
+        await client.create_purge_job_schedule(purge_job_schedule)
 
 
 async def sync_retention_policies(retention_policies: [RetentionPolicy]):
@@ -412,11 +447,6 @@ async def sync_projects(target_projects: [Project]) -> None:
         else:
             print(f'- Creating new project "{target_project["project_name"]}"')
             await client.create_project(project=target_project)
-
-
-async def sync_purge_jobs(purge_jobs: [Schedule]) -> None:
-    for purge_job in purge_jobs:
-        await client.create_purge_job_schedule(purge_job)
 
 
 async def sync_project_members(project) -> None:
