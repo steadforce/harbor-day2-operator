@@ -192,7 +192,7 @@ async def sync_purge_job_schedule(purge_job_schedule: Schedule) -> None:
 
 async def sync_retention_policies(retention_policies: [RetentionPolicy]):
     for retention_policy in retention_policies:
-        retention_scope = retention_policy.scope
+        retention_scope = retention_policy["scope"]
         try:
             project_retention_id = await client.get_project_retention_id(
                 retention_scope
