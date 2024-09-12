@@ -205,7 +205,7 @@ async def sync_retention_policies(retention_policies: [RetentionPolicy]):
         except Exception as e:
             print("Creating retention policy")
             await client.create_retention_policy(
-                retention_policy_to_create
+                retention_policy
             )
 
 
