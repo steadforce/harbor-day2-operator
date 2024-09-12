@@ -197,19 +197,16 @@ async def sync_retention_policies(retention_policies: [RetentionPolicy]):
             project_retention_id = await client.get_project_retention_id(
                 retention_scope
             )
-            if project_retention_id is None:
-                print("Creating retention policy")
-                await client.create_retention_policy(
-                    retention_policy_to_create
-                )
-            else:
-                print("Updating retention policy")
-                await client.update_retention_policy(
-                    retention_scope,
-                    retention_policy
-                )
+            print("Updating retention policy")
+            await client.update_retention_policy(
+                retention_scope,
+                retention_policy
+            )
         except Exception as e:
-            print("Error syncing retention policies")
+            print("Creating retention policy")
+            await client.create_retention_policy(
+                retention_policy_to_create
+            )
 
 
 async def sync_harbor_config(harbor_config: Configurations):
