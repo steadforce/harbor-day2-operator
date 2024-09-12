@@ -207,12 +207,14 @@ async def sync_retention_policies(retention_policies: [RetentionPolicy]):
     # Update retention policies
     for retention_policy_to_update in retention_policies_to_update:
         retention_id = retention_policy_to_update.id
+        print("Updating retention policy")
         await client.update_retention_policy(
             retention_id,
             retention_policy_to_update
         )
     # Create retention policies
     for retention_policy_to_create in retention_policies_to_create:
+        print("Creating retention policy")
         await client.create_retention_policy(retention_policy_to_create)
 
 
