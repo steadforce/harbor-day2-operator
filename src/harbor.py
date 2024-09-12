@@ -199,7 +199,9 @@ async def sync_retention_policies(retention_policies: [RetentionPolicy]):
             )
             if project_retention_id is None:
                 print("Creating retention policy")
-                await client.create_retention_policy(retention_policy_to_create)
+                await client.create_retention_policy(
+                    retention_policy_to_create
+                )
             else:
                 print("Updating retention policy")
                 await client.update_retention_policy(
