@@ -92,6 +92,7 @@ A list of projects and their metadata.
 ### purge-job-schedule.json
 
 The schedule of the purge job, there can always only be one.
+The purge job schedule can be found in the page "Clean Up" under the tab "Log Rotation".
 
 ```json
 {
@@ -110,6 +111,7 @@ The schedule of the purge job, there can always only be one.
 ### garbage-collection-schedule.json
 
 The schedule of the garbage collection, there can always only be one.
+The garbage collection schedule can be found in the page "Clean Up" under the tab "Garbage Collection".
 
 ```json
 {
@@ -122,6 +124,33 @@ The schedule of the garbage collection, there can always only be one.
         "type": "Custom"
     }
 }
+```
+
+### retention-policies.json
+
+Definition of the retention policies.
+The retention policies can be set per project.
+They can be found in each project page under the tab Policy.
+
+```json
+[
+    {
+        "scope": "1",
+        "schedule": "Daily",
+        "rules": [
+            {
+                "n_days_since_last_pull": 5,
+                "repo_matching": "**",
+                "tag_matching": "latest"
+            },
+            {
+                "n_days_since_last_push": 5,
+                "repo_matching": "**",
+                "tag_matching": "{latest,snapshot}"
+            }
+        ]
+    }
+]
 ```
 
 ### registries.json
