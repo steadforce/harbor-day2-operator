@@ -134,22 +134,37 @@ They can be found in each project page under the tab Policy.
 
 ```json
 [
-    {
-        "scope": "1",
-        "schedule": "Daily",
-        "rules": [
+  {
+    "scope": {
+      "level": "project",
+      "ref": 2
+    },
+    "rules": [
+      {
+        "template": "always",
+        "tag_selectors": [
+          {
+            "decoration": "matches",
+            "pattern": "master"
+          }
+        ],
+        "scope_selectors":  {
+          "repository": [
             {
-                "n_days_since_last_pull": 5,
-                "repo_matching": "**",
-                "tag_matching": "latest"
-            },
-            {
-                "n_days_since_last_push": 5,
-                "repo_matching": "**",
-                "tag_matching": "{latest,snapshot}"
+              "kind": "doublestar",
+              "decoration": "repoMatches",
+              "pattern": "**"
             }
-        ]
+          ]
+        }
+      }
+    ],
+    "trigger": {
+      "settings": {
+        "cron": "0 0 0 * * *"
+      }
     }
+  }
 ]
 ```
 
