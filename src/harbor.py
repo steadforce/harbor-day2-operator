@@ -199,7 +199,7 @@ async def sync_retention_policies(retention_policies: [RetentionPolicy]):
             )
             print("Updating retention policy")
             await client.update_retention_policy(
-                retention_scope,
+                project_retention_id,
                 retention_policy
             )
         except Exception as e:
