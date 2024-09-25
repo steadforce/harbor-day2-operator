@@ -102,7 +102,7 @@ The purge job schedule can be found in the page "Clean Up" under the tab "Log Ro
         "include_operations": "create,delete,pull"
     },
     "schedule": {
-        "cron": "0 0 0 * * *",
+        "cron": "53 0 0 * * *",
         "type": "Custom"
     }
 }
@@ -120,7 +120,7 @@ The garbage collection schedule can be found in the page "Clean Up" under the ta
         "workers": 1
     },
     "schedule": {
-        "cron": "0 0 0 * * *",
+        "cron": "47 0 0 * * *",
         "type": "Custom"
     }
 }
@@ -135,24 +135,27 @@ They can be found in each project page under the tab Policy.
 ```json
 [
   {
+    "algorithm": "or",
     "scope": {
       "level": "project",
       "ref": 2
     },
     "rules": [
       {
+	"action": "retain",
         "template": "always",
         "tag_selectors": [
           {
             "decoration": "matches",
-            "pattern": "master"
+	    "kind": "doublestar",
+            "pattern": "**"
           }
         ],
         "scope_selectors":  {
           "repository": [
             {
-              "kind": "doublestar",
               "decoration": "repoMatches",
+              "kind": "doublestar",
               "pattern": "**"
             }
           ]
@@ -160,8 +163,9 @@ They can be found in each project page under the tab Policy.
       }
     ],
     "trigger": {
+      "kind": "Schedule",
       "settings": {
-        "cron": "0 0 0 * * *"
+        "cron": "43 0 0 * * *"
       }
     }
   }
