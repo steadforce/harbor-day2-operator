@@ -190,7 +190,7 @@ This `project_id` can be found in the url of each project. For example:
 ### registries.json
 
 All information about registries.
-All registries have an `id`, wheather implicitly or explicitly set.
+All registries have an `id`, whether implicitly or explicitly set.
 
 ```json
 [
