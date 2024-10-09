@@ -191,29 +191,24 @@ async def sync_purge_job_schedule(purge_job_schedule: Schedule) -> None:
 
 
 async def sync_retention_policies(retention_policies: [RetentionPolicy]):
-    retention_policies_to_update = []
-    retention_policies_to_create = []
-    # Check for existing retention policies
     for retention_policy in retention_policies:
-        retention_id = retention_policy.id
+        retention_scope = retention_policy["scope"]["ref"]
         try:
-            current_retention_policy = await client.get_retention_policy(
-                retention_id
+            project_retention_id = await client.get_project_retention_id(
+                retention_scope
             )
-            if retention_policy != current_retention_policy:
-                retention_policies_to_update.append(retention_policy)
-        except NotFound:
-            retention_policies_to_create.append(retention_policy)
-    # Update retention policies
-    for retention_policy_to_update in retention_policies_to_update:
-        retention_id = retention_policy_to_update.id
-        await client.update_retention_policy(
-            retention_id,
-            retention_policy_to_update
-        )
-    # Create retention policies
-    for retention_policy_to_create in retention_policies_to_create:
-        await client.create_retention_policy(retention_policy_to_create)
+            await client.update_retention_policy(
+                project_retention_id,
+                retention_policy
+            )
+            print(f"Updating retention policy for project with id "
+                  f"{retention_scope}")
+        except Exception as e:
+            print(f"Creating retention policy for project with id "
+                  f"{retention_scope}")
+            await client.create_retention_policy(
+                retention_policy
+            )
 
 
 async def sync_harbor_config(harbor_config: Configurations):

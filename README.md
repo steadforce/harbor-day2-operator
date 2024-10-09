@@ -75,6 +75,8 @@ A list of projects and team members with their respective roles.
 ### projects.json
 
 A list of projects and their metadata.
+Projects can also be used as Proxy Caches. In that case, they have to refer to the `registry_id` of an existing registry.
+The `registry_id` can be found in the registry definitions in the `registries.json` file.
 
 ```json
 [
@@ -85,6 +87,15 @@ A list of projects and their metadata.
             "auto_scan": true
         },
         "storage_limit": -1
+    },
+    {
+        "project_name": "Proxy Cache",
+        "metadata": {
+            "public": "true",
+            "auto_scan": "false"
+        },
+        "storage_limit": -1,
+        "registry_id": 1
     }
 ]
 ```
@@ -92,6 +103,7 @@ A list of projects and their metadata.
 ### purge-job-schedule.json
 
 The schedule of the purge job, there can always only be one.
+The purge job schedule can be found in the page "Clean Up" under the tab "Log Rotation".
 
 ```json
 {
@@ -101,7 +113,7 @@ The schedule of the purge job, there can always only be one.
         "include_operations": "create,delete,pull"
     },
     "schedule": {
-        "cron": "0 0 0 * * *",
+        "cron": "0 53 0 * * *",
         "type": "Custom"
     }
 }
@@ -110,6 +122,7 @@ The schedule of the purge job, there can always only be one.
 ### garbage-collection-schedule.json
 
 The schedule of the garbage collection, there can always only be one.
+The garbage collection schedule can be found in the page "Clean Up" under the tab "Garbage Collection".
 
 ```json
 {
@@ -118,20 +131,72 @@ The schedule of the garbage collection, there can always only be one.
         "workers": 1
     },
     "schedule": {
-        "cron": "0 0 0 * * *",
+        "cron": "0 47 0 * * *",
         "type": "Custom"
     }
 }
 ```
 
+### retention-policies.json
+
+Definition of the retention policies.
+The retention policies can be set per project.
+They can be found in each project page under the tab Policy.
+`scope.ref` refers to the `project_id` (integer) this retention policy should be associated with.
+This `project_id` can be found in the url of each project. For example:
+`Project 1` has the url `https://harbor-url.com/harbor/projects/`**`2`**`/repositories`. That means the `project_id` of `Project 1` is `2`.
+
+
+```json
+[
+  {
+    "algorithm": "or",
+    "scope": {
+      "level": "project",
+      "ref": 2
+    },
+    "rules": [
+      {
+	"action": "retain",
+        "template": "always",
+        "tag_selectors": [
+          {
+            "decoration": "matches",
+	    "kind": "doublestar",
+            "pattern": "**"
+          }
+        ],
+        "scope_selectors":  {
+          "repository": [
+            {
+              "decoration": "repoMatches",
+              "kind": "doublestar",
+              "pattern": "**"
+            }
+          ]
+        }
+      }
+    ],
+    "trigger": {
+      "kind": "Schedule",
+      "settings": {
+        "cron": "0 43 0 * * *"
+      }
+    }
+  }
+]
+```
+
 ### registries.json
 
 All information about registries.
+All registries have an `id`, whether implicitly or explicitly set.
 
 ```json
 [
     {
         "name": "registry.io",
+        "id": 1,
         "url": "https://registry.io",
         "type": "docker-registry",
         "description": "Example docker registry."
