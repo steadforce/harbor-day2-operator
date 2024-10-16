@@ -1,35 +1,13 @@
 def sync_robot_accounts():
-    # Sync robot accounts
+    """Synchronize all robot accounts
+
+    All robot accounts from the robot accounts file, if existent, will be updated and applied to harbor.
+    """
+
     print("SYNCING ROBOT ACCOUNTS")
     path = config_folder_path + "/robots.json"
-    if os.path.exists(path):
-        robot_config = json.load(open(path))
-        await sync_robot_accounts(target_robots=robot_config)
-    else:
-        print("File robots.json not found")
-        print("Skipping syncing robot accounts")
-    print("")
+    target_robots = json.load(open(path))
 
-
-async def construct_full_robot_name(target_robot: Robot) -> str:
-    if (namespace := target_robot['permissions'][0]['namespace']) != '*':
-        return f'{robot_name_prefix}{namespace}+{target_robot["name"]}'
-    else:
-        return f'{robot_name_prefix}{target_robot["name"]}'
-
-
-async def set_robot_secret(robot_name: str, robot_id: int):
-    secret = os.environ.get(
-        robot_name.upper().replace("-", "_")
-    )
-    if secret:
-        print(f'Set secret for {robot_name}')
-        await client.refresh_robot_secret(robot_id, secret)
-    else:
-        print(f'WARN: No secret found for {robot_name}')
-
-
-async def sync_robot_accounts(target_robots: [Robot]):
     # Get all system level robots
     current_system_robots = await client.get_robots(
         query='Level=system',
@@ -105,3 +83,21 @@ async def sync_robot_accounts(target_robots: [Robot]):
                 )
             except BadRequest as e:
                 print(f'Bad request permission: {e}')
+
+
+async def construct_full_robot_name(target_robot: Robot) -> str:
+    if (namespace := target_robot['permissions'][0]['namespace']) != '*':
+        return f'{robot_name_prefix}{namespace}+{target_robot["name"]}'
+    else:
+        return f'{robot_name_prefix}{target_robot["name"]}'
+
+
+async def set_robot_secret(robot_name: str, robot_id: int):
+    secret = os.environ.get(
+        robot_name.upper().replace("-", "_")
+    )
+    if secret:
+        print(f'Set secret for {robot_name}')
+        await client.refresh_robot_secret(robot_id, secret)
+    else:
+        print(f'WARN: No secret found for {robot_name}')

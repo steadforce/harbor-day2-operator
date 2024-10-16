@@ -1,17 +1,12 @@
 def sync_projects():
-    # Sync projects
+    """Synchronize all projects
+
+    All projects from the project file, if existent, will be updated and applied to harbor.
+    """
+
     print("SYNCING PROJECTS")
     path = config_folder_path + "/projects.json"
-    if os.path.exists(path):
-        projects_config = json.load(open(path))
-        await sync_projects(target_projects=projects_config)
-    else:
-        print("File projects.json not found")
-        print("Skipping syncing projects")
-    print("")
-
-
-async def sync_projects(target_projects: [Project]) -> None:
+    target_projects = json.load(open(path))
     current_projects = await client.get_projects(limit=None)
     current_project_names = [
         current_project.name for current_project in current_projects

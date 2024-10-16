@@ -1,21 +1,12 @@
 def sync_garbage_collection_schedule():
-    # Sync garbage collection schedule
+    """Synchronize the garbage collection and its schedule
+
+    The garbage collection and its schedule from the garbage collection schedule file, if existent, will be updated and applied to harbor.
+    """
+    
     print("SYNCING GARBAGE COLLECTION SCHEDULE")
     path = config_folder_path + "/garbage-collection-schedule.json"
-    if os.path.exists(path):
-        garbage_collection_config = json.load(open(path))
-        await sync_garbage_collection_schedule(
-            garbage_collection_schedule=garbage_collection_config
-        )
-    else:
-        print("File garbage-collection-schedule.json not found")
-        print("Skipping syncing garbage collection schedule")
-    print("")
-
-
-async def sync_garbage_collection_schedule(
-    garbage_collection_schedule: Schedule
-) -> None:
+    garbage_collection_schedule = json.load(open(path))
     try:
         await client.get_gc_schedule()
         print("Updating garbage collection schedule")

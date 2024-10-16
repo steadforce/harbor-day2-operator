@@ -69,22 +69,41 @@ async def main() -> None:
     await sync_admin_password()
     print("")
 
-    sync_harbor_configuration()
+    if check_file_exists("configurations.json"):
+        sync_harbor_configuration()
 
-    sync_registries()
+    if check_file_exists("registries.json"):
+        sync_registries()
 
-    sync_projects()
+    if check_file_exists("projects.json"):
+        sync_projects()
 
-    sync_project_members()
+    if check_file_exists("project-members.json"):
+        sync_project_members()
 
-    sync_robot_accounts()
+    if check_file_exists("robot-accounts.json"):
+        sync_robot_accounts()
 
-    sync_webhooks()
+    if check_file_exists("webhooks.json"):
+        sync_webhooks()
 
-    sync_purge_job_schedule()
+    if check_file_exists("purge-job-schedule.json"):
+        sync_purge_job_schedule()
 
-    sync_garbage_collection_schedule()
+    if check_file_exists("garbage-collection-schedule.json"):
+        sync_garbage_collection_schedule()
 
+    if check_file_exists("retention-policies.json"):
+        sync_retention_policies()
+
+
+def check_file_exists(filename: str) -> bool:
+    path = config_folder_path + filename
+    if os.path.exists(path):
+        return True
+    else:
+        print(f"File {filname} not found - skipping step")
+        return False
 
 async def wait_until_healthy() -> None:
     while True:

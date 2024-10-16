@@ -1,15 +1,14 @@
 def sync_webhooks():
-    # Sync webhooks
+    """Synchronize all webhooks
+
+    All webhooks from the webhooks file, if existent, will be updated and applied to harbor.
+    """
+
     print("SYNCING WEBHOOKS")
     path = config_folder_path + "/webhooks.json"
-    if os.path.exists(path):
-        webhooks_config = json.load(open(path))
-        for webhook in webhooks_config:
-            await sync_webhook(**webhook)
-    else:
-        print("File webhooks.json not found")
-        print("Skipping syncing webhooks")
-    print("")
+    webhooks_config = json.load(open(path))
+    for webhook in webhooks_config:
+        await sync_webhook(**webhook)
 
 
 async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):

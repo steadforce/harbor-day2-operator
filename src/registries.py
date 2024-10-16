@@ -1,17 +1,12 @@
-def sync_registries():
-    # Sync registries
+async def sync_registries():
+    """Synchronize all registries
+
+    All registries from the registries file, if existent, will be updated and applied to harbor.
+    """
+
     print("SYNCING REGISTRIES")
     path = config_folder_path + "/registries.json"
-    if os.path.exists(path):
-        registries_config = json.load(open(path))
-        await sync_registries(target_registries=registries_config)
-    else:
-        print("File registries.json not found")
-        print("Skipping syncing registries")
-    print("")
-
-
-async def sync_registries(target_registries: [Registry]):
+    target_registries = json.load(open(path))
     current_registries = await client.get_registries(limit=None)
     current_registry_names = [
         current_registry.name for current_registry in current_registries

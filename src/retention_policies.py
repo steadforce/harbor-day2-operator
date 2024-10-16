@@ -1,18 +1,12 @@
 def sync_retention_policies():
-    # Sync retention policies
+    """Synchronize the retention policies
+
+    The retention policies from the retention policies file, if existent, will be updated and applied to harbor.
+    """
+
     print('SYNCING RETENTION POLICIES')
     path = config_folder_path + "/retention-policies.json"
-    if os.path.exists(path):
-        retention_policies_config = json.load(open(path))
-        await sync_retention_policies(
-            retention_policies=retention_policies_config
-        )
-    else:
-        print("File retention-policies.json not found")
-        print("Skipping syncing retention policies")
-
-
-async def sync_retention_policies(retention_policies: [RetentionPolicy]):
+    retention_policies = json.load(open(path))
     for retention_policy in retention_policies:
         retention_scope = retention_policy["scope"]["ref"]
         try:
