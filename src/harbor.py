@@ -1,11 +1,16 @@
+"""Harbor Day 2 Operator
 
+This harbor operator makes it possible to synchronize different types of settings to a harbor instance.
+Instead of making changes by hand (clickops), this operator enables the automatic synchronization of harbor settings from files.
+
+The Harbor API of your instance can be found at: your-harbor-origin/devcenter-api-2.0
+"""
 
 
 import asyncio
 from enum import Enum
 
-# API calls to configure harbor:
-# See Harbor api: https://harbor.dev.k8s01.steadforce.com/devcenter-api-2.0
+
 from harborapi import HarborAsyncClient
 from harborapi.exceptions import NotFound, Unauthorized, Conflict, BadRequest
 from harborapi.models import (
