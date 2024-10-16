@@ -70,31 +70,31 @@ async def main() -> None:
     print("")
 
     if check_file_exists("configurations.json"):
-        sync_harbor_configuration()
+        await sync_harbor_configuration()
 
     if check_file_exists("registries.json"):
-        sync_registries()
+        await sync_registries()
 
     if check_file_exists("projects.json"):
-        sync_projects()
+        await sync_projects()
 
     if check_file_exists("project-members.json"):
-        sync_project_members()
+        await sync_project_members()
 
     if check_file_exists("robot-accounts.json"):
-        sync_robot_accounts()
+        await sync_robot_accounts()
 
     if check_file_exists("webhooks.json"):
-        sync_webhooks()
+        await sync_webhooks()
 
     if check_file_exists("purge-job-schedule.json"):
-        sync_purge_job_schedule()
+        await sync_purge_job_schedule()
 
     if check_file_exists("garbage-collection-schedule.json"):
-        sync_garbage_collection_schedule()
+        await sync_garbage_collection_schedule()
 
     if check_file_exists("retention-policies.json"):
-        sync_retention_policies()
+        await sync_retention_policies()
 
 
 def check_file_exists(filename: str) -> bool:

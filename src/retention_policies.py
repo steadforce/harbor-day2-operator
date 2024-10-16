@@ -1,4 +1,4 @@
-def sync_retention_policies():
+async def sync_retention_policies():
     """Synchronize the retention policies
 
     The retention policies from the retention policies file, if existent, will be updated and applied to harbor.

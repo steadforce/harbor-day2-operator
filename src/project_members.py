@@ -1,4 +1,4 @@
-def sync_project_members():
+async def sync_project_members():
     """Synchronize all project members
 
     All project members and their roles from the project members file, if existent, will be updated and applied to harbor.
