@@ -20,14 +20,14 @@ import json
 import os
 from time import sleep
 
-import sync_harbor_configuration from configuration
-import sync_registries from registries
-import sync_projects from projects
-import sync_project_members from project_members
-import sync_robot_accounts from robot_accounts
-import sync_webhooks from webhooks
-import sync_purge_job_schedule from purge_job_schedule
-import sync_garbage_collection_schedule from garbage_collection_schedule
+from configuration import sync_harbor_configuration
+from registries import sync_registries
+from projects import sync_projects
+from project_members import sync_project_members
+from robot_accounts import sync_robot_accounts
+from webhooks import sync_webhooks
+from purge_job_schedule import sync_purge_job_schedule
+from garbage_collection_schedule import sync_garbage_collection_schedule
 
 
 class ProjectRole(Enum):
