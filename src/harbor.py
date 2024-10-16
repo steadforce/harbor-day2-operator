@@ -23,6 +23,7 @@ import json
 import os
 from time import sleep
 
+from utils import wait_until_healthy, sync_admin_password
 from configuration import sync_harbor_configuration
 from registries import sync_registries
 from projects import sync_projects
@@ -98,63 +99,6 @@ async def main() -> None:
 
     if check_file_exists("retention-policies.json"):
         await sync_retention_policies()
-
-
-def check_file_exists(filename: str) -> bool:
-    path = config_folder_path + filename
-    if os.path.exists(path):
-        return True
-    else:
-        print(f"File {filname} not found - skipping step")
-        return False
-
-async def wait_until_healthy() -> None:
-    while True:
-        health = await client.health_check()
-        if health.status == "healthy":
-            print("- Harbor is healthy")
-            break
-        print("- Waiting for harbor to become healthy...")
-        sleep(5)
-
-
-async def update_password() -> None:
-    try:
-        print("Updating password")
-        old_password_client = HarborAsyncClient(
-            url=api_url,
-            username=admin_username,
-            secret=old_admin_password,
-            timeout=10,
-            verify=False,
-        )
-        admin = await old_password_client.get_current_user()
-        await old_password_client.set_user_password(
-            user_id=admin.user_id,
-            old_password=old_admin_password,
-            new_password=new_admin_password,
-        )
-        print("- Updated admin password")
-    except Unauthorized:
-        print(
-            "  => ERROR: Unable to change the admin password."
-            "  Neither the old nor the new password are correct."
-        )
-
-
-async def sync_admin_password() -> None:
-    try:
-        await client.get_current_user()
-    except Unauthorized:
-        await update_password()
-
-
-def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
-    """Returns member id of username or None if username is not in members"""
-    for member in members:
-        if member.entity_name == username:
-            return member.id
-    return None
 
 
 def parse_args():
