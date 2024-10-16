@@ -1,3 +1,5 @@
+from harborapi.models import Robot
+
 async def sync_robot_accounts():
     """Synchronize all robot accounts
 

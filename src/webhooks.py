@@ -1,3 +1,5 @@
+from harborapi.models import WebhookPolicy
+
 async def sync_webhooks():
     """Synchronize all webhooks
 
