@@ -1,4 +1,4 @@
-async def sync_garbage_collection_schedule():
+async def sync_garbage_collection_schedule(client):
     """Synchronize the garbage collection and its schedule
 
     The garbage collection and its schedule from the garbage collection

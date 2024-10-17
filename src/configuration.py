@@ -1,4 +1,4 @@
-async def sync_harbor_configuration():
+async def sync_harbor_configuration(client):
     """Synchronize the harbor configuration
 
     The configurations file, if existent, will be applied to harbor.

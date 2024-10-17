@@ -10,7 +10,7 @@ def check_file_exists(filename: str) -> bool:
         return False
 
 
-async def wait_until_healthy() -> None:
+async def wait_until_healthy(client) -> None:
     while True:
         health = await client.health_check()
         if health.status == "healthy":
@@ -20,7 +20,7 @@ async def wait_until_healthy() -> None:
         sleep(5)
 
 
-async def update_password() -> None:
+async def update_password(client) -> None:
     try:
         print("Updating password")
         old_password_client = HarborAsyncClient(
@@ -44,11 +44,11 @@ async def update_password() -> None:
         )
 
 
-async def sync_admin_password() -> None:
+async def sync_admin_password(client) -> None:
     try:
         await client.get_current_user()
     except Unauthorized:
-        await update_password()
+        await update_password(client)
 
 
 def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:

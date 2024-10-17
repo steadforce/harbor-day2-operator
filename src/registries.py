@@ -1,4 +1,4 @@
-async def sync_registries():
+async def sync_registries(client):
     """Synchronize all registries
 
     All registries from the registries file, if existent,

@@ -62,7 +62,6 @@ oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
 async def main() -> None:
     parse_args()
 
-    global client
     client = HarborAsyncClient(
         url=api_url,
         username=admin_username,
@@ -73,40 +72,40 @@ async def main() -> None:
 
     # Wait for healthy harbor
     print("WAITING FOR HEALTHY HARBOR")
-    await wait_until_healthy()
+    await wait_until_healthy(client)
     print("")
 
     # Update admin password
     print("UPDATE ADMIN PASSWORD")
-    await sync_admin_password()
+    await sync_admin_password(client)
     print("")
 
     if check_file_exists("configurations.json"):
-        await sync_harbor_configuration()
+        await sync_harbor_configuration(client)
 
     if check_file_exists("registries.json"):
-        await sync_registries()
+        await sync_registries(client)
 
     if check_file_exists("projects.json"):
-        await sync_projects()
+        await sync_projects(client)
 
     if check_file_exists("project-members.json"):
-        await sync_project_members()
+        await sync_project_members(client)
 
     if check_file_exists("robot-accounts.json"):
-        await sync_robot_accounts()
+        await sync_robot_accounts(client)
 
     if check_file_exists("webhooks.json"):
-        await sync_webhooks()
+        await sync_webhooks(client)
 
     if check_file_exists("purge-job-schedule.json"):
-        await sync_purge_job_schedule()
+        await sync_purge_job_schedule(client)
 
     if check_file_exists("garbage-collection-schedule.json"):
-        await sync_garbage_collection_schedule()
+        await sync_garbage_collection_schedule(client)
 
     if check_file_exists("retention-policies.json"):
-        await sync_retention_policies()
+        await sync_retention_policies(client)
 
 
 def parse_args():

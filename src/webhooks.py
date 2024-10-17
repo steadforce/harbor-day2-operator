@@ -1,7 +1,7 @@
 from harborapi.models import WebhookPolicy
 
 
-async def sync_webhooks():
+async def sync_webhooks(client):
     """Synchronize all webhooks
 
     All webhooks from the webhooks file, if existent,
@@ -12,10 +12,10 @@ async def sync_webhooks():
     path = config_folder_path + "/webhooks.json"
     webhooks_config = json.load(open(path))
     for webhook in webhooks_config:
-        await sync_webhook(**webhook)
+        await sync_webhook(client, **webhook)
 
 
-async def sync_webhook(project_name: str, policies: list[WebhookPolicy]):
+async def sync_webhook(client, project_name: str, policies: list[WebhookPolicy]):
     print(f'PROJECT: "{project_name}"')
 
     target_policies = policies

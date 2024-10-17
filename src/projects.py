@@ -1,4 +1,4 @@
-async def sync_projects():
+async def sync_projects(client):
     """Synchronize all projects
 
     All projects from the project file, if existent,

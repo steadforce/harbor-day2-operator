@@ -1,4 +1,4 @@
-async def sync_retention_policies():
+async def sync_retention_policies(client):
     """Synchronize the retention policies
 
     The retention policies from the retention policies file, if existent,

@@ -1,7 +1,7 @@
 from harborapi.models import Robot
 
 
-async def sync_robot_accounts():
+async def sync_robot_accounts(client):
     """Synchronize all robot accounts
 
     All robot accounts from the robot accounts file, if existent,
@@ -70,7 +70,7 @@ async def sync_robot_accounts():
             target_robot.name = full_robot_name
             print(f'- Syncing robot "{target_robot.name}".')
             await client.update_robot(robot_id=robot_id, robot=target_robot)
-            await set_robot_secret(short_robot_name, robot_id)
+            await set_robot_secret(client, short_robot_name, robot_id)
         # Create new robot
         else:
             print(
@@ -96,7 +96,7 @@ async def construct_full_robot_name(target_robot: Robot) -> str:
         return f'{robot_name_prefix}{target_robot["name"]}'
 
 
-async def set_robot_secret(robot_name: str, robot_id: int):
+async def set_robot_secret(client, robot_name: str, robot_id: int):
     secret = os.environ.get(
         robot_name.upper().replace("-", "_")
     )
