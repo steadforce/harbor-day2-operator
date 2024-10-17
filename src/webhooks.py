@@ -1,9 +1,11 @@
 from harborapi.models import WebhookPolicy
 
+
 async def sync_webhooks():
     """Synchronize all webhooks
 
-    All webhooks from the webhooks file, if existent, will be updated and applied to harbor.
+    All webhooks from the webhooks file, if existent,
+    will be updated and applied to harbor.
     """
 
     print("SYNCING WEBHOOKS")

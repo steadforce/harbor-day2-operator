@@ -6,6 +6,7 @@ def check_file_exists(filename: str) -> bool:
         print(f"File {filname} not found - skipping step")
         return False
 
+
 async def wait_until_healthy() -> None:
     while True:
         health = await client.health_check()

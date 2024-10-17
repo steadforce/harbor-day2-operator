@@ -1,7 +1,8 @@
 async def sync_registries():
     """Synchronize all registries
 
-    All registries from the registries file, if existent, will be updated and applied to harbor.
+    All registries from the registries file, if existent,
+    will be updated and applied to harbor.
     """
 
     print("SYNCING REGISTRIES")

@@ -1,7 +1,8 @@
 async def sync_project_members():
     """Synchronize all project members
 
-    All project members and their roles from the project members file, if existent, will be updated and applied to harbor.
+    All project members and their roles from the project members file,
+    if existent, will be updated and applied to harbor.
     """
 
     print("SYNCING PROJECT MEMBERS")
@@ -63,6 +64,6 @@ async def sync_project_members():
                     )
                 except NotFound:
                     print(
-                        f'  => ERROR: User "{member.entity_name}" not found. Make'
-                        " sure the user has logged into harbor at least once"
+                        f'  => ERROR: User "{member.entity_name}" not found.'
+                        " Make sure the user has logged in at least once."
                     )

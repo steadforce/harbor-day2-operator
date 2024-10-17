@@ -1,9 +1,11 @@
 from harborapi.models import Robot
 
+
 async def sync_robot_accounts():
     """Synchronize all robot accounts
 
-    All robot accounts from the robot accounts file, if existent, will be updated and applied to harbor.
+    All robot accounts from the robot accounts file, if existent,
+    will be updated and applied to harbor.
     """
 
     print("SYNCING ROBOT ACCOUNTS")

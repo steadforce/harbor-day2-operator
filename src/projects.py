@@ -1,7 +1,8 @@
 async def sync_projects():
     """Synchronize all projects
 
-    All projects from the project file, if existent, will be updated and applied to harbor.
+    All projects from the project file, if existent,
+    will be updated and applied to harbor.
     """
 
     print("SYNCING PROJECTS")

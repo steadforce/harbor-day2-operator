@@ -1,9 +1,10 @@
 async def sync_garbage_collection_schedule():
     """Synchronize the garbage collection and its schedule
 
-    The garbage collection and its schedule from the garbage collection schedule file, if existent, will be updated and applied to harbor.
+    The garbage collection and its schedule from the garbage collection 
+    schedule file, if existent, will be updated and applied to harbor.
     """
-    
+
     print("SYNCING GARBAGE COLLECTION SCHEDULE")
     path = config_folder_path + "/garbage-collection-schedule.json"
     garbage_collection_schedule = json.load(open(path))

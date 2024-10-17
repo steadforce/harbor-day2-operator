@@ -1,9 +1,12 @@
 """Harbor Day 2 Operator
 
-This harbor operator makes it possible to synchronize different types of settings to a harbor instance.
-Instead of making changes by hand (clickops), this operator enables the automatic synchronization of harbor settings from files.
+This harbor operator makes it possible to synchronize
+different types of settings to a harbor instance.
+Instead of making changes by hand (clickops), this operator
+enables the automatic synchronization of harbor settings from files.
 
-The Harbor API of your instance can be found at: your-harbor-origin/devcenter-api-2.0
+The Harbor API of your instance can be found at:
+your-harbor-origin/devcenter-api-2.0
 """
 
 
