@@ -31,7 +31,7 @@ import json
 import os
 from time import sleep
 
-from utils import wait_until_healthy, sync_admin_password
+from utils import wait_until_healthy, sync_admin_password, check_file_exists
 from configuration import sync_harbor_configuration
 from registries import sync_registries
 from projects import sync_projects
