@@ -30,13 +30,6 @@ from garbage_collection_schedule import sync_garbage_collection_schedule
 from retention_policies import sync_retention_policies
 
 
-class ProjectRole(Enum):
-    ADMIN = 1
-    DEVELOPER = 2
-    GUEST = 3
-    MAINTAINER = 4
-
-
 admin_username = os.environ.get("ADMIN_USERNAME", "admin")
 new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")

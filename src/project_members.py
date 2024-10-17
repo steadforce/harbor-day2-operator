@@ -3,6 +3,13 @@ from harborapi.models import ProjectMemberEntity
 from harborapi.exceptions import NotFound
 
 
+class ProjectRole(Enum):
+    ADMIN = 1
+    DEVELOPER = 2
+    GUEST = 3
+    MAINTAINER = 4
+
+
 async def sync_project_members(client, path):
     """Synchronize all project members
 
