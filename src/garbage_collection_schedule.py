@@ -1,7 +1,7 @@
 async def sync_garbage_collection_schedule():
     """Synchronize the garbage collection and its schedule
 
-    The garbage collection and its schedule from the garbage collection 
+    The garbage collection and its schedule from the garbage collection
     schedule file, if existent, will be updated and applied to harbor.
     """
 
