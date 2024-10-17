@@ -1,4 +1,4 @@
-async def sync_project_members(client):
+async def sync_project_members(client, path):
     """Synchronize all project members
 
     All project members and their roles from the project members file,
@@ -6,7 +6,6 @@ async def sync_project_members(client):
     """
 
     print("SYNCING PROJECT MEMBERS")
-    path = config_folder_path + "/project-members.json"
     project_members_config = json.load(open(path))
     for project in project_members_config:
         project_name = project["project_name"]

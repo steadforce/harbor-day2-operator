@@ -1,4 +1,4 @@
-async def sync_purge_job_schedule(client):
+async def sync_purge_job_schedule(client, path):
     """Synchronize the purge job and its schedule
 
     The purge job and its schedule from the purge job schedule file,
@@ -6,7 +6,6 @@ async def sync_purge_job_schedule(client):
     """
 
     print("SYNCING PURGE JOB SCHEDULE")
-    path = config_folder_path + "/purge-job-schedule.json"
     purge_job_schedule = json.load(open(path))
     try:
         await client.get_purge_job_schedule()

@@ -1,4 +1,4 @@
-async def sync_garbage_collection_schedule(client):
+async def sync_garbage_collection_schedule(client, path):
     """Synchronize the garbage collection and its schedule
 
     The garbage collection and its schedule from the garbage collection
@@ -6,7 +6,6 @@ async def sync_garbage_collection_schedule(client):
     """
 
     print("SYNCING GARBAGE COLLECTION SCHEDULE")
-    path = config_folder_path + "/garbage-collection-schedule.json"
     garbage_collection_schedule = json.load(open(path))
     try:
         await client.get_gc_schedule()

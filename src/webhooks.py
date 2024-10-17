@@ -1,7 +1,7 @@
 from harborapi.models import WebhookPolicy
 
 
-async def sync_webhooks(client):
+async def sync_webhooks(client, path):
     """Synchronize all webhooks
 
     All webhooks from the webhooks file, if existent,
@@ -9,7 +9,6 @@ async def sync_webhooks(client):
     """
 
     print("SYNCING WEBHOOKS")
-    path = config_folder_path + "/webhooks.json"
     webhooks_config = json.load(open(path))
     for webhook in webhooks_config:
         await sync_webhook(client, **webhook)

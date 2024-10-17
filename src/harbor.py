@@ -80,32 +80,41 @@ async def main() -> None:
     await sync_admin_password(client)
     print("")
 
-    if check_file_exists("configurations.json"):
-        await sync_harbor_configuration(client)
+    path = config_folder_path + "/configurations.json"
+    if check_file_exists(path):
+        await sync_harbor_configuration(client, path)
 
-    if check_file_exists("registries.json"):
-        await sync_registries(client)
+    path = config_folder_path + "/registries.json"
+    if check_file_exists(path):
+        await sync_registries(client, path)
 
-    if check_file_exists("projects.json"):
-        await sync_projects(client)
+    path = config_folder_path + "/projects.json"
+    if check_file_exists(path):
+        await sync_projects(client, path)
 
-    if check_file_exists("project-members.json"):
-        await sync_project_members(client)
+    path = config_folder_path + "/project-members.json"
+    if check_file_exists(path):
+        await sync_project_members(client, path)
 
-    if check_file_exists("robot-accounts.json"):
-        await sync_robot_accounts(client)
+    path = config_folder_path + "/robot-accounts.json"
+    if check_file_exists(path):
+        await sync_robot_accounts(client, path)
 
-    if check_file_exists("webhooks.json"):
-        await sync_webhooks(client)
+    path = config_folder_path + "/webhooks.json"
+    if check_file_exists(path):
+        await sync_webhooks(client, path)
 
-    if check_file_exists("purge-job-schedule.json"):
-        await sync_purge_job_schedule(client)
+    path = config_folder_path + "/purge-job-schedule.json"
+    if check_file_exists(path):
+        await sync_purge_job_schedule(client, path)
 
-    if check_file_exists("garbage-collection-schedule.json"):
-        await sync_garbage_collection_schedule(client)
+    path = config_folder_path + "/garbage-collection-schedule.json"
+    if check_file_exists(path):
+        await sync_garbage_collection_schedule(client, path)
 
-    if check_file_exists("retention-policies.json"):
-        await sync_retention_policies(client)
+    path = config_folder_path + "/retention-policies.json"
+    if check_file_exists(path):
+        await sync_retention_policies(client, path)
 
 
 def parse_args():

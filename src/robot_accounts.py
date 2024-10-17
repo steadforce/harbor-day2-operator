@@ -1,7 +1,7 @@
 from harborapi.models import Robot
 
 
-async def sync_robot_accounts(client):
+async def sync_robot_accounts(client, path):
     """Synchronize all robot accounts
 
     All robot accounts from the robot accounts file, if existent,
@@ -9,7 +9,6 @@ async def sync_robot_accounts(client):
     """
 
     print("SYNCING ROBOT ACCOUNTS")
-    path = config_folder_path + "/robots.json"
     target_robots = json.load(open(path))
 
     # Get all system level robots

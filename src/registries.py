@@ -1,4 +1,4 @@
-async def sync_registries(client):
+async def sync_registries(client, path):
     """Synchronize all registries
 
     All registries from the registries file, if existent,
@@ -6,7 +6,6 @@ async def sync_registries(client):
     """
 
     print("SYNCING REGISTRIES")
-    path = config_folder_path + "/registries.json"
     target_registries = json.load(open(path))
     current_registries = await client.get_registries(limit=None)
     current_registry_names = [

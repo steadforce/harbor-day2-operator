@@ -1,4 +1,4 @@
-async def sync_projects(client):
+async def sync_projects(client, path):
     """Synchronize all projects
 
     All projects from the project file, if existent,
@@ -6,7 +6,6 @@ async def sync_projects(client):
     """
 
     print("SYNCING PROJECTS")
-    path = config_folder_path + "/projects.json"
     target_projects = json.load(open(path))
     current_projects = await client.get_projects(limit=None)
     current_project_names = [

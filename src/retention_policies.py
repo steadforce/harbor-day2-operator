@@ -1,4 +1,4 @@
-async def sync_retention_policies(client):
+async def sync_retention_policies(client, path):
     """Synchronize the retention policies
 
     The retention policies from the retention policies file, if existent,
@@ -6,7 +6,6 @@ async def sync_retention_policies(client):
     """
 
     print('SYNCING RETENTION POLICIES')
-    path = config_folder_path + "/retention-policies.json"
     retention_policies = json.load(open(path))
     for retention_policy in retention_policies:
         retention_scope = retention_policy["scope"]["ref"]

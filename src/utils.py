@@ -1,8 +1,7 @@
 from harborapi.models import ProjectMemberEntity
 
 
-def check_file_exists(filename: str) -> bool:
-    path = config_folder_path + filename
+def check_file_exists(path: str) -> bool:
     if os.path.exists(path):
         return True
     else:
