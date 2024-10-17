@@ -1,3 +1,6 @@
+import json
+
+
 async def sync_garbage_collection_schedule(client, path):
     """Synchronize the garbage collection and its schedule
 

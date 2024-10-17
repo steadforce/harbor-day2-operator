@@ -1,3 +1,6 @@
+import json
+
+
 async def sync_registries(client, path):
     """Synchronize all registries
 

@@ -1,3 +1,6 @@
+import json
+
+
 async def sync_project_members(client, path):
     """Synchronize all project members
 

@@ -1,3 +1,6 @@
+import json
+
+
 async def sync_projects(client, path):
     """Synchronize all projects
 

@@ -27,9 +27,7 @@ from harborapi.models import (
     RetentionPolicy
 )
 import argparse
-import json
 import os
-from time import sleep
 
 from utils import wait_until_healthy, sync_admin_password, check_file_exists
 from configuration import sync_harbor_configuration

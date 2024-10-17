@@ -1,3 +1,6 @@
+import json
+
+
 async def sync_harbor_configuration(client, path):
     """Synchronize the harbor configuration
 
