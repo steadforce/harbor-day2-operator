@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 from harborapi.models import ProjectMemberEntity
 from harborapi.exceptions import NotFound
 

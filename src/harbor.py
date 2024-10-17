@@ -10,13 +10,10 @@ your-harbor-origin/devcenter-api-2.0
 """
 
 
-import asyncio
-from enum import Enum
-
-
 from harborapi import HarborAsyncClient
 import argparse
 import os
+import asyncio
 
 from utils import wait_until_healthy, sync_admin_password, check_file_exists
 from configuration import sync_harbor_configuration
