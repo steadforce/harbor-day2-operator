@@ -15,7 +15,9 @@ async def sync_webhooks(client):
         await sync_webhook(client, **webhook)
 
 
-async def sync_webhook(client, project_name: str, policies: list[WebhookPolicy]):
+async def sync_webhook(
+    client, project_name: str, policies: list[WebhookPolicy]
+):
     print(f'PROJECT: "{project_name}"')
 
     target_policies = policies
