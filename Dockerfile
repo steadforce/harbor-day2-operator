@@ -21,7 +21,7 @@ COPY src/ /src/
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -U pip nuitka setuptools wheel && \
     /venv/bin/pip install --no-cache-dir --no-warn-script-location -r ./requirements.txt && \
-    /venv/bin/python -m nuitka --follow-imports /src/harbor.py && \
+    /venv/bin/python -m nuitka --onefile /src/harbor.py && \
     pwd && \
     ls -lha
 
