@@ -14,7 +14,7 @@ def check_file_exists(path: str) -> bool:
     if os.path.exists(path):
         return True
     else:
-        print(f"File {filname} not found - skipping step")
+        print(f"File {path} not found - skipping step")
         return False
 
 
