@@ -4,6 +4,9 @@ from harborapi.models import Robot
 from harborapi.exceptions import Conflict, BadRequest
 
 
+robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
+
+
 async def sync_robot_accounts(client, path):
     """Synchronize all robot accounts
 

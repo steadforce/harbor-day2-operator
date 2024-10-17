@@ -38,13 +38,9 @@ class ProjectRole(Enum):
 
 
 admin_username = os.environ.get("ADMIN_USERNAME", "admin")
-old_admin_password = os.environ.get("ADMIN_PASSWORD_OLD")
 new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")
 config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
-robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
-oidc_client_secret = os.environ.get("OIDC_STATIC_CLIENT_TOKEN")
-oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
 
 
 async def main() -> None:

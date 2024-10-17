@@ -5,6 +5,11 @@ from harborapi import HarborAsyncClient
 from harborapi.exceptions import Unauthorized
 
 
+admin_username = os.environ.get("ADMIN_USERNAME", "admin")
+old_admin_password = os.environ.get("ADMIN_PASSWORD_OLD")
+api_url = os.environ.get("HARBOR_API_URL")
+
+
 def check_file_exists(path: str) -> bool:
     if os.path.exists(path):
         return True

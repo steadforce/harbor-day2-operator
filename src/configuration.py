@@ -2,6 +2,10 @@ import json
 from harborapi.models import Configurations
 
 
+oidc_client_secret = os.environ.get("OIDC_STATIC_CLIENT_TOKEN")
+oidc_endpoint = os.environ.get("OIDC_ENDPOINT")
+
+
 async def sync_harbor_configuration(client, path):
     """Synchronize the harbor configuration
 
