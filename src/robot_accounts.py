@@ -1,6 +1,7 @@
 import json
 import os
 from harborapi.models import Robot
+from harborapi.exceptions import Conflict, BadRequest
 
 
 async def sync_robot_accounts(client, path):

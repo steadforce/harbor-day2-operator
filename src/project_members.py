@@ -1,4 +1,6 @@
 import json
+from harborapi.models import ProjectMemberEntity
+from harborapi.exceptions import NotFound
 
 
 async def sync_project_members(client, path):

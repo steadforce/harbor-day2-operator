@@ -1,6 +1,8 @@
 from time import sleep
 import os
 from harborapi.models import ProjectMemberEntity
+from harborapi import HarborAsyncClient
+from harborapi.exceptions import Unauthorized
 
 
 def check_file_exists(path: str) -> bool:

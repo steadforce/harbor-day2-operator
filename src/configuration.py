@@ -1,4 +1,5 @@
 import json
+from harborapi.models import Configurations
 
 
 async def sync_harbor_configuration(client, path):

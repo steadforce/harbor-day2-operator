@@ -15,17 +15,6 @@ from enum import Enum
 
 
 from harborapi import HarborAsyncClient
-from harborapi.exceptions import NotFound, Unauthorized, Conflict, BadRequest
-from harborapi.models import (
-    Robot,
-    Configurations,
-    Registry,
-    WebhookPolicy,
-    Project,
-    ProjectMemberEntity,
-    Schedule,
-    RetentionPolicy
-)
 import argparse
 import os
 
@@ -38,6 +27,7 @@ from robot_accounts import sync_robot_accounts
 from webhooks import sync_webhooks
 from purge_job_schedule import sync_purge_job_schedule
 from garbage_collection_schedule import sync_garbage_collection_schedule
+from retention_policies import sync_retention_policies
 
 
 class ProjectRole(Enum):
