@@ -160,3 +160,10 @@ cython_debug/
 #.idea/
 /.project
 /.pydevproject
+
+# Venv
+venv/
+
+# Nuitka
+harbor.build
+harbor.bin
