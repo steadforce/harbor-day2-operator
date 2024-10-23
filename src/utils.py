@@ -7,6 +7,7 @@ from harborapi.exceptions import Unauthorized
 
 admin_username = os.environ.get("ADMIN_USERNAME", "admin")
 old_admin_password = os.environ.get("ADMIN_PASSWORD_OLD")
+new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")
 
 
