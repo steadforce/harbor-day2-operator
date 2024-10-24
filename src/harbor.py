@@ -70,7 +70,7 @@ async def main() -> None:
     if check_file_exists(path):
         await sync_project_members(client, path)
 
-    path = config_folder_path + "/robot-accounts.json"
+    path = config_folder_path + "/robots.json"
     if check_file_exists(path):
         await sync_robot_accounts(client, path)
 
