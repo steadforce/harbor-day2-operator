@@ -56,18 +56,19 @@ General configurations for auth and oidc.
 }
 ```
 
-### project-members.json
+### registries.json
 
-A list of projects and team members with their respective roles.
+All information about registries.
+All registries have an `id`, whether implicitly or explicitly set.
 
 ```json
 [
     {
-        "project_name": "Project 1",
-        "admin": [],
-        "developer": ["firstname.lastname"],
-        "guest": [],
-        "maintainer": []
+        "name": "registry.io",
+        "id": 1,
+        "url": "https://registry.io",
+        "type": "docker-registry",
+        "description": "Example docker registry."
     }
 ]
 ```
@@ -96,6 +97,76 @@ The `registry_id` can be found in the registry definitions in the `registries.js
         },
         "storage_limit": -1,
         "registry_id": 1
+    }
+]
+```
+
+### project-members.json
+
+A list of projects and team members with their respective roles.
+
+```json
+[
+    {
+        "project_name": "Project 1",
+        "admin": [],
+        "developer": ["firstname.lastname"],
+        "guest": [],
+        "maintainer": []
+    }
+]
+```
+
+### robots.json
+
+Configuration of robot accounts and their permissions.
+
+```json
+[
+    {
+        "name": "example-robot",
+        "duration": "-1",
+        "description": "Example robot.",
+        "disable": false,
+        "level": "system",
+        "permissions": [
+            {
+                "kind": "project",
+                "namespace": "*",
+                "access": [
+                    {
+                        "resource": "repository",
+                        "action": "list"
+                    }
+                ]
+            }
+        ]
+    }
+]
+```
+
+### webhooks.json
+
+Definition of webhooks.
+
+```json
+[
+    {
+        "project_name": "Project 1", 
+        "policies": [
+            "name": "ms-teams",
+            "description": "Sends scan results to MS-Teams",
+            "event_types": [
+                "SCANNING_COMPLETED"
+            ],
+            "targets": [
+                {
+                    "type": "http",
+                    "address": "https://harbor-ms-teams-forwarder.url.com"
+                }
+            ],
+            "enabled": true
+        ]
     }
 ]
 ```
@@ -186,75 +257,3 @@ This `project_id` can be found in the url of each project. For example:
   }
 ]
 ```
-
-### registries.json
-
-All information about registries.
-All registries have an `id`, whether implicitly or explicitly set.
-
-```json
-[
-    {
-        "name": "registry.io",
-        "id": 1,
-        "url": "https://registry.io",
-        "type": "docker-registry",
-        "description": "Example docker registry."
-    }
-]
-```
-
-### robots.json
-
-Configuration of robot accounts and their permissions.
-
-```json
-[
-    {
-        "name": "example-robot",
-        "duration": "-1",
-        "description": "Example robot.",
-        "disable": false,
-        "level": "system",
-        "permissions": [
-            {
-                "kind": "project",
-                "namespace": "*",
-                "access": [
-                    {
-                        "resource": "repository",
-                        "action": "list"
-                    }
-                ]
-            }
-        ]
-    }
-]
-```
-
-### webhooks.json
-
-Definition of webhooks.
-
-```json
-[
-    {
-        "project_name": "Project 1", 
-        "policies": [
-            "name": "ms-teams",
-            "description": "Sends scan results to MS-Teams",
-            "event_types": [
-                "SCANNING_COMPLETED"
-            ],
-            "targets": [
-                {
-                    "type": "http",
-                    "address": "https://harbor-ms-teams-forwarder.url.com"
-                }
-            ],
-            "enabled": true
-        ]
-    }
-]
-```
-
