@@ -85,7 +85,8 @@ async def sync_robot_accounts(client, path):
             try:
                 created_robot = await client.create_robot(robot=target_robot)
                 await set_robot_secret(
-                    client, target_robot.name, created_robot.id)
+                    client, target_robot.name, created_robot.id
+                )
             except Conflict as e:
                 print(
                     f'''  => "{full_robot_name}"
