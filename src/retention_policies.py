@@ -9,7 +9,8 @@ async def sync_retention_policies(client, path):
     """
 
     print('SYNCING RETENTION POLICIES')
-    retention_policies = json.load(open(path))
+    retention_policies_string = fill_template(client, path)
+    retention_policies = json.load(retention_policies_string)
     for retention_policy in retention_policies:
         retention_scope = retention_policy["scope"]["ref"]
         try:

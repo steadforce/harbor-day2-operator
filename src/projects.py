@@ -9,7 +9,8 @@ async def sync_projects(client, path):
     """
 
     print("SYNCING PROJECTS")
-    target_projects = json.load(open(path))
+    target_projects_string = fill_template(client, path)
+    target_projects = json.load(target_projects_string)
     current_projects = await client.get_projects(limit=None)
     current_project_names = [
         current_project.name for current_project in current_projects

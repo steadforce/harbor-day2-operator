@@ -1,5 +1,6 @@
 from time import sleep
 import os
+import chevron
 from harborapi.models import ProjectMemberEntity
 from harborapi import HarborAsyncClient
 from harborapi.exceptions import Unauthorized
@@ -66,3 +67,23 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
         if member.entity_name == username:
             return member.id
     return None
+
+async def fill_template(client, path: str) -> json:
+    with open(path, 'r') as file:
+        content = file.read()
+        placeholders = re.findall(r'{{[ ]*(project|registry):[A-z,.,\-,_]+[ ]*}}', content)
+        placeholders = [placeholder.replace('{{', '').replace(' ', '').replace('}}', '') for placeholder in placeholders]
+        replacements = {}
+        for placeholder in placeholders:
+            placeholder_type, placeholder_value = placeholder.split(':')
+            replacement_value = await fetch_id(client, placeholder_type, placeholder_value)
+            replacements[placeholder] = replacement_value
+        return chevron.render(content, replacements)
+    
+
+async def fetch_id(client, placeholder_type: str, placeholder_value: str) -> int:
+    if placeholder_type == "project":
+        return await client.get_projects(query=f"name={placeholder_value}")[0]["id"]
+    if placeholder_type == "registry":
+        return await client.get_registres(query=f"name={placeholder_value}")[0]["id"]
+
