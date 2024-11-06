@@ -1,4 +1,5 @@
 import json
+from utils import fill_template
 
 
 async def sync_projects(client, path):
