@@ -69,7 +69,7 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
     return None
 
 
-async def fill_template(client, path: str) -> json:
+async def fill_template(client, path: str) -> str:
     with open(path, 'r') as file:
         content = file.read()
         placeholders = re.findall(
