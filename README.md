@@ -97,7 +97,7 @@ The `registry_id` can be found in the registry definitions in the `registries.js
         },
         "storage_limit": -1,
         //"registry_id": 1 -> from template
-        "registry_id": 1
+        "registry_id": {{ registry:docker.io }}
     }
 ]
 ```
@@ -226,11 +226,11 @@ This `project_id` can be found in the url of each project. For example:
     "scope": {
       "level": "project",
       //"ref": 2 -> from template
-      "ref": 2
+      "ref": {{ project:aa }}
     },
     "rules": [
       {
-	"action": "retain",
+        "action": "retain",
         "template": "always",
         "tag_selectors": [
           {
