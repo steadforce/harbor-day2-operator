@@ -74,7 +74,7 @@ async def fill_template(client, path: str) -> str:
     with open(path, 'r') as file:
         content = file.read()
         placeholders = re.findall(
-            r'{{[ ]*(project|registry):[A-z,.,\-,_]+[ ]*}}', content
+            r'{{[ ]*(?:project|registry):[A-z,.,\-,_]+[ ]*}}', content
         )
         print(placeholders)
         placeholders = [
