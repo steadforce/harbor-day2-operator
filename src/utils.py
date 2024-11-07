@@ -91,9 +91,11 @@ async def fill_template(client, path: str) -> str:
                 client, placeholder_type, placeholder_value
             )
             print(replacement_value)
-            replacements[placeholder] = replacement_value
+            replacements[placeholder] = str(replacement_value)
         print(replacements)
-        return chevron.render(content, replacements)
+        config = chevron.render(content, replacements)
+        print(config)
+        return config
 
 
 async def fetch_id(
