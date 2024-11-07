@@ -99,10 +99,14 @@ async def fetch_id(
     client, placeholder_type: str, placeholder_value: str
 ) -> int:
     if placeholder_type == "project":
-        return await client.get_projects(
+        project = await client.get_projects(
             query=f"name={placeholder_value}"
-        )[0]["id"]
+        )
+        id = project[0]["id"]
+        return id
     if placeholder_type == "registry":
-        return await client.get_registries(
+        registry = await client.get_registries(
             query=f"name={placeholder_value}"
-        )[0]["id"]
+        )
+        id = registry[0]["id"]
+        return id
