@@ -103,6 +103,6 @@ async def fetch_id(
             query=f"name={placeholder_value}"
         )[0]["id"]
     if placeholder_type == "registry":
-        return await client.get_registres(
+        return await client.get_registries(
             query=f"name={placeholder_value}"
         )[0]["id"]
