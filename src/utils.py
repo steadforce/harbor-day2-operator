@@ -76,17 +76,22 @@ async def fill_template(client, path: str) -> str:
         placeholders = re.findall(
             r'{{[ ]*(project|registry):[A-z,.,\-,_]+[ ]*}}', content
         )
+        print(placeholders)
         placeholders = [
             placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
             for placeholder in placeholders
         ]
+        print(placeholders)
         replacements = {}
         for placeholder in placeholders:
+            print(placeholder)
             placeholder_type, placeholder_value = placeholder.split(':')
             replacement_value = await fetch_id(
                 client, placeholder_type, placeholder_value
             )
+            print(replacement_value)
             replacements[placeholder] = replacement_value
+        print(replacements)
         return chevron.render(content, replacements)
 
 
