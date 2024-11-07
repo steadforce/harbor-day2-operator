@@ -86,6 +86,7 @@ async def fill_template(client, path: str) -> str:
         for placeholder in placeholders:
             print(placeholder)
             placeholder_type, placeholder_value = placeholder.split(':')
+            print(placeholder_value)
             replacement_value = await fetch_id(
                 client, placeholder_type, placeholder_value
             )
@@ -102,11 +103,15 @@ async def fetch_id(
         projects = await client.get_projects(
             query=f"name={placeholder_value}"
         )
+        print(projects)
         project_id = projects[0]["id"]
+        print(project_id)
         return project_id
     if placeholder_type == "registry":
         registries = await client.get_registries(
             query=f"name={placeholder_value}"
         )
+        print(registries)
         registry_id = registries[0]["id"]
+        print(registry_id)
         return registry_id
