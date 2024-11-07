@@ -104,7 +104,9 @@ async def fetch_id(
             query=f"name={placeholder_value}"
         )
         print(projects)
-        project_id = projects[0]["id"]
+        project = projects[0]
+        print(project)
+        project_id = project.id
         print(project_id)
         return project_id
     if placeholder_type == "registry":
@@ -112,6 +114,8 @@ async def fetch_id(
             query=f"name={placeholder_value}"
         )
         print(registries)
-        registry_id = registries[0]["id"]
+        registry = registries[0]
+        print(registry)
+        registry_id = registry.id
         print(registry_id)
         return registry_id
