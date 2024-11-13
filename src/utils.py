@@ -91,7 +91,15 @@ async def fill_template(client, path: str) -> str:
                 client, placeholder_type, placeholder_value
             )
             print(replacement_value)
-            replacements[placeholder] = str(replacement_value)
+            # The mustache specification, which the chevron library builds
+            # on top of, does not allow for dots in keys. Instead, keys with
+            # dots are meant to reference nested objects. In order to have
+            # the right objects to reference, nested objects / dictionaries
+            # are created for keys with dots.
+            last_part = str(replacement_value)
+            for part in reversed(placeholder.split('.')):
+                last_part = { part: last_part }
+            replacements = replacements | last_part
         print(replacements)
         config = chevron.render(content, replacements)
         return config
