@@ -94,7 +94,6 @@ async def fill_template(client, path: str) -> str:
             replacements[placeholder] = str(replacement_value)
         print(replacements)
         config = chevron.render(content, replacements)
-        print(config)
         return config
 
 
