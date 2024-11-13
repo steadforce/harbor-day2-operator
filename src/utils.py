@@ -115,7 +115,7 @@ async def fetch_id(
         print(projects)
         project = projects[0]
         print(project)
-        project_id = project.id
+        project_id = project.project_id
         print(project_id)
         return project_id
     if placeholder_type == "registry":
