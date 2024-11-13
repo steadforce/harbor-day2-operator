@@ -77,7 +77,7 @@ All registries have an `id`, whether implicitly or explicitly set.
 
 A list of projects and their metadata.
 Projects can also be used as Proxy Caches. In that case, they have to refer to the `registry_id` of an existing registry.
-The `registry_id` can be found in the registry definitions in the `registries.json` file.
+Templating can be used to insert the id at runtime.
 
 ```json
 [
@@ -215,8 +215,7 @@ Definition of the retention policies.
 The retention policies can be set per project.
 They can be found in each project page under the tab Policy.
 `scope.ref` refers to the `project_id` (integer) this retention policy should be associated with.
-This `project_id` can be found in the url of each project. For example:
-`Project 1` has the url `https://harbor-url.com/harbor/projects/`**`2`**`/repositories`. That means the `project_id` of `Project 1` is `2`.
+Templating can be used to insert the id of the project at runtime.
 
 
 ```json

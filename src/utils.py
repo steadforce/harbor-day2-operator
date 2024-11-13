@@ -76,21 +76,17 @@ async def fill_template(client, path: str) -> str:
         placeholders = re.findall(
             r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}', content
         )
-        print(placeholders)
+        print(f"Found id templates: {placeholders}")
         placeholders = [
             placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
             for placeholder in placeholders
         ]
-        print(placeholders)
         replacements = {}
         for placeholder in placeholders:
-            print(placeholder)
             placeholder_type, placeholder_value = placeholder.split(':')
-            print(placeholder_value)
             replacement_value = await fetch_id(
                 client, placeholder_type, placeholder_value
             )
-            print(replacement_value)
             # The mustache specification, which the chevron library builds
             # on top of, does not allow for dots in keys. Instead, keys with
             # dots are meant to reference nested objects. In order to have
@@ -100,7 +96,6 @@ async def fill_template(client, path: str) -> str:
             for part in reversed(placeholder.split('.')):
                 last_part = {part: last_part}
             replacements = replacements | last_part
-        print(replacements)
         config = chevron.render(content, replacements)
         return config
 
@@ -112,19 +107,13 @@ async def fetch_id(
         projects = await client.get_projects(
             query=f"name={placeholder_value}"
         )
-        print(projects)
         project = projects[0]
-        print(project)
         project_id = project.project_id
-        print(project_id)
         return project_id
     if placeholder_type == "registry":
         registries = await client.get_registries(
             query=f"name={placeholder_value}"
         )
-        print(registries)
         registry = registries[0]
-        print(registry)
         registry_id = registry.id
-        print(registry_id)
         return registry_id
