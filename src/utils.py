@@ -71,6 +71,9 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
 
 
 async def fill_template(client, path: str) -> str:
+    """Takes the path to a template file and returns its content with the
+    replaced ids
+    """
     with open(path, 'r') as file:
         content = file.read()
         placeholders = re.findall(
@@ -103,6 +106,7 @@ async def fill_template(client, path: str) -> str:
 async def fetch_id(
     client, placeholder_type: str, placeholder_value: str
 ) -> int:
+    """Fetches the id of an object with the given name"""
     if placeholder_type == "project":
         projects = await client.get_projects(
             query=f"name={placeholder_value}"
