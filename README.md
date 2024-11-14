@@ -172,6 +172,76 @@ Definition of webhooks.
 ]
 ```
 
+### project-members.json
+
+A list of projects and team members with their respective roles.
+
+```json
+[
+    {
+        "project_name": "Project 1",
+        "admin": [],
+        "developer": ["firstname.lastname"],
+        "guest": [],
+        "maintainer": []
+    }
+]
+```
+
+### robots.json
+
+Configuration of robot accounts and their permissions.
+
+```json
+[
+    {
+        "name": "example-robot",
+        "duration": "-1",
+        "description": "Example robot.",
+        "disable": false,
+        "level": "system",
+        "permissions": [
+            {
+                "kind": "project",
+                "namespace": "*",
+                "access": [
+                    {
+                        "resource": "repository",
+                        "action": "list"
+                    }
+                ]
+            }
+        ]
+    }
+]
+```
+
+### webhooks.json
+
+Definition of webhooks.
+
+```json
+[
+    {
+        "project_name": "Project 1", 
+        "policies": [
+            "name": "ms-teams",
+            "description": "Sends scan results to MS-Teams",
+            "event_types": [
+                "SCANNING_COMPLETED"
+            ],
+            "targets": [
+                {
+                    "type": "http",
+                    "address": "https://harbor-ms-teams-forwarder.url.com"
+                }
+            ],
+            "enabled": true
+        ]
+    }
+]
+```
+
 ### purge-job-schedule.json
 
 The schedule of the purge job, there can always only be one.
