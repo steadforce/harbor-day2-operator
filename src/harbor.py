@@ -16,7 +16,7 @@ import asyncio
 import logging
 
 from harborapi import HarborAsyncClient
-from pythonlogger.json import JsonFormatter
+from pythonjsonlogger.json import JsonFormatter
 from utils import wait_until_healthy, sync_admin_password, check_file_exists
 from configuration import sync_harbor_configuration
 from registries import sync_registries
