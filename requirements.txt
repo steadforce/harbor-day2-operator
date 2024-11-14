@@ -1,1 +1,2 @@
 harborapi==0.25.3
+pythonjsonlogger==2.0.7

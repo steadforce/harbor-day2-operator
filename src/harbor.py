@@ -10,11 +10,13 @@ your-harbor-origin/devcenter-api-2.0
 """
 
 
-from harborapi import HarborAsyncClient
 import argparse
 import os
 import asyncio
+import logging
 
+from harborapi import HarborAsyncClient
+from pythonlogger.json import JsonFormatter
 from utils import wait_until_healthy, sync_admin_password, check_file_exists
 from configuration import sync_harbor_configuration
 from registries import sync_registries
@@ -25,6 +27,13 @@ from webhooks import sync_webhooks
 from purge_job_schedule import sync_purge_job_schedule
 from garbage_collection_schedule import sync_garbage_collection_schedule
 from retention_policies import sync_retention_policies
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setFormatter(JsonFormatter())
+logger.addHandler(handler)
 
 
 admin_username = os.environ.get("ADMIN_USERNAME", "admin")
