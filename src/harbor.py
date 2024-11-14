@@ -55,15 +55,11 @@ async def main() -> None:
         verify=False,
     )
 
-    # Wait for healthy harbor
-    print("WAITING FOR HEALTHY HARBOR")
-    await wait_until_healthy(client)
-    print("")
+    logger.info("WAITING FOR HEALTHY HARBOR")
+    await wait_until_healthy(client, logger)
 
-    # Update admin password
-    print("UPDATE ADMIN PASSWORD")
-    await sync_admin_password(client)
-    print("")
+    logger.info("UPDATE ADMIN PASSWORD")
+    await sync_admin_password(client, logger)
 
     path = config_folder_path + "/configurations.json"
     if check_file_exists(path):
