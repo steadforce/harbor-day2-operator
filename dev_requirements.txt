@@ -1,2 +1,2 @@
 harborapi
-pythonjsonlogger
+python-json-logger

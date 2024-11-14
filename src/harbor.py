@@ -29,17 +29,19 @@ from garbage_collection_schedule import sync_garbage_collection_schedule
 from retention_policies import sync_retention_policies
 
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-handler.setFormatter(JsonFormatter())
-logger.addHandler(handler)
-
-
 admin_username = os.environ.get("ADMIN_USERNAME", "admin")
 new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")
 config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
+json_logging = os.environ.get("JSON_LOGGING", False)
+
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+if json_logging:
+    handler = logging.StreamHandler()
+    handler.setFormatter(JsonFormatter())
+    logger.addHandler(handler)
 
 
 async def main() -> None:
