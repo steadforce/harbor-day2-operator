@@ -33,7 +33,7 @@ admin_username = os.environ.get("ADMIN_USERNAME", "admin")
 new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")
 config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
-json_logging = os.environ.get("JSON_LOGGING", False)
+json_logging = os.environ.get("JSON_LOGGING", "False") == "True"
 
 
 logger = logging.getLogger()
