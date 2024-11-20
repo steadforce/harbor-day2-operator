@@ -12,7 +12,7 @@ async def sync_webhooks(client, path, logger):
     logger.info("Syncing webhooks")
     webhooks_config = json.load(open(path))
     for webhook in webhooks_config:
-        await sync_webhook(client, **webhook)
+        await sync_webhook(client, **webhook, logger)
 
 
 async def sync_webhook(
