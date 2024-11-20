@@ -35,7 +35,15 @@ code. Pull requests are only accepted when no linting errors occur.
 
 ## Configuration Files
 
-The configuration files are added externally and referenced by the harbor-day2-operator. The configuration files contain all desired settings in json format. As ids can change anytime, it is not feasible to keep ids in configuration files. Instead insert a template for registry and project ids. The template looks like `{{ registry:name }}` or `{{ project:name }}` with name being the name of the project or registry. The template will be replaced with the actual project or registry id, fetched from the harbor instance. Note that if there is an entry in the next line the trailing comma is still needed in order to form correct json. The templating only replaces everything inside and including the double curly braces with the id.
+The configuration files are added externally and referenced by the harbor-day2-operator.
+The configuration files contain all desired settings in json format.
+As ids can change anytime, it is not feasible to keep ids in configuration files.
+Instead insert a template for registry and project ids.
+The template looks like `{{ registry:name }}` or `{{ project:name }}`,
+with name being the name of the project or registry.
+The template will be replaced with the actual project or registry id, fetched from the harbor instance.
+Note that if there is an entry in the next line the trailing comma is still needed in order to form correct json.
+The templating only replaces everything inside and including the double curly braces with the id.
 
 ### configurations.json
 
@@ -76,7 +84,8 @@ All registries have an `id`, whether implicitly or explicitly set.
 ### projects.json
 
 A list of projects and their metadata.
-Projects can also be used as Proxy Caches. In that case, they have to refer to the `registry_id` of an existing registry.
+Projects can also be used as Proxy Caches.
+In that case, they have to refer to the `registry_id` of an existing registry.
 Templating can be used to insert the id at runtime.
 
 ```json
