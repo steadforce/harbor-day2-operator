@@ -11,11 +11,11 @@ new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")
 
 
-def check_file_exists(path: str) -> bool:
+def check_file_exists(path: str, logger) -> bool:
     if os.path.exists(path):
         return True
     else:
-        print(f"File {path} not found - skipping step")
+        logger.info("File not found - skipping step", extra={"path": path})
         return False
 
 

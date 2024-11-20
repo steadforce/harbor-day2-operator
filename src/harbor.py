@@ -63,45 +63,45 @@ async def main() -> None:
     await sync_admin_password(client, logger)
 
     path = config_folder_path + "/configurations.json"
-    if check_file_exists(path):
-        await sync_harbor_configuration(client, path)
+    if check_file_exists(path, logger):
+        await sync_harbor_configuration(client, path, logger)
 
     path = config_folder_path + "/registries.json"
-    if check_file_exists(path):
-        await sync_registries(client, path)
+    if check_file_exists(path, logger):
+        await sync_registries(client, path, logger)
 
     path = config_folder_path + "/projects.json"
-    if check_file_exists(path):
-        await sync_projects(client, path)
+    if check_file_exists(path, logger):
+        await sync_projects(client, path, logger)
 
     path = config_folder_path + "/project-members.json"
-    if check_file_exists(path):
-        await sync_project_members(client, path)
+    if check_file_exists(path, logger):
+        await sync_project_members(client, path, logger)
 
     path = config_folder_path + "/robots.json"
-    if check_file_exists(path):
-        await sync_robot_accounts(client, path)
+    if check_file_exists(path, logger):
+        await sync_robot_accounts(client, path, logger)
 
     path = config_folder_path + "/webhooks.json"
-    if check_file_exists(path):
+    if check_file_exists(path, logger):
         await sync_webhooks(client, path)
 
     path = config_folder_path + "/purge-job-schedule.json"
-    if check_file_exists(path):
+    if check_file_exists(path, logger):
         await sync_purge_job_schedule(client, path)
 
     path = config_folder_path + "/garbage-collection-schedule.json"
-    if check_file_exists(path):
+    if check_file_exists(path, logger):
         await sync_garbage_collection_schedule(client, path)
 
     path = config_folder_path + "/retention-policies.json"
-    if check_file_exists(path):
+    if check_file_exists(path, logger):
         await sync_retention_policies(client, path)
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="""Harbor Day 2 configurator to sync harbor configs""",
+        description="""Harbor Day 2 operator to sync harbor configs""",
     )
     args = parser.parse_args()
     return args

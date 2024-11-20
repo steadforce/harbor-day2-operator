@@ -7,14 +7,14 @@ from harborapi.exceptions import Conflict, BadRequest
 robot_name_prefix = os.environ.get("ROBOT_NAME_PREFIX")
 
 
-async def sync_robot_accounts(client, path):
+async def sync_robot_accounts(client, path, logger):
     """Synchronize all robot accounts
 
     All robot accounts from the robot accounts file, if existent,
     will be updated and applied to harbor.
     """
 
-    print("SYNCING ROBOT ACCOUNTS")
+    logger.info("Syncing robot accounts")
     target_robots = json.load(open(path))
 
     # Get all system level robots
@@ -55,16 +55,15 @@ async def sync_robot_accounts(client, path):
     # Delete all robots not defined in config file
     for current_robot in current_robots:
         if current_robot.name not in target_robot_names_with_prefix:
-            print(
-                f'- Deleting robot "{current_robot.name}" since it is not'
-                " defined in config files"
+            logger.info(
+                "Deleting robot as not defined",
+                extra={"robot": current_robot.name}
             )
             await client.delete_robot(robot_id=current_robot.id)
 
     # Modify existing robots or create new ones
     for target_robot in target_robots:
         full_robot_name = await construct_full_robot_name(target_robot)
-        print(f'Full robot name: {full_robot_name}')
         target_robot = Robot(**target_robot)
         # Modify existing robot
         if full_robot_name in current_robot_names:
@@ -73,27 +72,21 @@ async def sync_robot_accounts(client, path):
             ]
             short_robot_name = target_robot.name
             target_robot.name = full_robot_name
-            print(f'- Syncing robot "{target_robot.name}".')
+            logger.info("Syncing robot", extra={"robot": target_robot.name})
             await client.update_robot(robot_id=robot_id, robot=target_robot)
-            await set_robot_secret(client, short_robot_name, robot_id)
+            await set_robot_secret(client, short_robot_name, robot_id, logger)
         # Create new robot
         else:
-            print(
-                "- Creating new robot"
-                f' "{full_robot_name}"'
-            )
+            logger.info("Creating new robot", extra={"robot": target_robot.name})
             try:
                 created_robot = await client.create_robot(robot=target_robot)
                 await set_robot_secret(
-                    client, target_robot.name, created_robot.id
+                    client, target_robot.name, created_robot.id, logger
                 )
             except Conflict as e:
-                print(
-                    f'''  => "{full_robot_name}"
-                    Harbor Conflict Error: {e}'''
-                )
+                logger.info("Harbor Conflict", extra={"error": e})
             except BadRequest as e:
-                print(f'Bad request permission: {e}')
+                logger.info("Bad request", extra={"error": e})
 
 
 async def construct_full_robot_name(target_robot: Robot) -> str:
@@ -103,12 +96,12 @@ async def construct_full_robot_name(target_robot: Robot) -> str:
         return f'{robot_name_prefix}{target_robot["name"]}'
 
 
-async def set_robot_secret(client, robot_name: str, robot_id: int):
+async def set_robot_secret(client, robot_name: str, robot_id: int, logger):
     secret = os.environ.get(
         robot_name.upper().replace("-", "_")
     )
     if secret:
-        print(f'Set secret for {robot_name}')
+        logger.info("Set robot secret", extra={"robot": robot_name})
         await client.refresh_robot_secret(robot_id, secret)
     else:
-        print(f'WARN: No secret found for {robot_name}')
+        logger.info("No robot secret found", extra={"robot": robot_name})
