@@ -16,7 +16,7 @@ import asyncio
 import logging
 
 from harborapi import HarborAsyncClient
-from pythonjsonlogger.json import JsonFormatter
+from pythonjsonlogger import jsonlogger
 from utils import wait_until_healthy, sync_admin_password, check_file_exists
 from configuration import sync_harbor_configuration
 from registries import sync_registries
@@ -40,7 +40,8 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 if json_logging:
     handler = logging.StreamHandler()
-    handler.setFormatter(JsonFormatter())
+    formatter = jsonlogger.JsonFormatter()
+    handler.setFormatter(formatter)
     logger.addHandler(handler)
 
 
