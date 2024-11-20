@@ -35,7 +35,15 @@ code. Pull requests are only accepted when no linting errors occur.
 
 ## Configuration Files
 
-The configuration files are added externally and referenced by the harbor-day2-operator. The configuration files contain all desired settings in json format.
+The configuration files are added externally and referenced by the harbor-day2-operator.
+The configuration files contain all desired settings in json format.
+As ids can change anytime, it is not feasible to keep ids in configuration files.
+Instead insert a template for registry and project ids.
+The template looks like `{{ registry:name }}` or `{{ project:name }}`,
+with name being the name of the project or registry.
+The template will be replaced with the actual project or registry id, fetched from the harbor instance.
+Note that if there is an entry in the next line the trailing comma is still needed in order to form correct json.
+The templating only replaces everything inside and including the double curly braces with the id.
 
 ### configurations.json
 
@@ -76,8 +84,9 @@ All registries have an `id`, whether implicitly or explicitly set.
 ### projects.json
 
 A list of projects and their metadata.
-Projects can also be used as Proxy Caches. In that case, they have to refer to the `registry_id` of an existing registry.
-The `registry_id` can be found in the registry definitions in the `registries.json` file.
+Projects can also be used as Proxy Caches.
+In that case, they have to refer to the `registry_id` of an existing registry.
+Templating can be used to insert the id at runtime.
 
 ```json
 [
@@ -96,7 +105,78 @@ The `registry_id` can be found in the registry definitions in the `registries.js
             "auto_scan": "false"
         },
         "storage_limit": -1,
-        "registry_id": 1
+        //"registry_id": 1 -> from template
+        "registry_id": "{{ registry:docker.io }}"
+    }
+]
+```
+
+### project-members.json
+
+A list of projects and team members with their respective roles.
+
+```json
+[
+    {
+        "project_name": "Project 1",
+        "admin": [],
+        "developer": ["firstname.lastname"],
+        "guest": [],
+        "maintainer": []
+    }
+]
+```
+
+### robots.json
+
+Configuration of robot accounts and their permissions.
+
+```json
+[
+    {
+        "name": "example-robot",
+        "duration": "-1",
+        "description": "Example robot.",
+        "disable": false,
+        "level": "system",
+        "permissions": [
+            {
+                "kind": "project",
+                "namespace": "*",
+                "access": [
+                    {
+                        "resource": "repository",
+                        "action": "list"
+                    }
+                ]
+            }
+        ]
+    }
+]
+```
+
+### webhooks.json
+
+Definition of webhooks.
+
+```json
+[
+    {
+        "project_name": "Project 1", 
+        "policies": [
+            "name": "ms-teams",
+            "description": "Sends scan results to MS-Teams",
+            "event_types": [
+                "SCANNING_COMPLETED"
+            ],
+            "targets": [
+                {
+                    "type": "http",
+                    "address": "https://harbor-ms-teams-forwarder.url.com"
+                }
+            ],
+            "enabled": true
+        ]
     }
 ]
 ```
@@ -214,8 +294,7 @@ Definition of the retention policies.
 The retention policies can be set per project.
 They can be found in each project page under the tab Policy.
 `scope.ref` refers to the `project_id` (integer) this retention policy should be associated with.
-This `project_id` can be found in the url of each project. For example:
-`Project 1` has the url `https://harbor-url.com/harbor/projects/`**`2`**`/repositories`. That means the `project_id` of `Project 1` is `2`.
+Templating can be used to insert the id of the project at runtime.
 
 
 ```json
@@ -224,11 +303,12 @@ This `project_id` can be found in the url of each project. For example:
     "algorithm": "or",
     "scope": {
       "level": "project",
-      "ref": 2
+      //"ref": 2 -> from template
+      "ref": "{{ project:aa }}"
     },
     "rules": [
       {
-	"action": "retain",
+        "action": "retain",
         "template": "always",
         "tag_selectors": [
           {

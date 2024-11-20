@@ -1,5 +1,9 @@
 from time import sleep
 import os
+
+import chevron
+import re
+
 from harborapi.models import ProjectMemberEntity
 from harborapi import HarborAsyncClient
 from harborapi.exceptions import Unauthorized
@@ -66,3 +70,56 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
         if member.entity_name == username:
             return member.id
     return None
+
+
+async def fill_template(client, path: str) -> str:
+    """Takes the path to a template file and returns its content with the
+    replaced ids
+    """
+    with open(path, 'r') as file:
+        content = file.read()
+        placeholders = re.findall(
+            r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}', content
+        )
+        print(f"Found id templates: {placeholders}")
+        placeholders = [
+            placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
+            for placeholder in placeholders
+        ]
+        replacements = {}
+        for placeholder in placeholders:
+            placeholder_type, placeholder_value = placeholder.split(':')
+            replacement_value = await fetch_id(
+                client, placeholder_type, placeholder_value
+            )
+            # The mustache specification, which the chevron library builds
+            # on top of, does not allow for dots in keys. Instead, keys with
+            # dots are meant to reference nested objects. In order to have
+            # the right objects to reference, nested objects / dictionaries
+            # are created for keys with dots.
+            last_part = str(replacement_value)
+            for part in reversed(placeholder.split('.')):
+                last_part = {part: last_part}
+            replacements = replacements | last_part
+        config = chevron.render(content, replacements)
+        return config
+
+
+async def fetch_id(
+    client, placeholder_type: str, placeholder_value: str
+) -> int:
+    """Fetches the id of an object with the given name"""
+    if placeholder_type == "project":
+        projects = await client.get_projects(
+            query=f"name={placeholder_value}"
+        )
+        project = projects[0]
+        project_id = project.project_id
+        return project_id
+    if placeholder_type == "registry":
+        registries = await client.get_registries(
+            query=f"name={placeholder_value}"
+        )
+        registry = registries[0]
+        registry_id = registry.id
+        return registry_id
