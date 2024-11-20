@@ -38,7 +38,10 @@ async def sync_registries(client, path, logger):
             registry_id = current_registry_id[
                 current_registry_names.index(target_registry_name)
             ]
-            logger.info("Syncing registy", extra={"registry": target_registry_name})
+            logger.info(
+                "Syncing registy",
+                extra={"registry": target_registry_name}
+            )
             await client.update_registry(
                 id=registry_id, registry=target_registry
             )

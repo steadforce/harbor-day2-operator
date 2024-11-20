@@ -1,14 +1,14 @@
 import json
 
 
-async def sync_retention_policies(client, path):
+async def sync_retention_policies(client, path, logger):
     """Synchronize the retention policies
 
     The retention policies from the retention policies file, if existent,
     will be updated and applied to harbor.
     """
 
-    print('SYNCING RETENTION POLICIES')
+    logger.info("Syncing retention policies")
     retention_policies = json.load(open(path))
     for retention_policy in retention_policies:
         retention_scope = retention_policy["scope"]["ref"]
@@ -20,11 +20,15 @@ async def sync_retention_policies(client, path):
                 project_retention_id,
                 retention_policy
             )
-            print(f"Updating retention policy for project with id "
-                  f"{retention_scope}")
+            logger.info(
+                "Updating retention policy",
+                extra={"project_id": retention_scope}
+            )
         except Exception as e:
-            print(f"Creating retention policy for project with id "
-                  f"{retention_scope}")
+            logger.info(
+                "Creating retention policy",
+                extra={"project_id": retention_scope}
+            )
             await client.create_retention_policy(
                 retention_policy
             )

@@ -88,6 +88,9 @@ async def sync_project_members(client, path, logger):
                     )
                 except NotFound:
                     logger.info(
-                        "User not found - make sure the user has logged in at least once",
-                        extra={"member": member.entity_name}
+                        "User not found",
+                        extra={
+                            "member": member.entity_name,
+                            "hint": "Make sure user has logged in"
+                        }
                     )

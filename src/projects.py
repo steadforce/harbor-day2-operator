@@ -52,5 +52,8 @@ async def sync_projects(client, path, logger):
             )
         # Create new project
         else:
-            logger.info("Creating new project", extra={"project": target_project["project_name"]})
+            logger.info(
+                "Creating new project",
+                extra={"project": target_project["project_name"]}
+            )
             await client.create_project(project=target_project)

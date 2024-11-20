@@ -84,19 +84,19 @@ async def main() -> None:
 
     path = config_folder_path + "/webhooks.json"
     if check_file_exists(path, logger):
-        await sync_webhooks(client, path)
+        await sync_webhooks(client, path, logger)
 
     path = config_folder_path + "/purge-job-schedule.json"
     if check_file_exists(path, logger):
-        await sync_purge_job_schedule(client, path)
+        await sync_purge_job_schedule(client, path, logger)
 
     path = config_folder_path + "/garbage-collection-schedule.json"
     if check_file_exists(path, logger):
-        await sync_garbage_collection_schedule(client, path)
+        await sync_garbage_collection_schedule(client, path, logger)
 
     path = config_folder_path + "/retention-policies.json"
     if check_file_exists(path, logger):
-        await sync_retention_policies(client, path)
+        await sync_retention_policies(client, path, logger)
 
 
 def parse_args():

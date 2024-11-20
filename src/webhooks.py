@@ -2,23 +2,29 @@ from harborapi.models import WebhookPolicy
 import json
 
 
-async def sync_webhooks(client, path):
+async def sync_webhooks(client, path, logger):
     """Synchronize all webhooks
 
     All webhooks from the webhooks file, if existent,
     will be updated and applied to harbor.
     """
 
-    print("SYNCING WEBHOOKS")
+    logger.info("Syncing webhooks")
     webhooks_config = json.load(open(path))
     for webhook in webhooks_config:
         await sync_webhook(client, **webhook)
 
 
 async def sync_webhook(
-    client, project_name: str, policies: list[WebhookPolicy]
+    client,
+    project_name: str,
+    policies: list[WebhookPolicy],
+    logger
 ):
-    print(f'PROJECT: "{project_name}"')
+    logger.info(
+        "Syncing webhooks for project",
+        extra={"project": project_name}
+    )
 
     target_policies = policies
     current_policies = await client.get_webhook_policies(
@@ -38,9 +44,9 @@ async def sync_webhook(
     # Delete all policies not defined in config file
     for current_policy in current_policies:
         if current_policy.name not in target_policy_names:
-            print(
-                f'- Deleting policy "{current_policy.name}" since it is not'
-                " defined in config files"
+            logger.info(
+                "Deleting policy",
+                extra={"policy": current_policy.name}
             )
             await client.delete_webhook_policy(
                 project_name_or_id=project_name,
@@ -54,7 +60,10 @@ async def sync_webhook(
             policy_id = current_policy_id[
                 current_policy_names.index(target_policy["name"])
             ]
-            print(f'- Syncing policy "{target_policy["name"]}"')
+            logger.info(
+                "Syncing policy",
+                extra={"policy": target_policy["name"]}
+            )
             await client.update_webhook_policy(
                 project_name_or_id=project_name,
                 webhook_policy_id=policy_id,
@@ -62,7 +71,10 @@ async def sync_webhook(
             )
         # Create new policy
         else:
-            print(f'- Creating new policy "{target_policy["name"]}"')
+            logger.info(
+                "Creating new policy",
+                extra={"policy": target_policy["name"]}
+            )
             await client.create_webhook_policy(
                 project_name_or_id=project_name, policy=target_policy
             )

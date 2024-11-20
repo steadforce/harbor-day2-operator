@@ -77,7 +77,10 @@ async def sync_robot_accounts(client, path, logger):
             await set_robot_secret(client, short_robot_name, robot_id, logger)
         # Create new robot
         else:
-            logger.info("Creating new robot", extra={"robot": target_robot.name})
+            logger.info(
+                "Creating new robot",
+                extra={"robot": target_robot.name}
+            )
             try:
                 created_robot = await client.create_robot(robot=target_robot)
                 await set_robot_secret(
