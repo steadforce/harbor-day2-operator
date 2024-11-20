@@ -12,14 +12,14 @@ async def sync_webhooks(client, path, logger):
     logger.info("Syncing webhooks")
     webhooks_config = json.load(open(path))
     for webhook in webhooks_config:
-        await sync_webhook(client, **webhook, logger)
+        await sync_webhook(client, logger, **webhook)
 
 
 async def sync_webhook(
     client,
+    logger,
     project_name: str,
-    policies: list[WebhookPolicy],
-    logger
+    policies: list[WebhookPolicy]
 ):
     logger.info(
         "Syncing webhooks for project",
