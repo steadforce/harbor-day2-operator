@@ -86,10 +86,8 @@ async def sync_robot_accounts(client, path, logger):
                 await set_robot_secret(
                     client, target_robot.name, created_robot.id, logger
                 )
-            except Conflict as e:
-                logger.warning("Harbor Conflict", extra={"error": e})
-            except BadRequest as e:
-                logger.warning("Bad request", extra={"error": e})
+            except (Conflict, BadRequest) as e:
+                logger.info("Could not create robot", extra={"details": e})
 
 
 async def construct_full_robot_name(target_robot: Robot) -> str:
