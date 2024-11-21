@@ -87,9 +87,9 @@ async def sync_robot_accounts(client, path, logger):
                     client, target_robot.name, created_robot.id, logger
                 )
             except Conflict as e:
-                logger.info("Harbor Conflict", extra={"error": e})
+                logger.warning("Harbor Conflict", extra={"error": e})
             except BadRequest as e:
-                logger.info("Bad request", extra={"error": e})
+                logger.warning("Bad request", extra={"error": e})
 
 
 async def construct_full_robot_name(target_robot: Robot) -> str:

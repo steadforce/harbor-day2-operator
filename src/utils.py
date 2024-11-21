@@ -15,7 +15,7 @@ new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
 api_url = os.environ.get("HARBOR_API_URL")
 
 
-def check_file_exists(path: str, logger) -> bool:
+def file_exists(path: str, logger) -> bool:
     if os.path.exists(path):
         return True
     else:
