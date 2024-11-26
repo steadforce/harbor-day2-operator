@@ -1,2 +1,2 @@
-harborapi==0.25.3
+harborapi==0.26.1
 chevron==0.14.0
