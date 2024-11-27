@@ -56,10 +56,10 @@ async def main() -> None:
         verify=False,
     )
 
-    logger.info("WAITING FOR HEALTHY HARBOR")
+    logger.info("Waiting for healthy harbor")
     await wait_until_healthy(client, logger)
 
-    logger.info("UPDATE ADMIN PASSWORD")
+    logger.info("Update admin password")
     await sync_admin_password(client, logger)
 
     path = config_folder_path + "/configurations.json"
