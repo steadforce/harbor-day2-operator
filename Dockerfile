@@ -3,6 +3,7 @@ FROM python:3.12-alpine@sha256:5049c050bdc68575a10bcb1885baa0689b6c15152d8a56a7e
 ENV PYTHONUNBUFFERED=1
 
 FROM base AS builder
+RUN apk update && apk upgrade
 # we want always the latest version of fetched apk packages
 # hadolint ignore=DL3018
 RUN apk add --no-cache build-base libressl-dev musl-dev libffi-dev && \
@@ -23,7 +24,7 @@ COPY src/ /src/
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -U pip nuitka setuptools wheel && \
     /venv/bin/pip install --no-cache-dir --no-warn-script-location -r ./requirements.txt && \
-    /venv/bin/python -m nuitka --onefile /src/harbor.py && \
+    /venv/bin/python -m nuitka --onefile --clean-cache=all /src/harbor.py && \
     pwd && \
     ls -lha
 
