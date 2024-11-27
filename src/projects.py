@@ -3,14 +3,14 @@ import json
 from utils import fill_template
 
 
-async def sync_projects(client, path):
+async def sync_projects(client, path, logger):
     """Synchronize all projects
 
     All projects from the project file, if existent,
     will be updated and applied to harbor.
     """
 
-    print("SYNCING PROJECTS")
+    logger.info("Syncing projects")
     target_projects_string = await fill_template(client, path)
     target_projects = json.loads(target_projects_string)
     current_projects = await client.get_projects(limit=None)
@@ -29,28 +29,34 @@ async def sync_projects(client, path):
                 limit=None
             )
             if len(repositories) == 0:
-                print(
-                    f'- Deleting project "{current_project.name}" since it is'
-                    " empty and not defined in config files"
+                logger.info(
+                    "Deleting project",
+                    extra={"project": current_project.name}
                 )
                 await client.delete_project(
                     project_name_or_id=current_project.name
                 )
             else:
-                print(
-                    f'- Deletion of project "{current_project.name}" not'
-                    " possible since it is not empty"
+                logger.info(
+                    "Deletion of project not possible as not empty",
+                    extra={"project": current_project.name}
                 )
 
     # Modify existing projects or create new ones
     for target_project in target_projects:
         # Modify existing project
         if target_project["project_name"] in current_project_names:
-            print(f'- Syncing project "{target_project["project_name"]}"')
+            logger.info(
+                "Syncing project",
+                extra={"project": target_project["project_name"]}
+            )
             await client.update_project(
                 project_name_or_id=current_project.name, project=target_project
             )
         # Create new project
         else:
-            print(f'- Creating new project "{target_project["project_name"]}"')
+            logger.info(
+                "Creating new project",
+                extra={"project": target_project["project_name"]}
+            )
             await client.create_project(project=target_project)
