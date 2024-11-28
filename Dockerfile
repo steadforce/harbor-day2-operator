@@ -1,3 +1,5 @@
+# Always use the latest image
+# hadolint ignore=DL3007
 FROM cgr.dev/chainguard/wolfi-base:latest AS base
 ENV PYTHONUNBUFFERED=1
 
@@ -6,7 +8,9 @@ FROM base AS builder
 # hadolint ignore=DL3018
 RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev && \
     mkdir /install
-RUN apk add python-3.12 python3-dev py3.12-pip
+# we want always the latest version of fetched apk packages
+# hadolint ignore=DL3018
+RUN apk add --no-cache python-3.12 python3-dev py3.12-pip
 WORKDIR /install
 COPY requirements.txt requirements.txt
 # we want always the latest version of fetched pip packages
@@ -32,5 +36,7 @@ COPY tests/ /tests/
 WORKDIR /tests
 RUN python3 -m unittest discover -v -s .
 
+# Always use the latest image
+# hadolint ignore=DL3007
 FROM cgr.dev/chainguard/wolfi-base:latest
 COPY --from=native-builder /install/harbor.bin /usr/local/harbor
