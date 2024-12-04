@@ -6,11 +6,9 @@ ENV PYTHONUNBUFFERED=1
 FROM base AS builder
 # we want always the latest version of fetched apk packages
 # hadolint ignore=DL3018
-RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev && \
+RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev \
+    python-3.12 python3-dev py3.12-pip && \
     mkdir /install
-# we want always the latest version of fetched apk packages
-# hadolint ignore=DL3018
-RUN apk add --no-cache python-3.12 python3-dev py3.12-pip
 WORKDIR /install
 COPY requirements.txt requirements.txt
 # we want always the latest version of fetched pip packages
