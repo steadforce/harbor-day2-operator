@@ -1,3 +1,3 @@
-harborapi==0.26.0
+harborapi==0.25.3
 python-json-logger==2.0.7
 chevron==0.14.0
