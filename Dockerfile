@@ -13,7 +13,7 @@ WORKDIR /install
 COPY requirements.txt requirements.txt
 # we want always the latest version of fetched pip packages
 # hadolint ignore=DL3013
-RUN pip3 install --no-cache-dir -U pip setuptools wheel && \
+RUN pip3 install --no-cache-dir setuptools wheel && \
     pip3 install --no-cache-dir --prefix=/install --no-warn-script-location -r ./requirements.txt
 
 FROM builder AS native-builder
