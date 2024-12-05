@@ -13,7 +13,7 @@ WORKDIR /install
 COPY requirements.txt requirements.txt
 # we want always the latest version of fetched pip packages
 # hadolint ignore=DL3013
-RUN pip3 install --no-cache-dir setuptools wheel && \
+RUN pip3 install --no-cache-dir -U pip setuptools wheel && \
     pip3 install --no-cache-dir --prefix=/install --no-warn-script-location -r ./requirements.txt
 
 FROM builder AS native-builder
@@ -24,7 +24,7 @@ COPY src/ /src/
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -U pip nuitka setuptools wheel && \
     /venv/bin/pip install --no-cache-dir --no-warn-script-location -r ./requirements.txt && \
-    /venv/bin/python -m nuitka --onefile --clean-cache=all /src/harbor.py && \
+    /venv/bin/python -m nuitka --onefile /src/harbor.py && \
     pwd && \
     ls -lha
 
