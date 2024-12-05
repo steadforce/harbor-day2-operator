@@ -47,5 +47,8 @@ async def sync_registries(client, path, logger):
             )
         # Create new registry
         else:
-            logger.info("Creating new registry", extra={target_registry_name})
+            logger.info(
+                "Creating new registry",
+                extra={"registry": target_registry_name}
+            )
             await client.create_registry(registry=target_registry)

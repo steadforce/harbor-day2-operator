@@ -1,10 +1,13 @@
-FROM python:3.12-alpine@sha256:5049c050bdc68575a10bcb1885baa0689b6c15152d8a56a7e399fb49f783bf98 AS base
+# Always use the latest image
+# hadolint ignore=DL3007
+FROM cgr.dev/chainguard/wolfi-base:latest AS base
 ENV PYTHONUNBUFFERED=1
 
 FROM base AS builder
 # we want always the latest version of fetched apk packages
 # hadolint ignore=DL3018
-RUN apk add --no-cache build-base libressl-dev musl-dev libffi-dev && \
+RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev \
+    python-3.12 python3-dev py3.12-pip && \
     mkdir /install
 WORKDIR /install
 COPY requirements.txt requirements.txt
@@ -31,5 +34,7 @@ COPY tests/ /tests/
 WORKDIR /tests
 RUN python3 -m unittest discover -v -s .
 
-FROM alpine:3.20@sha256:1e42bbe2508154c9126d48c2b8a75420c3544343bf86fd041fb7527e017a4b4a
+# Always use the latest image
+# hadolint ignore=DL3007
+FROM cgr.dev/chainguard/wolfi-base:latest
 COPY --from=native-builder /install/harbor.bin /usr/local/harbor
