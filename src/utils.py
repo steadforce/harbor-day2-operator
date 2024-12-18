@@ -69,7 +69,7 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
     return None
 
 
-async def fill_template(client, path: str) -> str:
+async def fill_template(client, path: str, logger) -> str:
     """Takes the path to a template file and returns its content with the
     replaced ids
     """
@@ -78,7 +78,7 @@ async def fill_template(client, path: str) -> str:
         placeholders = re.findall(
             r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}', content
         )
-        print(f"Found id templates: {placeholders}")
+        logger.info("Found id templates", extra={"placeholders": placeholders})
         placeholders = [
             placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
             for placeholder in placeholders
