@@ -1,0 +1,35 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/steadforce/steadops/workbenches/harbor-day2-operator
+  tag: ""  # Set your specific version
+  pullPolicy: IfNotPresent
+
+harbor:
+  apiUrl: ""  # The Harbor API URL to manage
+  adminUsername: "admin"
+  robotNamePrefix: "robot$"
+
+oidc:
+  endpoint: ""  # OIDC provider endpoint
+
+configFolder: /usr/local/scripts
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# Configuration files to be mounted
+configFiles:
+  enabled: true
+  # Add your configuration files here in the format:
+  # filename: |
+  #   content

@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "harbor-day2-operator.fullname" . }}
+  labels:
+    {{- include "harbor-day2-operator.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "harbor-day2-operator.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "harbor-day2-operator.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: ADMIN_PASSWORD_NEW
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "harbor-day2-operator.fullname" . }}-admin
+                  key: password-new
+            - name: ADMIN_PASSWORD_OLD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "harbor-day2-operator.fullname" . }}-admin
+                  key: password-old
+            - name: HARBOR_API_URL
+              value: {{ .Values.harbor.apiUrl }}
+            - name: ADMIN_USERNAME
+              value: {{ .Values.harbor.adminUsername }}
+            - name: OIDC_ENDPOINT
+              value: {{ .Values.oidc.endpoint }}
+            - name: CONFIG_FOLDER_PATH
+              value: {{ .Values.configFolder }}
+            - name: ROBOT_NAME_PREFIX
+              value: {{ .Values.harbor.robotNamePrefix }}
+          envFrom:
+            - secretRef:
+                name: {{ include "harbor-day2-operator.fullname" . }}-robot
+            - secretRef:
+                name: {{ include "harbor-day2-operator.fullname" . }}-oidc
+          command: ["watch", "-n", "60", "/bin/ash", "-ec", "/usr/local/harbor"]
+          volumeMounts:
+            - name: config-volume
+              mountPath: {{ .Values.configFolder }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "harbor-day2-operator.fullname" . }}-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
