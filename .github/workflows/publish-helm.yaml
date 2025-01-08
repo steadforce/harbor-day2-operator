@@ -5,6 +5,7 @@ on:
     types: [published]
     branches:
       - main
+      - helm-chart
 
 env:
   REGISTRY: ghcr.io
