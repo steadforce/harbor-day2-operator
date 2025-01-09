@@ -29,6 +29,7 @@ RUN python -m venv /venv && \
     ls -lha
 
 FROM base AS test
+USER nonroot
 COPY --from=builder /install /usr/local
 COPY tests/ /tests/
 WORKDIR /tests
@@ -37,4 +38,5 @@ RUN python3 -m unittest discover -v -s .
 # Always use the latest image
 # hadolint ignore=DL3007
 FROM cgr.dev/chainguard/wolfi-base:latest
+USER nonroot
 COPY --from=native-builder /install/harbor.bin /usr/local/harbor
