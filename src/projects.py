@@ -11,7 +11,7 @@ async def sync_projects(client, path, logger):
     """
 
     logger.info("Syncing projects")
-    target_projects_string = await fill_template(client, path)
+    target_projects_string = await fill_template(client, path, logger)
     target_projects = json.loads(target_projects_string)
     current_projects = await client.get_projects(limit=None)
     current_project_names = [

@@ -39,10 +39,12 @@ json_logging = os.environ.get("JSON_LOGGING", "False") == "True"
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 if json_logging:
-    handler = logging.StreamHandler()
     formatter = jsonlogger.JsonFormatter()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+else:
+    formatter = logging.Formatter()
+handler = logging.StreamHandler()
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 async def main() -> None:
