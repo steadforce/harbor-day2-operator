@@ -31,8 +31,8 @@ jobs:
 
       - name: Update Chart Version
         run: |
-          # Get version from release tag (without 'v' prefix)
-          VERSION=${GITHUB_REF#refs/tags/v}
+          # Get version from release tag
+          VERSION=${GITHUB_REF#refs/tags/}
           # Update version in Chart.yaml
           yq e -i '.version = "'${VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
 
@@ -51,7 +51,7 @@ jobs:
         run: |
           # Get chart name from Chart.yaml
           CHART_NAME=$(yq e '.name' ${{ env.CHART_DIR }}/Chart.yaml)
-          VERSION=${GITHUB_REF#refs/tags/v}
-          
+          VERSION=${GITHUB_REF#refs/tags/}
+
           # Push to GHCR using Helm
           helm push "${CHART_NAME}-${VERSION}.tgz" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}
