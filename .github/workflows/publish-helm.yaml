@@ -1,5 +1,6 @@
 name: Publish Helm Chart
 
+# Trigger on release events for main and helm-chart branches
 on:
   release:
     types: [published]
@@ -10,31 +11,63 @@ on:
 env:
   REGISTRY: ghcr.io
   CHART_DIR: chart
+  HELM_VERSION: v3.12.3
 
 jobs:
-  publish:
+  build:
+    name: Build and Validate Chart
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Helm
+      - name: Set up Helm
         uses: azure/setup-helm@v3
         with:
-          version: v3.12.3
+          version: ${{ env.HELM_VERSION }}
 
-      - name: Update Chart Version
+      - name: Update chart version
         run: |
-          # Get version from release tag
+          # Extract version from release tag
           VERSION=${GITHUB_REF#refs/tags/}
-          # Update version in Chart.yaml
+          echo "Setting chart version to: ${VERSION}"
           yq e -i '.version = "'${VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
+
+      - name: Lint chart
+        run: helm lint ${{ env.CHART_DIR }}
+
+      - name: Validate chart template
+        run: helm template ${{ env.CHART_DIR }}
+
+      - name: Package chart
+        run: helm package ${{ env.CHART_DIR }}
+
+      - name: Upload chart artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: helm-chart
+          path: ./*.tgz
+          retention-days: 1
+
+  publish:
+    name: Publish to Registry
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Download chart artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: helm-chart
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -43,15 +76,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Package Helm Chart
+      - name: Push chart to registry
         run: |
-          helm package ${{ env.CHART_DIR }}
-
-      - name: Push Helm Chart
-        run: |
-          # Get chart name from Chart.yaml
-          CHART_NAME=$(yq e '.name' ${{ env.CHART_DIR }}/Chart.yaml)
-          VERSION=${GITHUB_REF#refs/tags/}
-
-          # Push to GHCR using Helm
-          helm push "${CHART_NAME}-${VERSION}.tgz" oci://${{ env.REGISTRY }}/${{ github.repository_owner }}
+          echo "Publishing Helm chart to ${{ env.REGISTRY }}/${{ github.repository_owner }}"
+          helm push *.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}
