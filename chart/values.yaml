@@ -8,10 +8,13 @@ image:
 harbor:
   apiUrl: ""  # The Harbor API URL to manage
   adminUsername: "admin"
+  adminPasswordNew: "changeme"  # New admin password
+  adminPasswordOld: "changeme"  # Old admin password
   robotNamePrefix: "robot$"
 
 oidc:
   endpoint: ""  # OIDC provider endpoint
+  staticClientToken: "changeme"
 
 configFolder: /usr/local/scripts
 
