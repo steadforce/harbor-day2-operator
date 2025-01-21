@@ -27,6 +27,19 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
+# Additional environment variables
+env: {}
+  # Add custom environment variables here in the format:
+  # VARIABLE_NAME: value
+
+# Additional envFrom sources
+envFrom: []
+  # Add additional envFrom sources here, examples:
+  # - configMapRef:
+  #     name: my-config-map
+  # - secretRef:
+  #     name: my-secret
+
 # Configuration files to be mounted
 configFiles:
   enabled: true
