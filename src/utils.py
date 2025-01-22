@@ -74,16 +74,15 @@ async def fill_template(client, path: str, logger) -> str:
     replaced ids
     """
     with open(path, 'r') as file:
-        content = file.read()
+        config = file.read()
         placeholders = re.findall(
-            r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}', content
+            r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}', config
         )
         logger.info("Found id templates", extra={"placeholders": placeholders})
         placeholders = [
             placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
             for placeholder in placeholders
         ]
-        replacements = {}
         for placeholder in placeholders:
             placeholder_type, placeholder_value = placeholder.split(':')
             replacement_value = await fetch_id(
@@ -94,11 +93,10 @@ async def fill_template(client, path: str, logger) -> str:
             # dots are meant to reference nested objects. In order to have
             # the right objects to reference, nested objects / dictionaries
             # are created for keys with dots.
-            last_part = str(replacement_value)
+            replacement_last_part = str(replacement_value)
             for part in reversed(placeholder.split('.')):
-                last_part = {part: last_part}
-            replacements = replacements | last_part
-        config = chevron.render(content, replacements)
+                replacement_last_part = {part: replacement_last_part}
+            config = chevron.render(config, replacement_last_part)
         return config
 
 
