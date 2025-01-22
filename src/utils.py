@@ -83,6 +83,7 @@ async def fill_template(client, path: str, logger) -> str:
             placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
             for placeholder in placeholders
         ]
+        replacements = {}
         for placeholder in placeholders:
             placeholder_type, placeholder_value = placeholder.split(':')
             replacement_value = await fetch_id(
@@ -94,9 +95,10 @@ async def fill_template(client, path: str, logger) -> str:
             # the right objects to reference, nested objects / dictionaries
             # are created for keys with dots.
             replacement_last_part = str(replacement_value)
-            for part in reversed(placeholder.split('.')):
-                replacement_last_part = {part: replacement_last_part}
-            config = chevron.render(config, replacement_last_part)
+            replacement_keys = placeholder.split('.')
+            replacement = replacement_keys.append(replacement_last_part)
+            insert_into_dict(replacements, replacement)
+        config = chevron.render(config, replacements)
         return config
 
 
@@ -118,3 +120,24 @@ async def fetch_id(
         registry = registries[0]
         registry_id = registry.id
         return registry_id
+
+def insert_into_dict(d: dict, parts: [str]) -> None:
+    """Takes a dictionary and insert nested objects given as list.
+
+    >>> d = {}
+    >>> insert_into_dict(d, ["a", "b", 1])
+    >>> d
+    {"a": {"b": 1}}
+    >>> insert_into_dict(d, ["a", "c", 2])
+    >>> d
+    {"a": {"b": 1, c: "2"}}
+    
+    """
+    assert len(parts) >= 2
+    for part in parts[:-2]:
+        if part not in d:
+            d[part] = {}
+        d = d[part]
+    last_key = parts[-2]
+    value = parts[-1]
+    d[last_key] = value
