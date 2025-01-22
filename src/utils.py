@@ -96,8 +96,8 @@ async def fill_template(client, path: str, logger) -> str:
             # are created for keys with dots.
             replacement_last_part = str(replacement_value)
             replacement_keys = placeholder.split('.')
-            replacement = replacement_keys.append(replacement_last_part)
-            insert_into_dict(replacements, replacement)
+            replacement_keys.append(replacement_last_part)
+            insert_into_dict(replacements, replacement_keys)
         config = chevron.render(config, replacements)
         return config
 
