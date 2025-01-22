@@ -121,6 +121,7 @@ async def fetch_id(
         registry_id = registry.id
         return registry_id
 
+
 def insert_into_dict(d: dict, parts: [str]) -> None:
     """Takes a dictionary and insert nested objects given as list.
 
@@ -131,7 +132,6 @@ def insert_into_dict(d: dict, parts: [str]) -> None:
     >>> insert_into_dict(d, ["a", "c", 2])
     >>> d
     {"a": {"b": 1, c: "2"}}
-    
     """
     assert len(parts) >= 2
     for part in parts[:-2]:
