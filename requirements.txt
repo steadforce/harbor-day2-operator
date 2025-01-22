@@ -1,4 +1,3 @@
 harborapi==0.26.1
 python-json-logger==2.0.7
 chevron==0.14.0
-httpx==0.27.2 # temporal fix of harborapi
