@@ -64,6 +64,8 @@ jobs:
           type=sha
     - name: Build container image for tests
       uses: docker/build-push-action@67a2d409c0a876cbe6b11854e3e25193efe4e62d
+      env:
+        DOCKER_BUILDKIT: 1
       with:
         context: .
         push: false
