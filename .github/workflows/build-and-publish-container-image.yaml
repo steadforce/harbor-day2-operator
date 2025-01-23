@@ -72,6 +72,9 @@ jobs:
         tags: ${{ env.IMAGE_NAME }}:test
         cache-from: type=local,src=/tmp/.buildx-cache
         cache-to: type=local,dest=/tmp/.buildx-cache,mode=max
+    - name: Verify image existence
+      run: |
+        docker images ${{ env.IMAGE_NAME }}:test
     - name: Test harbor tool
       run: |
         docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/harbor --help
