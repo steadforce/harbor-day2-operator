@@ -1,39 +1,39 @@
-replicaCount: 1
+affinity: {}
 
-image:
-  repository: ghcr.io/steadforce/steadops/workbenches/harbor-day2-operator
-  tag: ""  # Set your specific version
-  pullPolicy: IfNotPresent
-
-harbor:
-  apiUrl: ""  # The Harbor API URL to manage
-  adminUsername: "admin"
-  adminPasswordNew: "changeme"  # New admin password
-  adminPasswordOld: "changeme"  # Old admin password
-  robotNamePrefix: "robot$"
-
-oidc:
-  endpoint: ""  # OIDC provider endpoint
-  staticClientToken: "changeme"
+configFiles:
+  enabled: true
+  # Add your configuration files here. Each file is defined as a key-value pair:
+  # filename1.ext: |
+  #   content of first file
+  #   multiple lines are supported
+  #   indentation is preserved
+  # filename2.ext: |
+  #   content of second file
+  #   ...
+  #
+  # Any file type is supported and will be mounted as-is in the container
 
 configFolder: /usr/local/scripts
 
-resources:
-  limits:
-    cpu: 200m
-    memory: 256Mi
-  requests:
-    cpu: 100m
-    memory: 128Mi
-
-nodeSelector: {}
-tolerations: []
-affinity: {}
-
 # Additional environment variables
 env: {}
-  # Add custom environment variables here in the format:
-  # VARIABLE_NAME: value
+  # Environment variables can be set in two ways:
+  # 1. Direct value:
+  #   MY_VAR:
+  #     value: "my-value"
+  # 2. Using valueFrom:
+  #   MY_VAR:
+  #     valueFrom:
+  #       secretKeyRef:
+  #         name: my-secret
+  #         key: my-key
+  #       # or
+  #       configMapKeyRef:
+  #         name: my-configmap
+  #         key: my-key
+  #       # or
+  #       fieldRef:
+  #         fieldPath: metadata.name
 
 # Additional envFrom sources
 envFrom: []
@@ -43,9 +43,50 @@ envFrom: []
   # - secretRef:
   #     name: my-secret
 
-# Configuration files to be mounted
-configFiles:
-  enabled: true
-  # Add your configuration files here in the format:
-  # filename: |
-  #   content
+deployment:
+  # Additional labels to be added to the deployment
+  labels: {}
+    # team: myteam
+    # environment: production
+
+  # Additional pod labels and selector labels
+  podLabels: {}
+    # app.kubernetes.io/part-of: myapp
+    # environment: production
+
+  # Additional selector labels (these will be added to both matchLabels and pod labels)
+  selectorLabels: {}
+    # tier: backend
+    # critical: "true"
+
+harbor:
+  adminPasswordNew: "changeme"  # New admin password
+  adminPasswordOld: "changeme"  # Old admin password
+  adminUsername: "admin"
+  apiUrl: ""  # The Harbor API URL to manage
+  robotNamePrefix: "robot$"
+
+image:
+  pullPolicy: IfNotPresent
+  repository: ghcr.io/steadforce/steadops/workbenches/harbor-day2-operator
+  tag: ""  # Set your specific version
+
+nodeSelector: {}
+
+oidc:
+  endpoint: ""  # OIDC provider endpoint
+  staticClientToken: "changeme"
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+revisionHistoryLimit: 10
+
+tolerations: []

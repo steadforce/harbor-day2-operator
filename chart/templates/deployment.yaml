@@ -4,15 +4,28 @@ metadata:
   name: {{ include "harbor-day2-operator.fullname" . }}
   labels:
     {{- include "harbor-day2-operator.labels" . | nindent 4 }}
+    {{- with .Values.deployment.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "harbor-day2-operator.selectorLabels" . | nindent 6 }}
+      {{- with .Values.deployment.selectorLabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
   template:
     metadata:
       labels:
         {{- include "harbor-day2-operator.selectorLabels" . | nindent 8 }}
+        {{- with .Values.deployment.selectorLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.deployment.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
     spec:
       containers:
         - name: {{ .Chart.Name }}
@@ -41,7 +54,12 @@ spec:
               value: {{ .Values.harbor.robotNamePrefix }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
-              value: {{ $value | quote }}
+              {{- if $value.valueFrom }}
+              valueFrom:
+                {{- toYaml $value.valueFrom | nindent 16 }}
+              {{- else }}
+              value: {{ $value.value | default $value | quote }}
+              {{- end }}
             {{- end }}
           envFrom:
             - secretRef:
