@@ -70,36 +70,22 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
 
 
 async def fill_template(client, path: str, logger) -> str:
-    """Takes the path to a template file and returns its content with the
-    replaced ids
-    """
+    """Reads a template file, replaces placeholders with fetched IDs, and returns the updated content."""
     with open(path, 'r') as file:
-        content = file.read()
-        placeholders = re.findall(
-            r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}', content
-        )
-        logger.info("Found id templates", extra={"placeholders": placeholders})
-        placeholders = [
-            placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
-            for placeholder in placeholders
-        ]
-        replacements = {}
-        for placeholder in placeholders:
-            placeholder_type, placeholder_value = placeholder.split(':')
-            replacement_value = await fetch_id(
-                client, placeholder_type, placeholder_value
-            )
-            # The mustache specification, which the chevron library builds
-            # on top of, does not allow for dots in keys. Instead, keys with
-            # dots are meant to reference nested objects. In order to have
-            # the right objects to reference, nested objects / dictionaries
-            # are created for keys with dots.
-            last_part = str(replacement_value)
-            for part in reversed(placeholder.split('.')):
-                last_part = {part: last_part}
-            replacements = replacements | last_part
-        config = chevron.render(content, replacements)
-        return config
+        config = file.read()
+
+    placeholders = re.findall(r'{{\s*(?:project|registry):[\w.\-_]+\s*}}', config)
+    logger.info("Found id templates", extra={"placeholders": placeholders})
+
+    replacements = {}
+    for placeholder in (p.strip(" {}") for p in placeholders):
+        placeholder_type, placeholder_value = placeholder.split(':')
+        replacement_value = await fetch_id(client, placeholder_type, placeholder_value)
+
+        # Create nested dictionary structure for replacements
+        insert_into_dict(replacements, placeholder.split('.') + [str(replacement_value)])
+
+    return chevron.render(config, replacements)
 
 
 async def fetch_id(
@@ -120,3 +106,20 @@ async def fetch_id(
         registry = registries[0]
         registry_id = registry.id
         return registry_id
+
+
+def insert_into_dict(d: dict, parts: [str]) -> None:
+    """Inserts nested keys and value into a dictionary.
+
+    >>> d = {}
+    >>> insert_into_dict(d, ["a", "b", 1])
+    >>> d
+    {"a": {"b": 1}}
+    >>> insert_into_dict(d, ["a", "c", 2])
+    >>> d
+    {"a": {"b": 1, c: "2"}}
+    """
+    *keys, last_key, value = parts
+    for key in keys:
+        d = d.setdefault(key, {})
+    d[last_key] = value
