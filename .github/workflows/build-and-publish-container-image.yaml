@@ -30,12 +30,12 @@ jobs:
         dockerfile: Dockerfile
     - uses: ricardochaves/python-lint@v1.4.0
       with:
-        args: --max-line-length=120
         use-pylint: false
         use-flake8: false
         use-black: false
         use-mypy: false
         use-isort: false
+        extra-pycodestyle-options: --max-line-length=120
     - name: Log in to the container registry
       uses: docker/login-action@327cd5a69de6c009b9ce71bce8395f28e651bf99
       with:
