@@ -336,4 +336,41 @@ Templating can be used to insert the id of the project at runtime.
     }
   }
 ]
+
+### replications.json
+
+Definition of replication rules between Harbor instances or external registries.
+Replication rules can be found in the global settings under the "Replications" tab.
+The rules define how artifacts are replicated between registries, including filters and triggers.
+
+```json
+[
+    {
+        "name": "example-replication",
+        "description": "Example replication rule",
+        "src_registry": {
+            "id": "{{ registry:source-registry }}"
+        },
+        "dest_registry": {
+            "id": "{{ registry:destination-registry }}"
+        },
+        "dest_namespace": "replicated-project",
+        "filters": [
+            {
+                "type": "name",
+                "value": "**"
+            },
+            {
+                "type": "tag",
+                "value": "latest"
+            }
+        ],
+        "trigger": {
+            "type": "manual"
+        },
+        "deletion": false,
+        "override": true,
+        "enabled": true
+    }
+]
 ```

@@ -27,6 +27,7 @@ from webhooks import sync_webhooks
 from purge_job_schedule import sync_purge_job_schedule
 from garbage_collection_schedule import sync_garbage_collection_schedule
 from retention_policies import sync_retention_policies
+from replications import sync_replications
 
 
 admin_username = os.environ.get("ADMIN_USERNAME", "admin")
@@ -99,6 +100,10 @@ async def main() -> None:
     path = config_folder_path + "/retention-policies.json"
     if file_exists(path, logger):
         await sync_retention_policies(client, path, logger)
+
+    path = config_folder_path + "/replications.json"
+    if file_exists(path, logger):
+        await sync_replications(client, path, logger)
 
 
 def parse_args():
