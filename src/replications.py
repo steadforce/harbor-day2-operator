@@ -11,7 +11,7 @@ async def sync_replications(client, path, logger):
     logger.info("Syncing replications")
     target_replications = json.load(open(path))
     current_replications = await client.get_replication_policies()
-    
+
     current_replication_names = [
         repl.name for repl in current_replications
     ]
