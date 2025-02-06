@@ -106,7 +106,7 @@ Templating can be used to insert the id at runtime.
         },
         "storage_limit": -1,
         //"registry_id": 1 -> from template
-        "registry_id": "{{ registry:docker.io }}"
+        "registry_id": {{ registry:docker.io }}
     }
 ]
 ```
@@ -304,7 +304,7 @@ Templating can be used to insert the id of the project at runtime.
     "scope": {
       "level": "project",
       //"ref": 2 -> from template
-      "ref": "{{ project:aa }}"
+      "ref": {{ project:aa }}
     },
     "rules": [
       {
