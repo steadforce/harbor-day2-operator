@@ -349,10 +349,10 @@ The rules define how artifacts are replicated between registries, including filt
         "name": "example-replication",
         "description": "Example replication rule",
         "src_registry": {
-            "id": "{{ registry:source-registry }}"
+            "id": {{ registry:source-registry }}
         },
         "dest_registry": {
-            "id": "{{ registry:destination-registry }}"
+            "id": {{ registry:destination-registry }}
         },
         "dest_namespace": "replicated-project",
         "filters": [

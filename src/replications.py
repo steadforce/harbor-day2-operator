@@ -1,4 +1,5 @@
 import json
+from utils import fill_template
 
 
 async def sync_replications(client, path, logger):
@@ -9,7 +10,9 @@ async def sync_replications(client, path, logger):
     in the configuration will be removed.
     """
     logger.info("Syncing replications")
-    target_replications = json.load(open(path))
+    
+    replications_string = await fill_template(client, path, logger)
+    target_replications = json.loads(replications_string)
     current_replications = await client.get_replication_policies()
 
     current_replication_names = [
