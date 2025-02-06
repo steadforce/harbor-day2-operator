@@ -10,7 +10,7 @@ async def sync_replications(client, path, logger):
     in the configuration will be removed.
     """
     logger.info("Syncing replications")
-    
+
     replications_string = await fill_template(client, path, logger)
     target_replications = json.loads(replications_string)
     current_replications = await client.get_replication_policies()
