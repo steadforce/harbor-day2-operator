@@ -21,10 +21,11 @@ FROM builder AS native-builder
 # hadolint ignore=DL3018
 RUN apk add --no-cache ccache
 COPY src/ /src/
+WORKDIR /src
+
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -U pip pyinstaller setuptools wheel && \
     /venv/bin/pip install --no-cache-dir --no-warn-script-location -r ./requirements.txt && \
-    cd /src && \
     /venv/bin/pyinstaller --onefile harbor.py
 
 FROM base AS test
