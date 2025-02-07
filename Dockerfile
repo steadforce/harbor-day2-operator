@@ -20,8 +20,9 @@ FROM builder AS native-builder
 # we want always the latest version of fetched apk packages
 # hadolint ignore=DL3018
 RUN apk add --no-cache ccache
-COPY src/ /src/
 WORKDIR /src
+COPY requirements.txt .
+COPY src/ .
 
 RUN python -m venv /venv && \
     /venv/bin/pip install --no-cache-dir -U pip pyinstaller setuptools wheel && \
