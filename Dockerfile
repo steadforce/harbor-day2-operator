@@ -19,14 +19,13 @@ RUN pip3 install --no-cache-dir -U pip setuptools wheel && \
 FROM builder AS native-builder
 # we want always the latest version of fetched apk packages
 # hadolint ignore=DL3018
-RUN apk add --no-cache ccache patchelf
+RUN apk add --no-cache ccache
 COPY src/ /src/
 RUN python -m venv /venv && \
-    /venv/bin/pip install --no-cache-dir -U pip nuitka setuptools wheel && \
+    /venv/bin/pip install --no-cache-dir -U pip pyinstaller setuptools wheel && \
     /venv/bin/pip install --no-cache-dir --no-warn-script-location -r ./requirements.txt && \
-    /venv/bin/python -m nuitka --onefile /src/harbor.py && \
-    pwd && \
-    ls -lha
+    cd /src && \
+    /venv/bin/pyinstaller --onefile harbor.py
 
 FROM base AS test
 USER nonroot
@@ -39,4 +38,4 @@ RUN python3 -m unittest discover -v -s .
 # hadolint ignore=DL3007
 FROM cgr.dev/chainguard/wolfi-base:latest
 USER nonroot
-COPY --from=native-builder /install/harbor.bin /usr/local/harbor
+COPY --from=native-builder /src/dist/harbor /usr/local/harbor
