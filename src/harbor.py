@@ -1,16 +1,3 @@
-"""Harbor Day 2 Operator
-
-This harbor operator makes it possible to synchronize
-different types of settings to a harbor instance.
-Instead of making changes by hand (clickops), this operator
-enables the automatic synchronization of harbor settings from files.
-
-The Harbor API of your instance can be found at:
-your-harbor-origin/devcenter-api-2.0
-"""
-
-
-import argparse
 import os
 import asyncio
 import logging
@@ -29,16 +16,16 @@ from garbage_collection_schedule import sync_garbage_collection_schedule
 from retention_policies import sync_retention_policies
 
 
-admin_username = os.environ.get("ADMIN_USERNAME", "admin")
-new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
-api_url = os.environ.get("HARBOR_API_URL")
-config_folder_path = os.environ.get("CONFIG_FOLDER_PATH")
-json_logging = os.environ.get("JSON_LOGGING", "False") == "True"
+ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
+ADMIN_PASSWORD_NEW = os.environ.get("ADMIN_PASSWORD_NEW")
+API_URL = os.environ.get("HARBOR_API_URL")
+CONFIG_FOLDER_PATH = os.environ.get("CONFIG_FOLDER_PATH")
+JSON_LOGGING = os.environ.get("JSON_LOGGING").lower() in ["true", "1", "yes", "y"]
 
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-if json_logging:
+if JSON_LOGGING:
     formatter = jsonlogger.JsonFormatter()
 else:
     formatter = logging.Formatter()
@@ -48,12 +35,10 @@ logger.addHandler(handler)
 
 
 async def main() -> None:
-    parse_args()
-
     client = HarborAsyncClient(
-        url=api_url,
-        username=admin_username,
-        secret=new_admin_password,
+        url=API_URL,
+        username=ADMIN_USERNAME,
+        secret=ADMIN_PASSWORD_NEW,
         timeout=100,
         verify=False,
     )
@@ -64,49 +49,41 @@ async def main() -> None:
     logger.info("Update admin password")
     await sync_admin_password(client, logger)
 
-    path = config_folder_path + "/configurations.json"
+    path = CONFIG_FOLDER_PATH + "/configurations.json"
     if file_exists(path, logger):
         await sync_harbor_configuration(client, path, logger)
 
-    path = config_folder_path + "/registries.json"
+    path = CONFIG_FOLDER_PATH + "/registries.json"
     if file_exists(path, logger):
         await sync_registries(client, path, logger)
 
-    path = config_folder_path + "/projects.json"
+    path = CONFIG_FOLDER_PATH + "/projects.json"
     if file_exists(path, logger):
         await sync_projects(client, path, logger)
 
-    path = config_folder_path + "/project-members.json"
+    path = CONFIG_FOLDER_PATH + "/project-members.json"
     if file_exists(path, logger):
         await sync_project_members(client, path, logger)
 
-    path = config_folder_path + "/robots.json"
+    path = CONFIG_FOLDER_PATH + "/robots.json"
     if file_exists(path, logger):
         await sync_robot_accounts(client, path, logger)
 
-    path = config_folder_path + "/webhooks.json"
+    path = CONFIG_FOLDER_PATH + "/webhooks.json"
     if file_exists(path, logger):
         await sync_webhooks(client, path, logger)
 
-    path = config_folder_path + "/purge-job-schedule.json"
+    path = CONFIG_FOLDER_PATH + "/purge-job-schedule.json"
     if file_exists(path, logger):
         await sync_purge_job_schedule(client, path, logger)
 
-    path = config_folder_path + "/garbage-collection-schedule.json"
+    path = CONFIG_FOLDER_PATH + "/garbage-collection-schedule.json"
     if file_exists(path, logger):
         await sync_garbage_collection_schedule(client, path, logger)
 
-    path = config_folder_path + "/retention-policies.json"
+    path = CONFIG_FOLDER_PATH + "/retention-policies.json"
     if file_exists(path, logger):
         await sync_retention_policies(client, path, logger)
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="""Harbor Day 2 operator to sync harbor configs""",
-    )
-    args = parser.parse_args()
-    return args
 
 
 asyncio.run(main())
