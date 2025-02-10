@@ -1,5 +1,7 @@
 from time import sleep
 import os
+import json
+from pathlib import Path
 
 import chevron
 import re
@@ -67,6 +69,27 @@ def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
         if member.entity_name == username:
             return member.id
     return None
+
+
+def load_json(path: str) -> dict:
+    """Load JSON data from a file.
+
+    Args:
+        path: Path to the JSON file.
+
+    Returns:
+        dict: The loaded JSON data.
+
+    Raises:
+        FileNotFoundError: If the file doesn't exist.
+        json.JSONDecodeError: If the file is not valid JSON.
+    """
+    file_path = Path(path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+    
+    with open(file_path, 'r') as f:
+        return json.load(f)
 
 
 async def fill_template(client, path: str, logger) -> str:
