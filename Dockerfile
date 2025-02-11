@@ -4,11 +4,14 @@ ENV PYTHONUNBUFFERED=1
 RUN apk update --no-cache && apk upgrade --no-cache
 # renovate: datasource=python-version depName=python versioning=python
 ARG version=3.13
-RUN apk add python-${version} py${version}-pip
+# hadolint ignore=DL3018
+RUN apk add --no-cache python-${version} py${version}-pip
 ENV PATH="${PATH}:/home/nonroot/.local/bin"
 
 FROM base AS builder_package
+# hadolint ignore=DL3018
 RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev
+# hadolint ignore=DL3013,DL3059
 RUN pip3 install --no-cache-dir -U pip setuptools wheel pyinstaller
 
 FROM builder_package AS builder
