@@ -19,23 +19,6 @@ NEW_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD_NEW")
 API_URL = os.environ.get("HARBOR_API_URL")
 
 
-def file_exists(path: str, logger: Logger) -> bool:
-    """Check if a file exists at the given path.
-
-    Args:
-        path: Path to the file to check
-        logger: Logger instance for recording operations
-
-    Returns:
-        bool: True if file exists, False otherwise
-    """
-    if os.path.exists(path):
-        return True
-    
-    logger.info("File not found - skipping step", extra={"path": path})
-    return False
-
-
 async def wait_until_healthy(client: HarborAsyncClient, logger: Logger) -> None:
     """Wait until the Harbor instance is healthy.
 

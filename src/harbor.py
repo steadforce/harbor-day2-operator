@@ -1,10 +1,23 @@
+"""Harbor Day2 Operator main module.
+
+This module is responsible for synchronizing Harbor configurations from JSON files.
+It handles various aspects of Harbor configuration including projects, registries,
+robot accounts, webhooks, and more.
+"""
+
 import os
 import asyncio
 import logging
+from dataclasses import dataclass
+from pathlib import Path
 
 from harborapi import HarborAsyncClient
 from pythonjsonlogger import jsonlogger
-from utils import wait_until_healthy, sync_admin_password, file_exists
+
+from utils import (
+    wait_until_healthy,
+    sync_admin_password
+)
 from configuration import sync_harbor_configuration
 from registries import sync_registries
 from projects import sync_projects
@@ -16,74 +29,192 @@ from garbage_collection_schedule import sync_garbage_collection_schedule
 from retention_policies import sync_retention_policies
 
 
-ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-ADMIN_PASSWORD_NEW = os.environ.get("ADMIN_PASSWORD_NEW")
-API_URL = os.environ.get("HARBOR_API_URL")
-CONFIG_FOLDER_PATH = os.environ.get("CONFIG_FOLDER_PATH")
-JSON_LOGGING = os.environ.get("JSON_LOGGING").lower() in ["true", "1", "yes", "y"]
+@dataclass
+class HarborConfig:
+    """Harbor configuration settings."""
+    admin_username: str
+    admin_password: str
+    api_url: str
+    config_folder: str
+    json_logging: bool
+
+    @classmethod
+    def from_env(cls) -> 'HarborConfig':
+        """Create configuration from environment variables.
+
+        Returns:
+            HarborConfig: Configuration instance
+
+        Raises:
+            ValueError: If required environment variables are missing
+        """
+        admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
+        api_url = os.environ.get("HARBOR_API_URL")
+        config_folder = os.environ.get("CONFIG_FOLDER_PATH")
+
+        if not all([admin_password, api_url, config_folder]):
+            raise ValueError(
+                "Missing required environment variables. Please set: "
+                "ADMIN_PASSWORD_NEW, HARBOR_API_URL, CONFIG_FOLDER_PATH"
+            )
+
+        return cls(
+            admin_username=os.environ.get("ADMIN_USERNAME", "admin"),
+            admin_password=admin_password,
+            api_url=api_url,
+            config_folder=config_folder,
+            json_logging=os.environ.get("JSON_LOGGING", "").lower() in ["true", "1", "yes", "y"]
+        )
 
 
-logger = logging.getLogger()
-logger.setLevel(logging.INFO)
-if JSON_LOGGING:
-    formatter = jsonlogger.JsonFormatter()
-else:
-    formatter = logging.Formatter()
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-logger.addHandler(handler)
+def setup_logging(use_json: bool) -> logging.Logger:
+    """Configure logging with either JSON or standard format.
+
+    Args:
+        use_json: Whether to use JSON logging format
+
+    Returns:
+        logging.Logger: Configured logger instance
+    """
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+
+    formatter = jsonlogger.JsonFormatter() if use_json else logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
+
+
+class HarborSynchronizer:
+    """Handles synchronization of Harbor configurations."""
+
+    def __init__(self, config: HarborConfig, logger: logging.Logger):
+        """Initialize the synchronizer.
+
+        Args:
+            config: Harbor configuration settings
+            logger: Logger instance
+        """
+        self.config = config
+        self.logger = logger
+        self.client = HarborAsyncClient(
+            url=config.api_url,
+            username=config.admin_username,
+            secret=config.admin_password,
+            timeout=100,
+            verify=False,
+        )
+
+    async def _sync_config_file(
+        self,
+        filename: str,
+        sync_func: callable,
+        required: bool = False
+    ) -> None:
+        """Synchronize a single configuration file.
+
+        Args:
+            filename: Name of the configuration file
+            sync_func: Function to call for synchronization
+            required: Whether the configuration file is required
+
+        Raises:
+            FileNotFoundError: If a required configuration file is missing
+        """
+        path = Path(self.config.config_folder) / filename
+
+        if not path.exists():
+            msg = f"Configuration file not found: {filename}"
+            if required:
+                self.logger.error(msg)
+                raise FileNotFoundError(msg)
+            self.logger.info(msg + " - skipping")
+            return
+
+        try:
+            await sync_func(self.client, str(path), self.logger)
+        except Exception as e:
+            self.logger.error(
+                f"Failed to sync {filename}",
+                extra={"error": str(e)}
+            )
+            raise
+
+    async def synchronize(self) -> None:
+        """Synchronize all Harbor configurations.
+
+        This method orchestrates the synchronization of all Harbor components
+        in the correct order, ensuring dependencies are met.
+
+        Raises:
+            Exception: If any synchronization step fails
+        """
+        try:
+            self.logger.info("Starting Harbor synchronization")
+
+            # Wait for Harbor to be healthy
+            self.logger.info("Waiting for Harbor to be healthy")
+            await wait_until_healthy(self.client, self.logger)
+
+            # Update admin password if needed
+            self.logger.info("Checking admin password")
+            await sync_admin_password(self.client, self.logger)
+
+            # Sync configurations in dependency order
+            config_files = {
+                "configurations.json": sync_harbor_configuration,
+                "registries.json": sync_registries,
+                "projects.json": sync_projects,
+                "project-members.json": sync_project_members,
+                "robots.json": sync_robot_accounts,
+                "webhooks.json": sync_webhooks,
+                "purge-job-schedule.json": sync_purge_job_schedule,
+                "garbage-collection-schedule.json": sync_garbage_collection_schedule,
+                "retention-policies.json": sync_retention_policies
+            }
+
+            for filename, sync_func in config_files.items():
+                await self._sync_config_file(filename, sync_func)
+
+            self.logger.info("Harbor synchronization completed successfully")
+
+        except Exception as e:
+            self.logger.error(
+                "Harbor synchronization failed",
+                extra={"error": str(e)}
+            )
+            raise
 
 
 async def main() -> None:
-    client = HarborAsyncClient(
-        url=API_URL,
-        username=ADMIN_USERNAME,
-        secret=ADMIN_PASSWORD_NEW,
-        timeout=100,
-        verify=False,
-    )
+    """Main entry point for the Harbor Day2 Operator.
 
-    logger.info("Waiting for healthy harbor")
-    await wait_until_healthy(client, logger)
+    This function initializes the configuration, sets up logging,
+    and runs the synchronization process.
 
-    logger.info("Update admin password")
-    await sync_admin_password(client, logger)
+    Raises:
+        Exception: If initialization or synchronization fails
+    """
+    try:
+        # Load configuration from environment
+        config = HarborConfig.from_env()
 
-    path = CONFIG_FOLDER_PATH + "/configurations.json"
-    if file_exists(path, logger):
-        await sync_harbor_configuration(client, path, logger)
+        # Setup logging
+        logger = setup_logging(config.json_logging)
 
-    path = CONFIG_FOLDER_PATH + "/registries.json"
-    if file_exists(path, logger):
-        await sync_registries(client, path, logger)
+        # Initialize and run synchronizer
+        synchronizer = HarborSynchronizer(config, logger)
+        await synchronizer.synchronize()
 
-    path = CONFIG_FOLDER_PATH + "/projects.json"
-    if file_exists(path, logger):
-        await sync_projects(client, path, logger)
-
-    path = CONFIG_FOLDER_PATH + "/project-members.json"
-    if file_exists(path, logger):
-        await sync_project_members(client, path, logger)
-
-    path = CONFIG_FOLDER_PATH + "/robots.json"
-    if file_exists(path, logger):
-        await sync_robot_accounts(client, path, logger)
-
-    path = CONFIG_FOLDER_PATH + "/webhooks.json"
-    if file_exists(path, logger):
-        await sync_webhooks(client, path, logger)
-
-    path = CONFIG_FOLDER_PATH + "/purge-job-schedule.json"
-    if file_exists(path, logger):
-        await sync_purge_job_schedule(client, path, logger)
-
-    path = CONFIG_FOLDER_PATH + "/garbage-collection-schedule.json"
-    if file_exists(path, logger):
-        await sync_garbage_collection_schedule(client, path, logger)
-
-    path = CONFIG_FOLDER_PATH + "/retention-policies.json"
-    if file_exists(path, logger):
-        await sync_retention_policies(client, path, logger)
+    except Exception as e:
+        logging.error(f"Fatal error: {str(e)}")
+        raise
 
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
