@@ -6,6 +6,7 @@ including OIDC authentication parameters.
 
 import logging
 import os
+import json
 
 from harborapi.client import HarborAsyncClient
 from harborapi.models import Configurations

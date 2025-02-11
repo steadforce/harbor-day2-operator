@@ -5,6 +5,7 @@ including role assignments and member management.
 """
 
 import logging
+import json
 from enum import Enum
 from typing import Sequence
 

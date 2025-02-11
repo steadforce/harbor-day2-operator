@@ -5,6 +5,7 @@ including creation and updates of GC schedules.
 """
 
 import logging
+import json
 
 from harborapi.client import HarborAsyncClient
 from harborapi.exceptions import HarborAPIException

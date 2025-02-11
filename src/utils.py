@@ -3,12 +3,12 @@ import json
 import re
 from pathlib import Path
 from time import sleep
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from logging import Logger
 
 import chevron
 from harborapi import HarborAsyncClient
-from harborapi.models import ProjectMemberEntity, User
+from harborapi.models import User
 from harborapi.exceptions import Unauthorized
 
 
