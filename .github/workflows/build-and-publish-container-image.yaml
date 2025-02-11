@@ -25,22 +25,30 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Run Ruff Check
+      uses: chartboost/ruff-action@v3
+      with:
+        src: "./src"
+        args: check --fix
+
+    - name: Run Ruff Format
+      uses: chartboost/ruff-action@v3
+      with:
+        src: "./src"
+        args: format
+
     - uses: hadolint/hadolint-action@v3.1.0
       with:
         dockerfile: Dockerfile
-    - uses: ricardochaves/python-lint@v1.4.0
-      with:
-        use-pylint: false
-        use-flake8: false
-        use-black: false
-        use-mypy: false
-        use-isort: false
+
     - name: Log in to the container registry
       uses: docker/login-action@327cd5a69de6c009b9ce71bce8395f28e651bf99
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Extract metadata (tags, labels) for container
       id: meta
       uses: docker/metadata-action@8e1d5461f02b7886d3c1a774bfbd873650445aa2
@@ -53,15 +61,18 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
           type=sha
+
     - name: Build container image for tests
       uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991
       with:
         context: .
         push: false
         tags: ${{ env.IMAGE_NAME }}:test
+
     - name: Test harbor tool
       run: |
         docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/harbor --help
+
     - name: Tag and push tested container image
       uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991
       with:

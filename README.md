@@ -27,22 +27,25 @@ This script will:
 Run this script whenever you update dependencies in `dev_requirements.txt` to ensure the `requirements.txt` file stays in sync with proper version pinning.
 
 ## Linting
-We have activated linter like hadolint for dockerfiles. Please run
-all the linters like documented underneath before checkin of source
-code. Pull requests are only accepted when no linting errors occur.
 
-### hadolint
-
+**Code:**
+```bash
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check /src
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check --fix /src
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check --fix --unsafe-fixes /src
 ```
+
+**Dockerfile:**
+```bash
  docker run --rm -i ghcr.io/hadolint/hadolint < Dockerfile
 ```
 
-### python-lint
+## Formatting
 
+**Code:**
+```bash
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest format /src
 ```
- docker run --rm -v .:/src ricardobchaves6/python-lint-image:1.4.0 pycodestyle /src
-```
-
 
 
 ## Environment Variables
