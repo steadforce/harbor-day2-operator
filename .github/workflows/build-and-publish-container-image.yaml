@@ -63,16 +63,33 @@ jobs:
           type=semver,pattern={{major}}
           type=sha
 
-    - name: Build container image for tests
+    - name: Set version
+      id: version
+      run: |
+        if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+        else
+          VERSION=0.0.0-dev
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Build container image for test
       uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991
       with:
         context: .
+        build-args: |
+          HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
         push: false
         tags: ${{ env.IMAGE_NAME }}:test
 
-    - name: Test harbor tool
+    - name: Test harbor binary
       run: |
-        docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/bin/harbor --help
+        docker run --rm \
+          -e ADMIN_PASSWORD_NEW=test \
+          -e HARBOR_API_URL=https://example.com \
+          -e CONFIG_FOLDER_PATH=/config \
+          ${{ env.IMAGE_NAME }}:test --version
 
     - name: Tag and push tested container image
       uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991

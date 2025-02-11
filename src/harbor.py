@@ -6,6 +6,7 @@ robot accounts, webhooks, and more.
 """
 
 import os
+import sys
 import asyncio
 import logging
 from dataclasses import dataclass
@@ -24,6 +25,9 @@ from src.projects import sync_projects
 from src.robot_accounts import sync_robot_accounts
 from src.webhooks import sync_webhooks
 from src.retention_policies import sync_retention_policies
+
+
+__version__ = os.getenv("HARBOR_OPERATOR_VERSION", "0.0.0-dev")
 
 
 @dataclass
@@ -197,6 +201,11 @@ async def main() -> None:
     Raises:
         Exception: If initialization or synchronization fails
     """
+    # Check for version flag
+    if len(sys.argv) > 1 and sys.argv[1] == "--version":
+        print(f"Harbor Day2 Operator {__version__}")
+        sys.exit(0)
+
     try:
         # Load configuration from environment
         config = HarborConfig.from_env()
@@ -207,10 +216,14 @@ async def main() -> None:
         # Initialize and run synchronizer
         synchronizer = HarborSynchronizer(config, logger)
         await synchronizer.synchronize()
-
+    except ValueError as e:
+        logger = logging.getLogger()
+        logger.error("Fatal error: %s", str(e))
+        sys.exit(1)
     except Exception as e:
-        logging.error(f"Fatal error: {str(e)}")
-        raise
+        logger = logging.getLogger()
+        logger.error("Fatal error: %s", str(e))
+        sys.exit(1)
 
 
 if __name__ == "__main__":

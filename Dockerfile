@@ -15,6 +15,8 @@ RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-
 RUN pip3 install --no-cache-dir -U pip setuptools wheel pyinstaller
 
 FROM builder_package AS builder
+ARG HARBOR_OPERATOR_VERSION=0.0.0-dev
+ENV HARBOR_OPERATOR_VERSION=${HARBOR_OPERATOR_VERSION}
 WORKDIR /build
 COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir --upgrade -r ./requirements.txt
@@ -29,4 +31,5 @@ COPY --from=builder /build/dist/harbor ./harbor
 FROM package
 WORKDIR /
 ENV JSON_LOGGING=True
+ENV HARBOR_OPERATOR_VERSION=${HARBOR_OPERATOR_VERSION}
 ENTRYPOINT ["/usr/local/bin/harbor"]
