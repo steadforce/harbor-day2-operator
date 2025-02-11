@@ -29,6 +29,7 @@ WORKDIR /usr/local/bin/
 COPY --from=builder /build/dist/harbor ./harbor
 
 FROM package
+ARG HARBOR_OPERATOR_VERSION
 WORKDIR /
 ENV JSON_LOGGING=True
 ENV HARBOR_OPERATOR_VERSION=${HARBOR_OPERATOR_VERSION}
