@@ -84,12 +84,12 @@ jobs:
         HARBOR_OPERATOR_VERSION: ${{ env.VERSION }}
 
     - name: Test harbor binary
-      env:
-        ADMIN_PASSWORD_NEW: test
-        HARBOR_API_URL: https://example.com
-        CONFIG_FOLDER_PATH: /config
       run: |
-        docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/harbor --version
+        docker run --rm \
+          -e ADMIN_PASSWORD_NEW=test \
+          -e HARBOR_API_URL=https://example.com \
+          -e CONFIG_FOLDER_PATH=/config \
+          ${{ env.IMAGE_NAME }}:test /usr/local/bin/harbor --version
 
     - name: Tag and push tested container image
       uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991
