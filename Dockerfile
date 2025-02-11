@@ -19,7 +19,6 @@ WORKDIR /build
 COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir --upgrade -r ./requirements.txt
 COPY src/ src/
-RUN pip3 install --no-cache-dir -e .
 RUN pyinstaller --onefile --paths src src/harbor.py
 
 FROM base AS package
