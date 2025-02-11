@@ -14,19 +14,16 @@ from pathlib import Path
 from harborapi import HarborAsyncClient
 from pythonjsonlogger import jsonlogger
 
-from utils import (
-    wait_until_healthy,
-    sync_admin_password
-)
-from configuration import sync_harbor_configuration
-from registries import sync_registries
-from projects import sync_projects
-from project_members import sync_project_members
-from robot_accounts import sync_robot_accounts
-from webhooks import sync_webhooks
-from purge_job_schedule import sync_purge_job_schedule
-from garbage_collection_schedule import sync_garbage_collection_schedule
-from retention_policies import sync_retention_policies
+from src.utils import wait_until_healthy, sync_admin_password
+from src.configuration import sync_harbor_configuration
+from src.registries import sync_registries
+from src.purge_job_schedule import sync_purge_job_schedule
+from src.garbage_collection_schedule import sync_garbage_collection_schedule
+from src.project_members import sync_project_members
+from src.projects import sync_projects
+from src.robot_accounts import sync_robot_accounts
+from src.webhooks import sync_webhooks
+from src.retention_policies import sync_retention_policies
 
 
 @dataclass

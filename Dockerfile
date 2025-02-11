@@ -19,14 +19,15 @@ WORKDIR /build
 COPY requirements.txt requirements.txt
 RUN pip3 install --no-cache-dir --upgrade -r ./requirements.txt
 COPY src/ src/
-RUN pyinstaller --onefile src/harbor.py
+RUN pip3 install -e .
+RUN pyinstaller --onefile --paths src src/harbor.py
 
 FROM base AS package
 USER nonroot
-WORKDIR /app/
-COPY --from=builder /build/dist/harbor /app/harbor
+WORKDIR /usr/local/bin/
+COPY --from=builder /build/dist/harbor ./harbor
 
 FROM package
 WORKDIR /
 ENV JSON_LOGGING=True
-ENTRYPOINT ["/app/harbor"]
+ENTRYPOINT ["/usr/local/bin/harbor"]

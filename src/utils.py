@@ -8,7 +8,6 @@ from logging import Logger
 
 import chevron
 from harborapi import HarborAsyncClient
-from harborapi.models import User
 from harborapi.exceptions import Unauthorized
 
 
@@ -72,7 +71,7 @@ async def update_password(client: HarborAsyncClient, logger: Logger) -> None:
 
         # Get current user details
         try:
-            admin: User = await old_password_client.get_current_user()
+            admin = await old_password_client.get_current_user()
         except Exception as e:
             logger.error("Failed to get current user", extra={"error": str(e)})
             raise

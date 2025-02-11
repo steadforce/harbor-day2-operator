@@ -72,7 +72,7 @@ jobs:
 
     - name: Test harbor tool
       run: |
-        docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/harbor --help
+        docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/bin/harbor --help
 
     - name: Tag and push tested container image
       uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991

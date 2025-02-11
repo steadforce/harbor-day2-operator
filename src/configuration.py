@@ -12,7 +12,7 @@ from harborapi.client import HarborAsyncClient
 from harborapi.models import Configurations
 from harborapi.exceptions import HarborAPIException
 
-from .utils import load_json
+from utils import load_json
 
 
 async def sync_harbor_configuration(
