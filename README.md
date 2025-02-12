@@ -106,7 +106,7 @@ Templating can be used to insert the id at runtime.
         },
         "storage_limit": -1,
         //"registry_id": 1 -> from template
-        "registry_id": "{{ registry:docker.io }}"
+        "registry_id": {{ registry:docker.io }}
     }
 ]
 ```
@@ -304,7 +304,7 @@ Templating can be used to insert the id of the project at runtime.
     "scope": {
       "level": "project",
       //"ref": 2 -> from template
-      "ref": "{{ project:aa }}"
+      "ref": {{ project:aa }}
     },
     "rules": [
       {
@@ -335,5 +335,75 @@ Templating can be used to insert the id of the project at runtime.
       }
     }
   }
+]
+```
+
+### replications.json
+
+Definition of replication rules between Harbor instances or external registries.
+Replication rules can be found in the global settings under the "Replications" tab.
+The rules define how artifacts are replicated between registries, including filters and triggers.
+
+**Note:** `src_registry` and `dest_registry` can't be used together.
+The replication is always from `src_registry` to this harbor instance or from this harbor instance to `dest_registry`.
+See [Harbor Issue 10272](https://github.com/goharbor/harbor/issues/10272)
+
+**From SRC to this harbor:**
+```json
+[
+    {
+        "name": "example-replication",
+        "description": "Example replication rule",
+        "src_registry": {
+            "id": {{ registry:source-registry }}
+        },
+        "dest_namespace": "replicated-project",
+        "filters": [
+            {
+                "type": "name",
+                "value": "**"
+            },
+            {
+                "type": "tag",
+                "value": "latest"
+            }
+        ],
+        "trigger": {
+            "type": "manual"
+        },
+        "deletion": false,
+        "override": true,
+        "enabled": true
+    }
+]
+```
+
+**From this harbor to DEST:**
+```json
+[
+    {
+        "name": "example-replication",
+        "description": "Example replication rule",
+        "dest_registry": {
+            "id": {{ registry:destination-registry }}
+        },
+        "dest_namespace": "replicated-project",
+        "filters": [
+            {
+                "type": "name",
+                "value": "**"
+            },
+            {
+                "type": "tag",
+                "value": "latest"
+            }
+        ],
+        "trigger": {
+            "type": "manual"
+        },
+        "deletion": false,
+        "override": true,
+        "enabled": true
+    }
 ]
 ```
