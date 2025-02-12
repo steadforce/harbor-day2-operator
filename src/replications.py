@@ -32,7 +32,7 @@ async def sync_replications(client, path, logger):
                 "Deleting replication rule as it is not defined in config",
                 extra={"replication": current_replication.name}
             )
-            await client.delete_replication_policy(id=current_replication.id)
+            await client.delete_replication_policy(policy_id=current_replication.id)
 
     # Modify existing replications or create new ones
     for target_replication in target_replications:
@@ -46,7 +46,7 @@ async def sync_replications(client, path, logger):
                 extra={"replication": target_replication_name}
             )
             await client.update_replication_policy(
-                id=replication_id,
+                policy_id=replication_id,
                 policy=target_replication
             )
         else:
