@@ -1,6 +1,5 @@
 import os
 from logging import Logger
-from time import sleep
 
 from harborapi import HarborAsyncClient
 from harborapi.exceptions import Unauthorized
