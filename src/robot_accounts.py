@@ -12,6 +12,152 @@ from utils import load_json
 ROBOT_NAME_PREFIX = os.environ.get("ROBOT_NAME_PREFIX", "")
 
 
+async def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
+    """Load robot account configurations from file.
+
+    Args:
+        path: Path to the robot accounts configuration file
+        logger: Logger instance
+
+    Returns:
+        List of robot account configurations
+
+    Raises:
+        FileNotFoundError: If the configuration file does not exist
+        json.JSONDecodeError: If the configuration file is not valid JSON
+    """
+    try:
+        return load_json(path)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.error(
+            "Failed to load robot configuration",
+            extra={"path": path, "error": str(e)}
+        )
+        raise
+
+
+async def prepare_target_robots(
+    target_robots: List[Dict[str, Any]],
+    logger: Logger
+) -> List[Tuple[str, Dict[str, Any]]]:
+    """Prepare target robots by constructing their full names.
+
+    Args:
+        target_robots: List of robot configurations
+        logger: Logger instance
+
+    Returns:
+        List of tuples containing (full_name, robot_config)
+
+    Raises:
+        KeyError: If required fields are missing from robot configuration
+    """
+    target_robots_with_names = []
+    for target_robot in target_robots:
+        try:
+            full_name = await construct_full_robot_name(target_robot)
+            target_robots_with_names.append((full_name, target_robot))
+        except KeyError as e:
+            logger.error(
+                "Invalid robot configuration",
+                extra={"robot": target_robot, "error": f"Missing field: {str(e)}"}
+            )
+            raise
+    return target_robots_with_names
+
+
+async def delete_unused_robots(
+    client: Any,
+    current_robot_map: Dict[str, Any],
+    target_robot_names: set,
+    logger: Logger
+) -> None:
+    """Delete robots that exist in Harbor but not in config.
+
+    Args:
+        client: Harbor API client instance
+        current_robot_map: Map of current robot names to their configurations
+        target_robot_names: Set of robot names from target configuration
+        logger: Logger instance
+
+    Raises:
+        Exception: If deletion of any robot fails
+    """
+    for robot_name, robot in current_robot_map.items():
+        if robot_name not in target_robot_names:
+            try:
+                logger.info(
+                    "Deleting robot not in config",
+                    extra={"robot": robot_name}
+                )
+                await client.delete_robot(robot_id=robot.id)
+            except Exception as e:
+                logger.error(
+                    "Failed to delete robot",
+                    extra={"robot": robot_name, "error": str(e)}
+                )
+                raise
+
+
+async def process_single_robot(
+    client: Any,
+    full_name: str,
+    target_config: Dict[str, Any],
+    current_robot_map: Dict[str, Any],
+    logger: Logger
+) -> None:
+    """Process a single robot account, either updating existing or creating new.
+
+    Args:
+        client: Harbor API client instance
+        full_name: Full name of the robot account
+        target_config: Robot configuration
+        current_robot_map: Map of current robot names to their configurations
+        logger: Logger instance
+
+    Raises:
+        Exception: If processing of robot configuration fails
+    """
+    try:
+        target_robot = Robot(**target_config)
+        original_name = target_robot.name
+        target_robot.name = full_name
+
+        if full_name in current_robot_map:
+            # Update existing robot
+            robot_id = current_robot_map[full_name].id
+            logger.info(
+                "Updating existing robot",
+                extra={"robot": full_name, "robot_id": robot_id}
+            )
+            await client.update_robot(robot_id=robot_id, robot=target_robot)
+            await set_robot_secret(client, original_name, robot_id, logger)
+        else:
+            # Create new robot
+            try:
+                logger.info(
+                    "Creating new robot",
+                    extra={"robot": full_name}
+                )
+                created_robot = await client.create_robot(robot=target_robot)
+                await set_robot_secret(
+                    client, original_name, created_robot.id, logger
+                )
+            except (Conflict, BadRequest) as e:
+                logger.error(
+                    "Failed to create robot",
+                    extra={"robot": full_name, "error": str(e)}
+                )
+                return
+
+    except Exception as e:
+        logger.error(
+            "Failed to process robot configuration",
+            extra={"robot": full_name, "error": str(e)}
+        )
+        raise
+
+
 async def sync_robot_accounts(client: Any, path: str, logger: Logger) -> None:
     """Synchronize Harbor robot accounts with configuration file.
 
@@ -36,14 +182,7 @@ async def sync_robot_accounts(client: Any, path: str, logger: Logger) -> None:
 
     try:
         # Load robot configurations
-        try:
-            target_robots = load_json(path)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            logger.error(
-                "Failed to load robot configuration",
-                extra={"path": path, "error": str(e)}
-            )
-            raise
+        target_robots = await load_target_robots(path, logger)
 
         # Fetch all existing robots
         try:
@@ -53,77 +192,18 @@ async def sync_robot_accounts(client: Any, path: str, logger: Logger) -> None:
             logger.error("Failed to fetch existing robots", extra={"error": str(e)})
             raise
 
-        # Get target robot names with proper prefixes
-        target_robots_with_names = []
-        for target_robot in target_robots:
-            try:
-                full_name = await construct_full_robot_name(target_robot)
-                target_robots_with_names.append((full_name, target_robot))
-            except KeyError as e:
-                logger.error(
-                    "Invalid robot configuration",
-                    extra={"robot": target_robot, "error": f"Missing field: {str(e)}"}
-                )
-                raise
-
+        # Prepare target robots with full names
+        target_robots_with_names = await prepare_target_robots(target_robots, logger)
         target_robot_names = {name for name, _ in target_robots_with_names}
 
         # Delete robots not in config
-        for robot_name, robot in current_robot_map.items():
-            if robot_name not in target_robot_names:
-                try:
-                    logger.info(
-                        "Deleting robot not in config",
-                        extra={"robot": robot_name}
-                    )
-                    await client.delete_robot(robot_id=robot.id)
-                except Exception as e:
-                    logger.error(
-                        "Failed to delete robot",
-                        extra={"robot": robot_name, "error": str(e)}
-                    )
-                    raise
+        await delete_unused_robots(client, current_robot_map, target_robot_names, logger)
 
         # Update or create robots
         for full_name, target_config in target_robots_with_names:
-            try:
-                target_robot = Robot(**target_config)
-                original_name = target_robot.name
-                target_robot.name = full_name
-
-                if full_name in current_robot_map:
-                    # Update existing robot
-                    robot_id = current_robot_map[full_name].id
-                    logger.info(
-                        "Updating existing robot",
-                        extra={"robot": full_name, "robot_id": robot_id}
-                    )
-                    await client.update_robot(robot_id=robot_id, robot=target_robot)
-                    await set_robot_secret(client, original_name, robot_id, logger)
-                else:
-                    # Create new robot
-                    try:
-                        logger.info(
-                            "Creating new robot",
-                            extra={"robot": full_name}
-                        )
-                        created_robot = await client.create_robot(robot=target_robot)
-                        await set_robot_secret(
-                            client, original_name, created_robot.id, logger
-                        )
-                    except (Conflict, BadRequest) as e:
-                        logger.error(
-                            "Failed to create robot",
-                            extra={"robot": full_name, "error": str(e)}
-                        )
-                        continue
-
-            except Exception as e:
-                logger.error(
-                    "Failed to process robot configuration",
-                    extra={"robot": full_name, "error": str(e)}
-                )
-                raise
+            await process_single_robot(
+                client, full_name, target_config, current_robot_map, logger
+            )
 
         logger.info("Robot account synchronization completed successfully")
 

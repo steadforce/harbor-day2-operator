@@ -15,7 +15,8 @@ from pathlib import Path
 from harborapi import HarborAsyncClient
 from pythonjsonlogger import jsonlogger
 
-from src.utils import wait_until_healthy, sync_admin_password
+from src.utils import wait_until_healthy
+from src.password_utils import sync_admin_password
 from src.configuration import sync_harbor_configuration
 from src.registries import sync_registries
 from src.purge_job_schedule import sync_purge_job_schedule
@@ -68,7 +69,7 @@ class HarborConfig:
         )
 
 
-def setup_logging(use_json: bool) -> logging.Logger:
+def set_up_logging(use_json: bool) -> logging.Logger:
     """Configure logging with either JSON or standard format.
 
     Args:
@@ -211,7 +212,7 @@ async def main() -> None:
         config = HarborConfig.from_env()
 
         # Setup logging
-        logger = setup_logging(config.json_logging)
+        logger = set_up_logging(config.json_logging)
 
         # Initialize and run synchronizer
         synchronizer = HarborSynchronizer(config, logger)
