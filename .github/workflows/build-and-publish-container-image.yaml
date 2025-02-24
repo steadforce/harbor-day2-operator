@@ -25,22 +25,31 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-    - uses: hadolint/hadolint-action@v3.1.0
+
+    - name: Run Ruff Check
+      uses: astral-sh/ruff-action@v3
+      with:
+        src: "./src"
+        args: check --fix
+
+    - name: Run Ruff Format
+      uses: astral-sh/ruff-action@v3
+      with:
+        src: "./src"
+        args: format
+
+    - name: Lint Dockerfile
+      uses: hadolint/hadolint-action@v3.1.0
       with:
         dockerfile: Dockerfile
-    - uses: ricardochaves/python-lint@v1.4.0
-      with:
-        use-pylint: false
-        use-flake8: false
-        use-black: false
-        use-mypy: false
-        use-isort: false
+
     - name: Log in to the container registry
       uses: docker/login-action@327cd5a69de6c009b9ce71bce8395f28e651bf99
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
+
     - name: Extract metadata (tags, labels) for container
       id: meta
       uses: docker/metadata-action@8e1d5461f02b7886d3c1a774bfbd873650445aa2
@@ -53,17 +62,37 @@ jobs:
           type=semver,pattern={{major}}.{{minor}}
           type=semver,pattern={{major}}
           type=sha
-    - name: Build container image for tests
-      uses: docker/build-push-action@b16f42f92abaeb7610fd7fc99ab230d13e79e275
+
+    - name: Set version
+      id: version
+      run: |
+        if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+        else
+          VERSION=0.0.0-dev
+        fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Build container image for test
+      uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991
       with:
         context: .
         push: false
         tags: ${{ env.IMAGE_NAME }}:test
-    - name: Test harbor tool
+      env:
+        HARBOR_OPERATOR_VERSION: ${{ env.VERSION }}
+
+    - name: Test harbor binary
       run: |
-        docker run --rm ${{ env.IMAGE_NAME }}:test /usr/local/harbor --help
+        docker run --rm \
+          -e ADMIN_PASSWORD_NEW=test \
+          -e HARBOR_API_URL=https://example.com \
+          -e CONFIG_FOLDER_PATH=/config \
+          ${{ env.IMAGE_NAME }}:test --version
+
     - name: Tag and push tested container image
-      uses: docker/build-push-action@b16f42f92abaeb7610fd7fc99ab230d13e79e275
+      uses: docker/build-push-action@ca877d9245402d1537745e0e356eab47c3520991
       with:
         context: .
         push: ${{ github.event_name != 'pull_request' }}
