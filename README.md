@@ -136,77 +136,7 @@ Templating can be used to insert the id at runtime.
         },
         "storage_limit": -1,
         //"registry_id": 1 -> from template
-        "registry_id": "{{ registry:docker.io }}"
-    }
-]
-```
-
-### project-members.json
-
-A list of projects and team members with their respective roles.
-
-```json
-[
-    {
-        "project_name": "Project 1",
-        "admin": [],
-        "developer": ["firstname.lastname"],
-        "guest": [],
-        "maintainer": []
-    }
-]
-```
-
-### robots.json
-
-Configuration of robot accounts and their permissions.
-
-```json
-[
-    {
-        "name": "example-robot",
-        "duration": "-1",
-        "description": "Example robot.",
-        "disable": false,
-        "level": "system",
-        "permissions": [
-            {
-                "kind": "project",
-                "namespace": "*",
-                "access": [
-                    {
-                        "resource": "repository",
-                        "action": "list"
-                    }
-                ]
-            }
-        ]
-    }
-]
-```
-
-### webhooks.json
-
-Definition of webhooks.
-
-```json
-[
-    {
-        "project_name": "Project 1", 
-        "policies": [
-            "name": "ms-teams",
-            "description": "Sends scan results to MS-Teams",
-            "event_types": [
-                "SCANNING_COMPLETED"
-            ],
-            "targets": [
-                {
-                    "type": "http",
-                    "address": "https://harbor-ms-teams-forwarder.url.com"
-                }
-            ],
-            "enabled": true
-        ]
+        "registry_id": {{ registry:docker.io }}
     }
 ]
 ```
@@ -334,7 +264,7 @@ Templating can be used to insert the id of the project at runtime.
     "scope": {
       "level": "project",
       //"ref": 2 -> from template
-      "ref": "{{ project:aa }}"
+      "ref": {{ project:aa }}
     },
     "rules": [
       {
@@ -365,5 +295,75 @@ Templating can be used to insert the id of the project at runtime.
       }
     }
   }
+]
+```
+
+### replications.json
+
+Definition of replication rules between Harbor instances or external registries.
+Replication rules can be found in the global settings under the "Replications" tab.
+The rules define how artifacts are replicated between registries, including filters and triggers.
+
+**Note:** `src_registry` and `dest_registry` can't be used together.
+The replication is always from `src_registry` to this harbor instance or from this harbor instance to `dest_registry`.
+See [Harbor Issue 10272](https://github.com/goharbor/harbor/issues/10272)
+
+**From SRC to this harbor:**
+```json
+[
+    {
+        "name": "example-replication",
+        "description": "Example replication rule",
+        "src_registry": {
+            "id": {{ registry:source-registry }}
+        },
+        "dest_namespace": "replicated-project",
+        "filters": [
+            {
+                "type": "name",
+                "value": "**"
+            },
+            {
+                "type": "tag",
+                "value": "latest"
+            }
+        ],
+        "trigger": {
+            "type": "manual"
+        },
+        "deletion": false,
+        "override": true,
+        "enabled": true
+    }
+]
+```
+
+**From this harbor to DEST:**
+```json
+[
+    {
+        "name": "example-replication",
+        "description": "Example replication rule",
+        "dest_registry": {
+            "id": {{ registry:destination-registry }}
+        },
+        "dest_namespace": "replicated-project",
+        "filters": [
+            {
+                "type": "name",
+                "value": "**"
+            },
+            {
+                "type": "tag",
+                "value": "latest"
+            }
+        ],
+        "trigger": {
+            "type": "manual"
+        },
+        "deletion": false,
+        "override": true,
+        "enabled": true
+    }
 ]
 ```

@@ -26,6 +26,7 @@ from src.projects import sync_projects
 from src.robot_accounts import sync_robot_accounts
 from src.webhooks import sync_webhooks
 from src.retention_policies import sync_retention_policies
+from src.replications import sync_replications
 
 
 __version__ = os.getenv("HARBOR_OPERATOR_VERSION", "0.0.0-dev")
@@ -173,6 +174,7 @@ class HarborSynchronizer:
                 "registries.json": sync_registries,
                 "projects.json": sync_projects,
                 "project-members.json": sync_project_members,
+                "replications.json": sync_replications,
                 "robots.json": sync_robot_accounts,
                 "webhooks.json": sync_webhooks,
                 "purge-job-schedule.json": sync_purge_job_schedule,
