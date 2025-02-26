@@ -39,7 +39,7 @@ async def wait_until_healthy(client: HarborAsyncClient, logger: Logger) -> None:
         sleep(5)
 
 
-async def load_json(path: str) -> Dict[str, Any]:
+def load_json(path: str) -> Dict[str, Any]:
     """Load JSON data from a file.
 
     Args:

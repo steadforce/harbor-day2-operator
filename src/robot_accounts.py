@@ -12,7 +12,7 @@ from utils import load_json
 ROBOT_NAME_PREFIX = os.environ.get("ROBOT_NAME_PREFIX", "")
 
 
-async def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
+def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
     """Load robot account configurations from file.
 
     Args:
@@ -36,7 +36,7 @@ async def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
         raise
 
 
-async def prepare_target_robots(
+def prepare_target_robots(
     target_robots: List[Dict[str, Any]],
     logger: Logger
 ) -> List[Tuple[str, Dict[str, Any]]]:
@@ -55,7 +55,7 @@ async def prepare_target_robots(
     target_robots_with_names = []
     for target_robot in target_robots:
         try:
-            full_name = await construct_full_robot_name(target_robot)
+            full_name = construct_full_robot_name(target_robot)
             target_robots_with_names.append((full_name, target_robot))
         except KeyError as e:
             logger.error(
@@ -182,7 +182,7 @@ async def sync_robot_accounts(client: Any, path: str, logger: Logger) -> None:
 
     try:
         # Load robot configurations
-        target_robots = await load_target_robots(path, logger)
+        target_robots = load_target_robots(path, logger)
 
         # Fetch all existing robots
         try:
@@ -193,7 +193,7 @@ async def sync_robot_accounts(client: Any, path: str, logger: Logger) -> None:
             raise
 
         # Prepare target robots with full names
-        target_robots_with_names = await prepare_target_robots(target_robots, logger)
+        target_robots_with_names = prepare_target_robots(target_robots, logger)
         target_robot_names = {name for name, _ in target_robots_with_names}
 
         # Delete robots not in config
@@ -242,7 +242,7 @@ async def get_all_robots(client: Any, logger: Logger) -> List[Robot]:
     return system_robots + project_robots
 
 
-async def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
+def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
     """Construct the full robot name including prefix and namespace if applicable.
 
     Args:

@@ -5,7 +5,7 @@ import json
 from utils import load_json
 
 
-async def load_webhook_configs(path: str, logger: Logger) -> List[Dict[str, Any]]:
+def load_webhook_configs(path: str, logger: Logger) -> List[Dict[str, Any]]:
     """Load webhook configurations from file.
 
     Args:
@@ -227,7 +227,7 @@ async def sync_webhooks(client: Any, path: str, logger: Logger) -> None:
 
     try:
         # Load webhook configurations
-        webhook_configs = await load_webhook_configs(path, logger)
+        webhook_configs = load_webhook_configs(path, logger)
 
         # Process webhooks for each project
         for config in webhook_configs:
