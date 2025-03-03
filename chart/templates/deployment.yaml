@@ -35,12 +35,12 @@ spec:
             - name: ADMIN_PASSWORD_NEW
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "harbor-day2-operator.fullname" . }}-admin
+                  name: {{ .Values.harbor.adminSecretName }}
                   key: password-new
             - name: ADMIN_PASSWORD_OLD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "harbor-day2-operator.fullname" . }}-admin
+                  name: {{ .Values.harbor.adminSecretName }}
                   key: password-old
             - name: HARBOR_API_URL
               value: {{ .Values.harbor.apiUrl }}
