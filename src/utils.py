@@ -86,7 +86,7 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
             
             # Find all placeholders in the template
             placeholders = re.findall(
-                r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}',
+                r'{{[ ]*(?:project|registry):[A-Za-z,0-9,.,\-,_]+[ ]*}}',
                 content
             )
             logger.info("Found ID templates", extra={"placeholders": placeholders})
