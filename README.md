@@ -1,6 +1,53 @@
 # harbor-day2-operator
 The harbor day2 operator is for automated management of existing harbor instances using python harbor-api
 
+This harbor operator makes it possible to synchronize different types of settings to a harbor instance.
+Instead of making changes by hand (clickops), this operator enables the automatic synchronization of harbor settings from files.
+
+The Harbor API of your instance can be found at: `your-harbor-origin/devcenter-api-2.0`
+
+## Requirements
+
+The project uses two requirements files:
+- `requirements.txt`: Contains the production dependencies with pinned versions
+- `dev_requirements.txt`: Contains development dependencies and base package names
+
+To update the `requirements.txt` file with proper version pinning, use the `create_requirements_in_container.sh` script:
+
+```bash
+./create_requirements_in_container.sh
+```
+
+This script will:
+1. Build a temporary Docker image with the base system dependencies
+2. Install all packages from `dev_requirements.txt`
+3. Generate a clean `requirements.txt` with exact versions, excluding system packages
+4. Preserve any extra index URLs or trusted hosts from `dev_requirements.txt`
+
+Run this script whenever you update dependencies in `dev_requirements.txt` to ensure the `requirements.txt` file stays in sync with proper version pinning.
+
+## Linting
+
+**Code:**
+```bash
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check /src
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check --fix /src
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check --fix --unsafe-fixes /src
+```
+
+**Dockerfile:**
+```bash
+ docker run --rm -i ghcr.io/hadolint/hadolint < Dockerfile
+```
+
+## Formatting
+
+**Code:**
+```bash
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest format /src
+```
+
+
 ## Environment Variables
 The following environment variables are expected:
 
@@ -15,23 +62,6 @@ The following environment variables are expected:
 |`OIDC_STATIC_CLIENT_TOKEN`|required|***|The OIDC provider secret.|
 |`OIDC_ENDPOINT`|required|https://oidc.domain.com/api|The endpoint of the OIDC provider.|
 
-
-## Linter
-We have activated linter like hadolint for dockerfiles. Please run
-all the linters like documented underneath before checkin of source
-code. Pull requests are only accepted when no linting errors occur.
-
-### hadolint
-
-```
- docker run --rm -i ghcr.io/hadolint/hadolint < Dockerfile
-```
-
-### python-lint
-
-```
- docker run --rm -v .:/src ricardobchaves6/python-lint-image:1.4.0 pycodestyle /src
-```
 
 ## Configuration Files
 
