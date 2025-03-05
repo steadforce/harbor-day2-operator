@@ -103,7 +103,7 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
                 try:
                     placeholder_type, placeholder_value = placeholder.split(':')
                     replacement_value = await fetch_id(
-                        client, placeholder_type, placeholder_value
+                        client, placeholder_type, placeholder_value, logger
                     )
                     
                     # The mustache specification, which the chevron library builds
@@ -144,7 +144,8 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
 async def fetch_id(
     client: HarborAsyncClient,
     placeholder_type: str,
-    placeholder_value: str
+    placeholder_value: str,
+    logger: Logger
 ) -> int:
     """Fetch Harbor ID for a given placeholder.
 
@@ -152,6 +153,7 @@ async def fetch_id(
         client: Harbor API client instance
         placeholder_type: Type of the placeholder ('project' or 'registry')
         placeholder_value: Name of the project or registry
+        logger: Logger instance for recording operations
 
     Returns:
         int: Harbor ID for the requested resource
@@ -167,6 +169,12 @@ async def fetch_id(
         )
         if not projects:
             raise IndexError(f"Project not found: {placeholder_value}")
+        
+        if len(projects) > 1:
+            logger.warning(
+                f"Multiple projects found with name '{placeholder_value}', using first match",
+                extra={"project_count": len(projects)}
+            )
         return projects[0].project_id
         
     if placeholder_type == "registry":
@@ -175,6 +183,12 @@ async def fetch_id(
         )
         if not registries:
             raise IndexError(f"Registry not found: {placeholder_value}")
+        
+        if len(registries) > 1:
+            logger.warning(
+                f"Multiple registries found with name '{placeholder_value}', using first match",
+                extra={"registry_count": len(registries)}
+            )
         return registries[0].id
         
     raise ValueError(f"Invalid placeholder type: {placeholder_type}")
