@@ -60,15 +60,15 @@ deployment:
     # critical: "true"
 
 harbor:
-  adminPasswordNew: "changeme"  # New admin password
-  adminPasswordOld: "changeme"  # Old admin password
   adminUsername: "admin"
   apiUrl: ""  # The Harbor API URL to manage
+  newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
+  oldAdminSecretName: "harbor-core"  # Name of the secret containing the old admin password
   robotNamePrefix: "robot$"
 
 image:
   pullPolicy: IfNotPresent
-  repository: ghcr.io/steadforce/steadops/workbenches/harbor-day2-operator
+  repository: ghcr.io/steadforce/harbor-day2-operator
   tag: ""  # Set your specific version
 
 nodeSelector: {}

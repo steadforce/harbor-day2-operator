@@ -35,13 +35,13 @@ spec:
             - name: ADMIN_PASSWORD_NEW
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.harbor.adminSecretName }}
+                  name: {{ .Values.harbor.newAdminSecretName }}
                   key: ADMIN_PASSWORD
             - name: ADMIN_PASSWORD_OLD
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.harbor.adminSecretName }}
-                  key: ADMIN_PASSWORD
+                  name: {{ .Values.harbor.oldAdminSecretName }}
+                  key: HARBOR_ADMIN_PASSWORD
             - name: HARBOR_API_URL
               value: {{ .Values.harbor.apiUrl }}
             - name: ADMIN_USERNAME
