@@ -74,8 +74,9 @@ image:
 nodeSelector: {}
 
 oidc:
+  enabled: false  # Set to true to enable OIDC integration
   endpoint: ""  # OIDC provider endpoint
-  staticClientToken: "changeme"
+  staticClientToken: "changeme"  # Change this when OIDC is enabled
 
 replicaCount: 1
 
