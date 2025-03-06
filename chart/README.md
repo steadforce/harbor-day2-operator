@@ -58,7 +58,7 @@ deployment:
 2. Install the chart:
 
 ```bash
-helm install harbor-day2-operator ./harbor-day2-operator -f values.yaml
+helm install harbor-day2-operator ./chart -f values.yaml
 ```
 
 ## Configuration
