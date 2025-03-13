@@ -1,7 +1,7 @@
 affinity: {}
 
 configFiles:
-  enabled: true
+  enabled: false
   # Add your configuration files here. Each file is defined as a key-value pair:
   # filename1.ext: |
   #   content of first file
@@ -90,7 +90,7 @@ replicaCount: 1
 
 resources:
   limits:
-    cpu: 200m
+    cpu: 600m
     memory: 256Mi
   requests:
     cpu: 100m
