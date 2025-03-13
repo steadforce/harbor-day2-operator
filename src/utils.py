@@ -74,7 +74,7 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
 
     Returns:
         str: Filled template content
-
+    
     Raises:
         FileNotFoundError: If the template file doesn't exist
         KeyError: If a required placeholder value is not found
@@ -83,41 +83,23 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
     try:
         with open(path, 'r') as file:
             content = file.read()
-            
-            # Find all placeholders in the template
+
             placeholders = re.findall(
-                r'{{[ ]*(?:project|registry):[A-Za-z,0-9,.,\-,_]+[ ]*}}',
+                r'{{\s*(?:project|registry):[\w.\-_]+\s*}}',
                 content
             )
-            logger.info("Found ID templates", extra={"placeholders": placeholders})
-            
-            # Clean up placeholder format
-            placeholders = [
-                placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
-                for placeholder in placeholders
-            ]
-            
-            # Build replacements dictionary
+            logger.info("Found id templates", extra={"placeholders": placeholders})
+
             replacements: Dict[str, Any] = {}
-            for placeholder in placeholders:
+            for placeholder in (p.strip(" {}") for p in placeholders):
                 try:
                     placeholder_type, placeholder_value = placeholder.split(':')
                     replacement_value = await fetch_id(
                         client, placeholder_type, placeholder_value, logger
                     )
-                    
-                    # The mustache specification, which the chevron library builds
-                    # on top of, does not allow for dots in keys. Instead, keys with
-                    # dots are meant to reference nested objects. In order to have
-                    # the right objects to reference, nested objects / dictionaries
-                    # are created for keys with dots.
 
-                    # Handle nested dictionary creation for dot notation
-                    last_part = str(replacement_value)
-                    for part in reversed(placeholder.split('.')):
-                        last_part = {part: last_part}
-                    replacements.update(last_part)
-                    
+                    insert_into_dict(replacements, placeholder.split('.') + [str(replacement_value)])
+                
                 except Exception as e:
                     logger.error(
                         "Failed to process template placeholder",
@@ -127,9 +109,9 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
                         }
                     )
                     raise
-            
+
             return chevron.render(content, replacements)
-            
+    
     except FileNotFoundError:
         logger.error("Template file not found", extra={"path": path})
         raise
@@ -192,3 +174,17 @@ async def fetch_id(
         return registries[0].id
         
     raise ValueError(f"Invalid placeholder type: {placeholder_type}")
+    
+
+def insert_into_dict(d: dict, parts: [str]) -> None:
+    """Inserts nested keys and value into a dictionary.
+
+    Args:
+        d: Dictionary to insert into
+        parts: List of splitted parts
+    """
+    *keys, last_key, value = parts
+    for key in keys:
+        d = d.setdefault(key, {})
+    d[last_key] = value
+
