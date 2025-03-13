@@ -65,18 +65,26 @@ harbor:
   newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
   oldAdminSecretName: "harbor-core"  # Name of the secret containing the old admin password
   robotNamePrefix: "robot$"
+  # Robot account secret configuration
+  robotSecretName: ""  # Name of the external secret containing robot account tokens
 
 image:
   pullPolicy: IfNotPresent
   repository: ghcr.io/steadforce/harbor-day2-operator
   tag: ""  # Set your specific version
 
+# Name override options
+# nameOverride: ""
+# fullnameOverride: ""
+
 nodeSelector: {}
 
 oidc:
   enabled: false  # Set to true to enable OIDC integration
   endpoint: ""  # OIDC provider endpoint
-  staticClientToken: "changeme"  # Change this when OIDC is enabled
+  # OIDC secret configuration
+  secretName: ""  # Name of the external secret containing OIDC client token
+  secretKey: "OIDC_STATIC_CLIENT_TOKEN"  # Key in the external secret for the OIDC client token
 
 replicaCount: 1
 

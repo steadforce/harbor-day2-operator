@@ -52,6 +52,13 @@ spec:
               value: {{ .Values.configFolder }}
             - name: ROBOT_NAME_PREFIX
               value: {{ .Values.harbor.robotNamePrefix }}
+            {{- if and .Values.oidc.enabled .Values.oidc.secretName }}
+            - name: OIDC_STATIC_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oidc.secretName }}
+                  key: {{ .Values.oidc.secretKey }}
+            {{- end }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
               {{- if $value.valueFrom }}
@@ -62,10 +69,10 @@ spec:
               {{- end }}
             {{- end }}
           envFrom:
+            {{- if .Values.harbor.robotSecretName }}
             - secretRef:
-                name: {{ include "harbor-day2-operator.fullname" . }}-robot
-            - secretRef:
-                name: {{ include "harbor-day2-operator.fullname" . }}-oidc
+                name: {{ .Values.harbor.robotSecretName }}
+            {{- end }}
             {{- with .Values.envFrom }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
