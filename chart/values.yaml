@@ -1,0 +1,101 @@
+affinity: {}
+
+configFiles:
+  enabled: false
+  # Add your configuration files here. Each file is defined as a key-value pair:
+  # filename1.ext: |
+  #   content of first file
+  #   multiple lines are supported
+  #   indentation is preserved
+  # filename2.ext: |
+  #   content of second file
+  #   ...
+  #
+  # Any file type is supported and will be mounted as-is in the container
+
+configFolder: /usr/local/scripts
+
+# Additional environment variables
+env: {}
+  # Environment variables can be set in two ways:
+  # 1. Direct value:
+  #   MY_VAR:
+  #     value: "my-value"
+  # 2. Using valueFrom:
+  #   MY_VAR:
+  #     valueFrom:
+  #       secretKeyRef:
+  #         name: my-secret
+  #         key: my-key
+  #       # or
+  #       configMapKeyRef:
+  #         name: my-configmap
+  #         key: my-key
+  #       # or
+  #       fieldRef:
+  #         fieldPath: metadata.name
+
+# Additional envFrom sources
+envFrom: []
+  # Add additional envFrom sources here, examples:
+  # - configMapRef:
+  #     name: my-config-map
+  # - secretRef:
+  #     name: my-secret
+
+deployment:
+  # Additional labels to be added to the deployment
+  labels: {}
+    # team: myteam
+    # environment: production
+
+  # Additional pod labels and selector labels
+  podLabels: {}
+    # app.kubernetes.io/part-of: myapp
+    # environment: production
+
+  # Additional selector labels (these will be added to both matchLabels and pod labels)
+  selectorLabels: {}
+    # tier: backend
+    # critical: "true"
+
+harbor:
+  adminUsername: "admin"
+  apiUrl: ""  # The Harbor API URL to manage
+  newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
+  oldAdminSecretName: "harbor-core"  # Name of the secret containing the old admin password
+  robotNamePrefix: "robot$"
+  # Robot account secret configuration
+  robotSecretName: ""  # Name of the external secret containing robot account tokens
+
+image:
+  pullPolicy: IfNotPresent
+  repository: ghcr.io/steadforce/harbor-day2-operator
+  tag: ""  # Set your specific version
+
+# Name override options
+# nameOverride: ""
+# fullnameOverride: ""
+
+nodeSelector: {}
+
+oidc:
+  enabled: false  # Set to true to enable OIDC integration
+  endpoint: ""  # OIDC provider endpoint
+  # OIDC secret configuration
+  secretName: ""  # Name of the external secret containing OIDC client token
+  secretKey: "OIDC_STATIC_CLIENT_TOKEN"  # Key in the external secret for the OIDC client token
+
+replicaCount: 1
+
+resources:
+  limits:
+    cpu: 600m
+    memory: 256Mi
+  requests:
+    cpu: 200m
+    memory: 80Mi
+
+revisionHistoryLimit: 10
+
+tolerations: []
