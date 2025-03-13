@@ -1,6 +1,0 @@
-FROM local-python-base
-COPY dev_requirements.txt ./dev_requirements.txt
-RUN apk add --no-cache build-base librdkafka-dev
-RUN python3 -m pip install -U pip setuptools wheel && \
-    python3 -m pip install pip-chill && python3 -m pip install -r ./dev_requirements.txt
-RUN pip-chill --no-chill  > requirements.txt
