@@ -1,122 +1,190 @@
-from time import sleep
 import os
+import json
+import re
+from pathlib import Path
+from time import sleep
+from typing import Dict, Any
+from logging import Logger
 
 import chevron
-import re
-
-from harborapi.models import ProjectMemberEntity
 from harborapi import HarborAsyncClient
-from harborapi.exceptions import Unauthorized
 
 
-admin_username = os.environ.get("ADMIN_USERNAME", "admin")
-old_admin_password = os.environ.get("ADMIN_PASSWORD_OLD")
-new_admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
-api_url = os.environ.get("HARBOR_API_URL")
+# Environment variables for Harbor configuration
+API_URL = os.environ.get("HARBOR_API_URL")
 
 
-def file_exists(path: str, logger) -> bool:
-    if os.path.exists(path):
-        return True
-    else:
-        logger.info("File not found - skipping step", extra={"path": path})
-        return False
+async def wait_until_healthy(client: HarborAsyncClient, logger: Logger) -> None:
+    """Wait until the Harbor instance is healthy.
 
+    This function polls the Harbor health check endpoint until it returns
+    a healthy status.
 
-async def wait_until_healthy(client, logger) -> None:
+    Args:
+        client: Harbor API client instance
+        logger: Logger instance for recording operations
+    """
     while True:
-        health = await client.health_check()
-        if health.status == "healthy":
-            logger.info("Harbor is healthy")
-            break
-        logger.info("Waiting for harbor to become healthy")
+        try:
+            health = await client.health_check()
+            if health.status == "healthy":
+                logger.info("Harbor is healthy")
+                break
+            logger.info("Waiting for harbor to become healthy")
+        except Exception as e:
+            logger.warning(
+                "Health check failed",
+                extra={"error": str(e)}
+            )
         sleep(5)
 
 
-async def update_password(client, logger) -> None:
-    try:
-        logger.info("Updating password")
-        old_password_client = HarborAsyncClient(
-            url=api_url,
-            username=admin_username,
-            secret=old_admin_password,
-            timeout=10,
-            verify=False,
-        )
-        admin = await old_password_client.get_current_user()
-        await old_password_client.set_user_password(
-            user_id=admin.user_id,
-            old_password=old_admin_password,
-            new_password=new_admin_password,
-        )
-        logger.info("Updated admin password")
-    except Unauthorized:
-        logger.error("Unable to change the admin password")
+def load_json(path: str) -> Dict[str, Any]:
+    """Load JSON data from a file.
 
+    Args:
+        path: Path to the JSON file
 
-async def sync_admin_password(client, logger) -> None:
-    try:
-        await client.get_current_user()
-    except Unauthorized:
-        await update_password(client, logger)
+    Returns:
+        Dict[str, Any]: Parsed JSON data
 
-
-def get_member_id(members: [ProjectMemberEntity], username: str) -> int | None:
-    """Returns member id of username or None if username is not in members"""
-    for member in members:
-        if member.entity_name == username:
-            return member.id
-    return None
-
-
-async def fill_template(client, path: str) -> str:
-    """Takes the path to a template file and returns its content with the
-    replaced ids
+    Raises:
+        FileNotFoundError: If the file doesn't exist
+        json.JSONDecodeError: If the file is not valid JSON
     """
-    with open(path, 'r') as file:
-        content = file.read()
-        placeholders = re.findall(
-            r'{{[ ]*(?:project|registry):[A-z,0-9,.,\-,_]+[ ]*}}', content
-        )
-        print(f"Found id templates: {placeholders}")
-        placeholders = [
-            placeholder.replace('{{', '').replace(' ', '').replace('}}', '')
-            for placeholder in placeholders
-        ]
-        replacements = {}
-        for placeholder in placeholders:
-            placeholder_type, placeholder_value = placeholder.split(':')
-            replacement_value = await fetch_id(
-                client, placeholder_type, placeholder_value
+    file_path = Path(path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+    
+    with open(file_path, 'r') as f:
+        return json.load(f)
+
+
+async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) -> str:
+    """Fill a template file with Harbor-specific values.
+
+    This function reads a template file and replaces placeholders with actual
+    Harbor IDs. Placeholders should be in the format {{project:name}} or
+    {{registry:name}}.
+
+    Args:
+        client: Harbor API client instance
+        path: Path to the template file
+        logger: Logger instance for recording operations
+
+    Returns:
+        str: Filled template content
+    
+    Raises:
+        FileNotFoundError: If the template file doesn't exist
+        KeyError: If a required placeholder value is not found
+        Exception: If any Harbor API operation fails
+    """
+    try:
+        with open(path, 'r') as file:
+            content = file.read()
+
+            placeholders = re.findall(
+                r'{{\s*(?:project|registry):[\w.\-_]+\s*}}',
+                content
             )
-            # The mustache specification, which the chevron library builds
-            # on top of, does not allow for dots in keys. Instead, keys with
-            # dots are meant to reference nested objects. In order to have
-            # the right objects to reference, nested objects / dictionaries
-            # are created for keys with dots.
-            last_part = str(replacement_value)
-            for part in reversed(placeholder.split('.')):
-                last_part = {part: last_part}
-            replacements = replacements | last_part
-        config = chevron.render(content, replacements)
-        return config
+            logger.info("Found id templates", extra={"placeholders": placeholders})
+
+            replacements: Dict[str, Any] = {}
+            for placeholder in (p.strip(" {}") for p in placeholders):
+                try:
+                    placeholder_type, placeholder_value = placeholder.split(':')
+                    replacement_value = await fetch_id(
+                        client, placeholder_type, placeholder_value, logger
+                    )
+
+                    insert_into_dict(replacements, placeholder.split('.') + [str(replacement_value)])
+                
+                except Exception as e:
+                    logger.error(
+                        "Failed to process template placeholder",
+                        extra={
+                            "placeholder": placeholder,
+                            "error": str(e)
+                        }
+                    )
+                    raise
+
+            return chevron.render(content, replacements)
+    
+    except FileNotFoundError:
+        logger.error("Template file not found", extra={"path": path})
+        raise
+    except Exception as e:
+        logger.error(
+            "Failed to fill template",
+            extra={"path": path, "error": str(e)}
+        )
+        raise
 
 
 async def fetch_id(
-    client, placeholder_type: str, placeholder_value: str
+    client: HarborAsyncClient,
+    placeholder_type: str,
+    placeholder_value: str,
+    logger: Logger
 ) -> int:
-    """Fetches the id of an object with the given name"""
+    """Fetch Harbor ID for a given placeholder.
+
+    Args:
+        client: Harbor API client instance
+        placeholder_type: Type of the placeholder ('project' or 'registry')
+        placeholder_value: Name of the project or registry
+        logger: Logger instance for recording operations
+
+    Returns:
+        int: Harbor ID for the requested resource
+
+    Raises:
+        ValueError: If placeholder_type is not valid
+        IndexError: If no matching resource is found
+        Exception: If any Harbor API operation fails
+    """
     if placeholder_type == "project":
         projects = await client.get_projects(
             query=f"name={placeholder_value}"
         )
-        project = projects[0]
-        project_id = project.project_id
-        return project_id
+        if not projects:
+            raise IndexError(f"Project not found: {placeholder_value}")
+        
+        if len(projects) > 1:
+            logger.warning(
+                f"Multiple projects found with name '{placeholder_value}', using first match",
+                extra={"project_count": len(projects)}
+            )
+        return projects[0].project_id
+        
     if placeholder_type == "registry":
         registries = await client.get_registries(
             query=f"name={placeholder_value}"
         )
-        registry = registries[0]
-        registry_id = registry.id
-        return registry_id
+        if not registries:
+            raise IndexError(f"Registry not found: {placeholder_value}")
+        
+        if len(registries) > 1:
+            logger.warning(
+                f"Multiple registries found with name '{placeholder_value}', using first match",
+                extra={"registry_count": len(registries)}
+            )
+        return registries[0].id
+        
+    raise ValueError(f"Invalid placeholder type: {placeholder_type}")
+    
+
+def insert_into_dict(d: dict, parts: [str]) -> None:
+    """Inserts nested keys and value into a dictionary.
+
+    Args:
+        d: Dictionary to insert into
+        parts: List of splitted parts
+    """
+    *keys, last_key, value = parts
+    for key in keys:
+        d = d.setdefault(key, {})
+    d[last_key] = value
+

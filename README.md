@@ -1,6 +1,53 @@
 # harbor-day2-operator
 The harbor day2 operator is for automated management of existing harbor instances using python harbor-api
 
+This harbor operator makes it possible to synchronize different types of settings to a harbor instance.
+Instead of making changes by hand (clickops), this operator enables the automatic synchronization of harbor settings from files.
+
+The Harbor API of your instance can be found at: `your-harbor-origin/devcenter-api-2.0`
+
+## Requirements
+
+The project uses two requirements files:
+- `requirements.txt`: Contains the production dependencies with pinned versions
+- `dev_requirements.txt`: Contains development dependencies and base package names
+
+To update the `requirements.txt` file with proper version pinning, use the `create_requirements_in_container.sh` script:
+
+```bash
+./create_requirements_in_container.sh
+```
+
+This script will:
+1. Build a temporary Docker image with the base system dependencies
+2. Install all packages from `dev_requirements.txt`
+3. Generate a clean `requirements.txt` with exact versions, excluding system packages
+4. Preserve any extra index URLs or trusted hosts from `dev_requirements.txt`
+
+Run this script whenever you update dependencies in `dev_requirements.txt` to ensure the `requirements.txt` file stays in sync with proper version pinning.
+
+## Linting
+
+**Code:**
+```bash
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check /src
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check --fix /src
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest check --fix --unsafe-fixes /src
+```
+
+**Dockerfile:**
+```bash
+ docker run --rm -i ghcr.io/hadolint/hadolint < Dockerfile
+```
+
+## Formatting
+
+**Code:**
+```bash
+docker run -v ./src/:/src --pull=always ghcr.io/astral-sh/ruff:latest format /src
+```
+
+
 ## Environment Variables
 The following environment variables are expected:
 
@@ -15,23 +62,6 @@ The following environment variables are expected:
 |`OIDC_STATIC_CLIENT_TOKEN`|required|***|The OIDC provider secret.|
 |`OIDC_ENDPOINT`|required|https://oidc.domain.com/api|The endpoint of the OIDC provider.|
 
-
-## Linter
-We have activated linter like hadolint for dockerfiles. Please run
-all the linters like documented underneath before checkin of source
-code. Pull requests are only accepted when no linting errors occur.
-
-### hadolint
-
-```
- docker run --rm -i ghcr.io/hadolint/hadolint < Dockerfile
-```
-
-### python-lint
-
-```
- docker run --rm -v .:/src ricardobchaves6/python-lint-image:1.4.0 pycodestyle /src
-```
 
 ## Configuration Files
 
@@ -106,77 +136,7 @@ Templating can be used to insert the id at runtime.
         },
         "storage_limit": -1,
         //"registry_id": 1 -> from template
-        "registry_id": "{{ registry:docker.io }}"
-    }
-]
-```
-
-### project-members.json
-
-A list of projects and team members with their respective roles.
-
-```json
-[
-    {
-        "project_name": "Project 1",
-        "admin": [],
-        "developer": ["firstname.lastname"],
-        "guest": [],
-        "maintainer": []
-    }
-]
-```
-
-### robots.json
-
-Configuration of robot accounts and their permissions.
-
-```json
-[
-    {
-        "name": "example-robot",
-        "duration": "-1",
-        "description": "Example robot.",
-        "disable": false,
-        "level": "system",
-        "permissions": [
-            {
-                "kind": "project",
-                "namespace": "*",
-                "access": [
-                    {
-                        "resource": "repository",
-                        "action": "list"
-                    }
-                ]
-            }
-        ]
-    }
-]
-```
-
-### webhooks.json
-
-Definition of webhooks.
-
-```json
-[
-    {
-        "project_name": "Project 1", 
-        "policies": [
-            "name": "ms-teams",
-            "description": "Sends scan results to MS-Teams",
-            "event_types": [
-                "SCANNING_COMPLETED"
-            ],
-            "targets": [
-                {
-                    "type": "http",
-                    "address": "https://harbor-ms-teams-forwarder.url.com"
-                }
-            ],
-            "enabled": true
-        ]
+        "registry_id": {{ registry:docker.io }}
     }
 ]
 ```
@@ -304,7 +264,7 @@ Templating can be used to insert the id of the project at runtime.
     "scope": {
       "level": "project",
       //"ref": 2 -> from template
-      "ref": "{{ project:aa }}"
+      "ref": {{ project:aa }}
     },
     "rules": [
       {
@@ -335,6 +295,76 @@ Templating can be used to insert the id of the project at runtime.
       }
     }
   }
+]
+```
+
+### replications.json
+
+Definition of replication rules between Harbor instances or external registries.
+Replication rules can be found in the global settings under the "Replications" tab.
+The rules define how artifacts are replicated between registries, including filters and triggers.
+
+**Note:** `src_registry` and `dest_registry` can't be used together.
+The replication is always from `src_registry` to this harbor instance or from this harbor instance to `dest_registry`.
+See [Harbor Issue 10272](https://github.com/goharbor/harbor/issues/10272)
+
+**From SRC to this harbor:**
+```json
+[
+    {
+        "name": "example-replication",
+        "description": "Example replication rule",
+        "src_registry": {
+            "id": {{ registry:source-registry }}
+        },
+        "dest_namespace": "replicated-project",
+        "filters": [
+            {
+                "type": "name",
+                "value": "**"
+            },
+            {
+                "type": "tag",
+                "value": "latest"
+            }
+        ],
+        "trigger": {
+            "type": "manual"
+        },
+        "deletion": false,
+        "override": true,
+        "enabled": true
+    }
+]
+```
+
+**From this harbor to DEST:**
+```json
+[
+    {
+        "name": "example-replication",
+        "description": "Example replication rule",
+        "dest_registry": {
+            "id": {{ registry:destination-registry }}
+        },
+        "dest_namespace": "replicated-project",
+        "filters": [
+            {
+                "type": "name",
+                "value": "**"
+            },
+            {
+                "type": "tag",
+                "value": "latest"
+            }
+        ],
+        "trigger": {
+            "type": "manual"
+        },
+        "deletion": false,
+        "override": true,
+        "enabled": true
+    }
 ]
 ```
 
@@ -374,4 +404,3 @@ When testing with Act, some GitHub Actions features are not fully supported:
 1. The `actions/upload-artifact` and `actions/download-artifact` actions require an `ACTIONS_RUNTIME_TOKEN` which Act doesn't provide
 2. Some GitHub context variables may not be available or may have different values
 3. Secrets handling is limited
-

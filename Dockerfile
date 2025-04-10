@@ -1,40 +1,34 @@
-# Always use the latest image
-# hadolint ignore=DL3007
-FROM cgr.dev/chainguard/wolfi-base:latest AS base
+# syntax=docker/dockerfile:1.14-labs 
+FROM cgr.dev/chainguard/wolfi-base:latest@sha256:de8e5bd83625801da1ff756f648abd4c65fd9da43fcdb30f67ac78ba86170ca8 AS base
 ENV PYTHONUNBUFFERED=1
-
-FROM base AS builder
-# we want always the latest version of fetched apk packages
+RUN apk update --no-cache && apk upgrade --no-cache
+# renovate: datasource=python-version depName=python versioning=python
+ARG version=3.13
 # hadolint ignore=DL3018
-RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev \
-    python-3.12 python3-dev py3.12-pip && \
-    mkdir /install
-WORKDIR /install
+RUN apk add --no-cache python-${version} py${version}-pip
+ENV PATH="${PATH}:/home/nonroot/.local/bin"
+
+FROM base AS builder_package
+# hadolint ignore=DL3018
+RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev
+# hadolint ignore=DL3013,DL3059
+RUN pip3 install --no-cache-dir -U pip setuptools wheel pyinstaller
+
+FROM builder_package AS builder
+WORKDIR /build
 COPY requirements.txt requirements.txt
-# we want always the latest version of fetched pip packages
-# hadolint ignore=DL3013
-RUN pip3 install --no-cache-dir -U pip setuptools wheel && \
-    pip3 install --no-cache-dir --prefix=/install --no-warn-script-location -r ./requirements.txt
+RUN pip3 install --no-cache-dir --upgrade -r ./requirements.txt
+COPY src/ src/
+RUN pyinstaller --onefile --paths src src/harbor.py
 
-FROM builder AS native-builder
-# we want always the latest version of fetched apk packages
-# hadolint ignore=DL3018
-RUN apk add --no-cache ccache patchelf
-COPY src/ /src/
-RUN python -m venv /venv && \
-    /venv/bin/pip install --no-cache-dir -U pip nuitka setuptools wheel && \
-    /venv/bin/pip install --no-cache-dir --no-warn-script-location -r ./requirements.txt && \
-    /venv/bin/python -m nuitka --onefile /src/harbor.py && \
-    pwd && \
-    ls -lha
+FROM base AS package
+USER nonroot
+WORKDIR /usr/local/bin/
+COPY --from=builder /build/dist/harbor ./harbor
 
-FROM base AS test
-COPY --from=builder /install /usr/local
-COPY tests/ /tests/
-WORKDIR /tests
-RUN python3 -m unittest discover -v -s .
-
-# Always use the latest image
-# hadolint ignore=DL3007
-FROM cgr.dev/chainguard/wolfi-base:latest
-COPY --from=native-builder /install/harbor.bin /usr/local/harbor
+FROM package
+WORKDIR /
+ENV JSON_LOGGING=True
+ARG HARBOR_OPERATOR_VERSION=0.0.0-dev
+ENV HARBOR_OPERATOR_VERSION=${HARBOR_OPERATOR_VERSION}
+ENTRYPOINT ["/usr/local/bin/harbor"]
