@@ -337,3 +337,41 @@ Templating can be used to insert the id of the project at runtime.
   }
 ]
 ```
+
+## Testing Workflows with Act
+
+This repository includes configuration for testing GitHub Actions workflows locally using [Act](https://github.com/nektos/act).
+
+### Prerequisites
+
+- [Act](https://github.com/nektos/act) installed (available in the Steadforce k8s workbench)
+- Docker running on your machine
+
+### Running Tests
+
+To test the Helm chart publishing workflow:
+
+```bash
+# Run the workflow with the provided event.json
+act release
+```
+
+This will execute the workflow using the simulated release event in `.github/workflows/event.json`.
+
+### Configuration
+
+The workflow is configured to be Act-friendly:
+
+- `.actrc` file contains configuration to set required environment variables and specify the event file
+- `event.json` simulates a GitHub release event with the `act: true` property to skip the publish job
+- The publish job in the workflow has a condition to skip when running with Act
+- The upload-artifact step is skipped when running with Act due to limitations with the ACTIONS_RUNTIME_TOKEN
+
+### Limitations
+
+When testing with Act, some GitHub Actions features are not fully supported:
+
+1. The `actions/upload-artifact` and `actions/download-artifact` actions require an `ACTIONS_RUNTIME_TOKEN` which Act doesn't provide
+2. Some GitHub context variables may not be available or may have different values
+3. Secrets handling is limited
+
