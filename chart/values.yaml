@@ -1,101 +1,116 @@
-affinity: {}
+# -- Default values for harbor-day2-operator
+# -- This is a YAML-formatted file.
+# -- Declare variables to be passed into your templates.
 
-configFiles:
-  enabled: false
-  # Add your configuration files here. Each file is defined as a key-value pair:
-  # filename1.ext: |
-  #   content of first file
-  #   multiple lines are supported
-  #   indentation is preserved
-  # filename2.ext: |
-  #   content of second file
-  #   ...
-  #
-  # Any file type is supported and will be mounted as-is in the container
-
-configFolder: /usr/local/scripts
-
-# Additional environment variables
-env: {}
-  # Environment variables can be set in two ways:
-  # 1. Direct value:
-  #   MY_VAR:
-  #     value: "my-value"
-  # 2. Using valueFrom:
-  #   MY_VAR:
-  #     valueFrom:
-  #       secretKeyRef:
-  #         name: my-secret
-  #         key: my-key
-  #       # or
-  #       configMapKeyRef:
-  #         name: my-configmap
-  #         key: my-key
-  #       # or
-  #       fieldRef:
-  #         fieldPath: metadata.name
-
-# Additional envFrom sources
-envFrom: []
-  # Add additional envFrom sources here, examples:
-  # - configMapRef:
-  #     name: my-config-map
-  # - secretRef:
-  #     name: my-secret
-
-deployment:
-  # Additional labels to be added to the deployment
-  labels: {}
-    # team: myteam
-    # environment: production
-
-  # Additional pod labels and selector labels
-  podLabels: {}
-    # app.kubernetes.io/part-of: myapp
-    # environment: production
-
-  # Additional selector labels (these will be added to both matchLabels and pod labels)
-  selectorLabels: {}
-    # tier: backend
-    # critical: "true"
-
-harbor:
-  adminUsername: "admin"
-  apiUrl: ""  # The Harbor API URL to manage
-  newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
-  oldAdminSecretName: "harbor-core"  # Name of the secret containing the old admin password
-  robotNamePrefix: "robot$"
-  # Robot account secret configuration
-  robotSecretName: ""  # Name of the external secret containing robot account tokens
-
-image:
-  pullPolicy: IfNotPresent
-  repository: ghcr.io/steadforce/harbor-day2-operator
-  tag: ""  # Set your specific version
-
-# Name override options
-# nameOverride: ""
-# fullnameOverride: ""
-
-nodeSelector: {}
-
-oidc:
-  enabled: false  # Set to true to enable OIDC integration
-  endpoint: ""  # OIDC provider endpoint
-  # OIDC secret configuration
-  secretName: ""  # Name of the external secret containing OIDC client token
-  secretKey: "OIDC_STATIC_CLIENT_TOKEN"  # Key in the external secret for the OIDC client token
-
+# -- Number of replicas for the operator deployment
 replicaCount: 1
 
+# -- Image configuration for the operator
+image:
+  # -- Docker image repository for the operator
+  repository: ghcr.io/steadforce/harbor-day2-operator
+  # -- Docker image tag for the operator
+  tag: ""
+  # -- Docker image pull policy (IfNotPresent, Always, or Never)
+  pullPolicy: IfNotPresent
+
+
+# -- Resources configuration for the operator
 resources:
+  # -- Resource limits for the operator
   limits:
+    # -- CPU limit for the operator
     cpu: 600m
+    # -- Memory limit for the operator
     memory: 256Mi
+  # -- Resource requests for the operator
   requests:
+    # -- CPU request for the operator
     cpu: 200m
+    # -- Memory request for the operator
     memory: 80Mi
 
-revisionHistoryLimit: 10
+# -- Node selector configuration for the operator
+nodeSelector: {}
 
+# -- Tolerations configuration for the operator
 tolerations: []
+
+# -- Affinity configuration for the operator
+affinity: {}
+
+# -- Pod annotations for the operator
+podAnnotations: {}
+
+# -- Pod labels for the operator
+podLabels: {}
+
+# -- Deployment labels for the operator
+deployment:
+  # -- Labels to add to the deployment
+  labels: {}
+  # -- Labels to add to the pods
+  podLabels: {}
+  # -- Labels to add to the selector
+  selectorLabels: {}
+
+# -- Environment variables for the operator
+env: {}
+# -- Example:
+# -- env:
+# --   - name: CUSTOM_VAR
+# --     value: "custom-value"
+# --   - name: SECRET_VAR
+# --     valueFrom:
+# --       secretKeyRef:
+# --         name: my-secret
+# --         key: my-key
+
+# -- Environment variables from sources for the operator
+envFrom: []
+# -- Example:
+# -- envFrom:
+# --   - configMapRef:
+# --       name: my-configmap
+# --   - secretRef:
+# --       name: my-secret
+
+# -- Configuration files for the operator
+configFiles:
+  # -- Specifies whether configuration files should be mounted
+  enabled: false
+  # -- Configuration files to mount
+  # -- Example:
+  # -- "config.yaml": |
+  # --   settings:
+  # --     timeout: 30
+  # --     retries: 3
+
+# -- Configuration folder for the operator
+configFolder: "/usr/local/scripts"
+
+# -- Harbor configuration
+harbor:
+  # -- URL of the Harbor API endpoint (e.g., https://harbor.example.com/api/v2.0/)
+  apiUrl: ""
+  # -- Username for Harbor admin account
+  adminUsername: "admin"
+  # -- Name of the Kubernetes secret containing the new admin password
+  newAdminSecretName: "harbor-secrets"
+  # -- Name of the Kubernetes secret containing the old admin password
+  oldAdminSecretName: "harbor-core"
+  # -- Prefix for robot account names
+  robotNamePrefix: "robot$"
+  # -- Name of the Kubernetes secret containing robot account tokens
+  robotSecretName: ""
+
+# -- OIDC configuration
+oidc:
+  # -- Enable or disable OIDC integration for Harbor authentication
+  enabled: false
+  # -- URL of the OIDC provider endpoint
+  endpoint: ""
+  # -- Name of the Kubernetes secret containing the OIDC client token
+  secretName: ""
+  # -- Key in the secret for the OIDC client token
+  secretKey: "OIDC_STATIC_CLIENT_TOKEN"

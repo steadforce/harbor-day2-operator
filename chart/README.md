@@ -77,14 +77,6 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity configuration for the operator |
-| autoscaling | object | `{"behavior":{},"customMetrics":[],"enabled":false,"maxReplicas":100,"minReplicas":1,"targetCPUUtilizationPercentage":80,"targetMemoryUtilizationPercentage":80}` | Autoscaling configuration for the operator |
-| autoscaling.behavior | object | `{}` | Scale down behavior configuration |
-| autoscaling.customMetrics | list | `[]` | Custom metrics for autoscaling |
-| autoscaling.enabled | bool | `false` | Specifies whether autoscaling should be enabled |
-| autoscaling.maxReplicas | int | `100` | Maximum number of replicas for autoscaling |
-| autoscaling.minReplicas | int | `1` | Minimum number of replicas for autoscaling |
-| autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilization percentage for autoscaling |
-| autoscaling.targetMemoryUtilizationPercentage | int | `80` | Target memory utilization percentage for autoscaling |
 | configFiles | object | `{"enabled":false}` | Configuration files for the operator |
 | configFiles.enabled | bool | `false` | Specifies whether configuration files should be mounted |
 | configFolder | string | `"/usr/local/scripts"` | Configuration folder for the operator |
@@ -105,12 +97,6 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | image.pullPolicy | string | `"IfNotPresent"` | Docker image pull policy (IfNotPresent, Always, or Never) |
 | image.repository | string | `"ghcr.io/steadforce/harbor-day2-operator"` | Docker image repository for the operator |
 | image.tag | string | `""` | Docker image tag for the operator |
-| imagePullSecrets | list | `[]` | Image pull secrets for the operator |
-| ingress | object | `{"annotations":{},"create":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"tls":[]}` | Ingress configuration for the operator |
-| ingress.annotations | object | `{}` | Annotations for the ingress |
-| ingress.create | bool | `false` | Specifies whether an ingress should be created |
-| ingress.hosts | list | `[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}]` | Hosts for the ingress |
-| ingress.tls | list | `[]` | TLS configuration for the ingress |
 | nodeSelector | object | `{}` | Node selector configuration for the operator |
 | oidc | object | `{"enabled":false,"endpoint":"","secretKey":"OIDC_STATIC_CLIENT_TOKEN","secretName":""}` | OIDC configuration |
 | oidc.enabled | bool | `false` | Enable or disable OIDC integration for Harbor authentication |
@@ -119,7 +105,6 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | oidc.secretName | string | `""` | Name of the Kubernetes secret containing the OIDC client token |
 | podAnnotations | object | `{}` | Pod annotations for the operator |
 | podLabels | object | `{}` | Pod labels for the operator |
-| podSecurityContext | object | `{}` | Pod security context configuration |
 | replicaCount | int | `1` | Number of replicas for the operator deployment |
 | resources | object | `{"limits":{"cpu":"600m","memory":"256Mi"},"requests":{"cpu":"200m","memory":"80Mi"}}` | Resources configuration for the operator |
 | resources.limits | object | `{"cpu":"600m","memory":"256Mi"}` | Resource limits for the operator |
@@ -128,15 +113,6 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | resources.requests | object | `{"cpu":"200m","memory":"80Mi"}` | Resource requests for the operator |
 | resources.requests.cpu | string | `"200m"` | CPU request for the operator |
 | resources.requests.memory | string | `"80Mi"` | Memory request for the operator |
-| revisionHistoryLimit | int | `10` | Revision history limit for the operator deployment |
-| securityContext | object | `{}` | Security context configuration for the operator container |
-| service | object | `{"create":false,"port":80,"type":"ClusterIP"}` | Service configuration for the operator |
-| service.create | bool | `false` | Specifies whether a service should be created |
-| service.port | int | `80` | The port on which the service will be exposed |
-| service.type | string | `"ClusterIP"` | The type of service to create |
-| serviceAccount | object | `{"create":true,"name":""}` | Name of the service account to use |
-| serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
-| serviceAccount.name | string | `""` | If not set and create is true, a name is generated using the fullname template |
 | tolerations | list | `[]` | Tolerations configuration for the operator |
 
 ## Environment Variables
