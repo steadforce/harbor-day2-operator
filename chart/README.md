@@ -1,6 +1,9 @@
-# Harbor Day 2 Operator Helm Chart
+# Harbor Day 2 Operator
 
-This Helm chart deploys the Harbor Day 2 Operator, which is designed for automated management of existing Harbor instances using the Harbor API.
+![Version: 1.0.0](https://img.shields.io/badge/Version-1.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 0.0.0](https://img.shields.io/badge/AppVersion-0.0.0-informational?style=flat-square)
+
+This Helm chart deploys the Harbor Day 2 Operator, which is designed for automated management
+of existing Harbor instances using the Harbor API.
 
 ## Prerequisites
 
@@ -71,34 +74,70 @@ helm install harbor-day2-operator ./chart -f values.yaml
 
 The following table lists the configurable parameters of the Harbor Day 2 Operator chart and their default values.
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `affinity` | Pod affinity settings | `{}` |
-| `configFiles.enabled` | Enable configuration files | `true` |
-| `configFolder` | Path to configuration files | `/usr/local/scripts` |
-| `deployment.labels` | Additional deployment labels | `{}` |
-| `deployment.podLabels` | Additional pod labels | `{}` |
-| `deployment.selectorLabels` | Additional selector labels | `{}` |
-| `env` | Additional environment variables | `{}` |
-| `envFrom` | Additional envFrom sources | `[]` |
-| `harbor.adminUsername` | Harbor admin username | `"admin"` |
-| `harbor.apiUrl` | Harbor API URL | `""` |
-| `harbor.newAdminSecretName` | Name of the secret containing the new admin password | `"harbor-secrets"` |
-| `harbor.oldAdminSecretName` | Name of the secret containing the old admin password | `"harbor-core"` |
-| `harbor.robotNamePrefix` | Prefix for robot accounts | `"robot$"` |
-| `harbor.robotSecretName` | Name of the secret containing robot account tokens | `""` |
-| `image.pullPolicy` | Image pull policy | `IfNotPresent` |
-| `image.repository` | Image repository | `ghcr.io/steadforce/harbor-day2-operator` |
-| `image.tag` | Image tag | `""` (defaults to chart appVersion) |
-| `nodeSelector` | Node selector settings | `{}` |
-| `oidc.enabled` | Enable OIDC integration | `false` |
-| `oidc.endpoint` | OIDC provider endpoint | `""` |
-| `oidc.secretName` | Name of the secret containing OIDC client token | `""` |
-| `oidc.secretKey` | Key in the secret for the OIDC client token | `"OIDC_STATIC_CLIENT_TOKEN"` |
-| `replicaCount` | Number of replicas | `1` |
-| `resources` | Container resource requests and limits | See values.yaml |
-| `revisionHistoryLimit` | Number of old ReplicaSets to retain | `10` |
-| `tolerations` | Pod tolerations | `[]` |
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| affinity | object | `{}` | Affinity configuration for the operator |
+| autoscaling | object | `{"behavior":{},"customMetrics":[],"enabled":false,"maxReplicas":100,"minReplicas":1,"targetCPUUtilizationPercentage":80,"targetMemoryUtilizationPercentage":80}` | Autoscaling configuration for the operator |
+| autoscaling.behavior | object | `{}` | Scale down behavior configuration |
+| autoscaling.customMetrics | list | `[]` | Custom metrics for autoscaling |
+| autoscaling.enabled | bool | `false` | Specifies whether autoscaling should be enabled |
+| autoscaling.maxReplicas | int | `100` | Maximum number of replicas for autoscaling |
+| autoscaling.minReplicas | int | `1` | Minimum number of replicas for autoscaling |
+| autoscaling.targetCPUUtilizationPercentage | int | `80` | Target CPU utilization percentage for autoscaling |
+| autoscaling.targetMemoryUtilizationPercentage | int | `80` | Target memory utilization percentage for autoscaling |
+| configFiles | object | `{"enabled":false}` | Configuration files for the operator |
+| configFiles.enabled | bool | `false` | Specifies whether configuration files should be mounted |
+| configFolder | string | `"/usr/local/scripts"` | Configuration folder for the operator |
+| deployment | object | `{"labels":{},"podLabels":{},"selectorLabels":{}}` | Deployment labels for the operator |
+| deployment.labels | object | `{}` | Labels to add to the deployment |
+| deployment.podLabels | object | `{}` | Labels to add to the pods |
+| deployment.selectorLabels | object | `{}` | Labels to add to the selector |
+| env | object | `{}` | Environment variables for the operator |
+| envFrom | list | `[]` | Environment variables from sources for the operator |
+| harbor | object | `{"adminUsername":"admin","apiUrl":"","newAdminSecretName":"harbor-secrets","oldAdminSecretName":"harbor-core","robotNamePrefix":"robot$","robotSecretName":""}` | Harbor configuration |
+| harbor.adminUsername | string | `"admin"` | Username for Harbor admin account |
+| harbor.apiUrl | string | `""` | URL of the Harbor API endpoint (e.g., https://harbor.example.com/api/v2.0/) |
+| harbor.newAdminSecretName | string | `"harbor-secrets"` | Name of the Kubernetes secret containing the new admin password |
+| harbor.oldAdminSecretName | string | `"harbor-core"` | Name of the Kubernetes secret containing the old admin password |
+| harbor.robotNamePrefix | string | `"robot$"` | Prefix for robot account names |
+| harbor.robotSecretName | string | `""` | Name of the Kubernetes secret containing robot account tokens |
+| image | object | `{"pullPolicy":"IfNotPresent","repository":"ghcr.io/steadforce/harbor-day2-operator","tag":""}` | Image configuration for the operator |
+| image.pullPolicy | string | `"IfNotPresent"` | Docker image pull policy (IfNotPresent, Always, or Never) |
+| image.repository | string | `"ghcr.io/steadforce/harbor-day2-operator"` | Docker image repository for the operator |
+| image.tag | string | `""` | Docker image tag for the operator |
+| imagePullSecrets | list | `[]` | Image pull secrets for the operator |
+| ingress | object | `{"annotations":{},"create":false,"hosts":[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}],"tls":[]}` | Ingress configuration for the operator |
+| ingress.annotations | object | `{}` | Annotations for the ingress |
+| ingress.create | bool | `false` | Specifies whether an ingress should be created |
+| ingress.hosts | list | `[{"host":"chart-example.local","paths":[{"path":"/","pathType":"ImplementationSpecific"}]}]` | Hosts for the ingress |
+| ingress.tls | list | `[]` | TLS configuration for the ingress |
+| nodeSelector | object | `{}` | Node selector configuration for the operator |
+| oidc | object | `{"enabled":false,"endpoint":"","secretKey":"OIDC_STATIC_CLIENT_TOKEN","secretName":""}` | OIDC configuration |
+| oidc.enabled | bool | `false` | Enable or disable OIDC integration for Harbor authentication |
+| oidc.endpoint | string | `""` | URL of the OIDC provider endpoint |
+| oidc.secretKey | string | `"OIDC_STATIC_CLIENT_TOKEN"` | Key in the secret for the OIDC client token |
+| oidc.secretName | string | `""` | Name of the Kubernetes secret containing the OIDC client token |
+| podAnnotations | object | `{}` | Pod annotations for the operator |
+| podLabels | object | `{}` | Pod labels for the operator |
+| podSecurityContext | object | `{}` | Pod security context configuration |
+| replicaCount | int | `1` | Number of replicas for the operator deployment |
+| resources | object | `{"limits":{"cpu":"600m","memory":"256Mi"},"requests":{"cpu":"200m","memory":"80Mi"}}` | Resources configuration for the operator |
+| resources.limits | object | `{"cpu":"600m","memory":"256Mi"}` | Resource limits for the operator |
+| resources.limits.cpu | string | `"600m"` | CPU limit for the operator |
+| resources.limits.memory | string | `"256Mi"` | Memory limit for the operator |
+| resources.requests | object | `{"cpu":"200m","memory":"80Mi"}` | Resource requests for the operator |
+| resources.requests.cpu | string | `"200m"` | CPU request for the operator |
+| resources.requests.memory | string | `"80Mi"` | Memory request for the operator |
+| revisionHistoryLimit | int | `10` | Revision history limit for the operator deployment |
+| securityContext | object | `{}` | Security context configuration for the operator container |
+| service | object | `{"create":false,"port":80,"type":"ClusterIP"}` | Service configuration for the operator |
+| service.create | bool | `false` | Specifies whether a service should be created |
+| service.port | int | `80` | The port on which the service will be exposed |
+| service.type | string | `"ClusterIP"` | The type of service to create |
+| serviceAccount | object | `{"create":true,"name":""}` | Name of the service account to use |
+| serviceAccount.create | bool | `true` | Specifies whether a service account should be created |
+| serviceAccount.name | string | `""` | If not set and create is true, a name is generated using the fullname template |
+| tolerations | list | `[]` | Tolerations configuration for the operator |
 
 ## Environment Variables
 
@@ -220,3 +259,44 @@ The chart requires external Kubernetes secrets for all sensitive information. Yo
      ```
 
 Make sure to handle these secrets securely and never commit them to version control.
+
+## Development
+
+The chart can be linted locally with the `chart-testing` tool:
+
+```shell
+docker run --pull=always --rm -w /data -v $(pwd):/data quay.io/helmpack/chart-testing ct lint --charts "." --validate-maintainers=false
+```
+
+To test the chart locally, you can use the `helm chart-testing` tool helm-unittest:
+
+```shell
+docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest sinopsys-helpers-tests
+```
+
+Or with output in JUnit format:
+
+```shell
+docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest -o test-output.xml sinopsys-helpers-tests
+```
+
+Please note that you should **never change** the content of `README.md` as this file will be
+automatically generated from `README.md.gotmpl` by the build pipeline.
+
+[helm-docs](https://github.com/norwoodj/helm-docs) is used for auto-generating the documentation from the Helm chart.
+
+For development purposes you can also run the `helm-docs` generator locally in your terminal:
+
+```shell
+docker run --pull=always --rm --volume "$(pwd):/helm-docs" -u $(id -u) jnorwood/helm-docs:latest
+```
+
+## Build and Publish
+
+Packaging and publishing of new releases will be done via the build pipeline.
+
+In order to create a new release, please create a pull request with an updated version in `Chart.yaml`.
+The chart will be published with the new version after the pull request is merged onto the master branch.
+
+----------------------------------------------
+Autogenerated from chart metadata using [helm-docs v1.14.2](https://github.com/norwoodj/helm-docs/releases/v1.14.2)

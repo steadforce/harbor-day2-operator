@@ -1,6 +1,8 @@
 apiVersion: v2
 name: harbor-day2-operator
-description: A Helm chart for Harbor Day 2 Operator that manages existing Harbor instances
-version: v1.0.0
+version: 1.0.0
+description: |
+  This Helm chart deploys the Harbor Day 2 Operator, which is designed for automated management
+  of existing Harbor instances using the Harbor API.
 appVersion: 0.0.0
 type: application
