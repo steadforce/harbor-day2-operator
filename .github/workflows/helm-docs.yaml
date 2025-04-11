@@ -1,0 +1,31 @@
+name: Helm Docs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'chart/**'
+      - '.github/workflows/helm-docs.yml'
+      - 'README.md'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'chart/values.yaml'
+      - 'chart/README.md.gotmpl'
+      - '.github/workflows/helm-docs.yml'
+      - 'chart/README.md'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: Run helm-docs
+        uses: losisin/helm-docs-github-action@v1
+        with:
+          git-push: true 

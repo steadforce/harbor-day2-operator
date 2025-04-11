@@ -354,4 +354,10 @@ pyrightconfig.json
 pyvenv.cfg
 pip-selfcheck.json
 
-# End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all,git,intellij+all,venv,jupyternotebooks
+# Nuitka
+harbor.build
+harbor.bin
+harbor-day2-operator-v1.0.0.tgz
+
+# Act - Local GitHub Actions testing
+.act/
