@@ -12,9 +12,10 @@ on:
     branches:
       - main
     paths:
-      - 'chart/**'
+      - 'chart/values.yaml'
+      - 'chart/README.md.gotmpl'
       - '.github/workflows/helm-docs.yml'
-      - 'README.md'
+      - 'chart/README.md'
 
 jobs:
   generate:
