@@ -35,6 +35,7 @@ __version__ = os.getenv("HARBOR_OPERATOR_VERSION", "0.0.0-dev")
 @dataclass
 class HarborConfig:
     """Harbor configuration settings."""
+
     admin_username: str
     admin_password: str
     api_url: str
@@ -42,7 +43,7 @@ class HarborConfig:
     json_logging: bool
 
     @classmethod
-    def from_env(cls) -> 'HarborConfig':
+    def from_env(cls) -> "HarborConfig":
         """Create configuration from environment variables.
 
         Returns:
@@ -66,7 +67,8 @@ class HarborConfig:
             admin_password=admin_password,
             api_url=api_url,
             config_folder=config_folder,
-            json_logging=os.environ.get("JSON_LOGGING", "").lower() in ["true", "1", "yes", "y"]
+            json_logging=os.environ.get("JSON_LOGGING", "").lower()
+            in ["true", "1", "yes", "y"],
         )
 
 
@@ -82,8 +84,10 @@ def set_up_logging(use_json: bool) -> logging.Logger:
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
-    formatter = jsonlogger.JsonFormatter() if use_json else logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    formatter = (
+        jsonlogger.JsonFormatter()
+        if use_json
+        else logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
     )
 
     handler = logging.StreamHandler()
@@ -114,10 +118,7 @@ class HarborSynchronizer:
         )
 
     async def _sync_config_file(
-        self,
-        filename: str,
-        sync_func: callable,
-        required: bool = False
+        self, filename: str, sync_func: callable, required: bool = False
     ) -> None:
         """Synchronize a single configuration file.
 
@@ -142,10 +143,7 @@ class HarborSynchronizer:
         try:
             await sync_func(self.client, str(path), self.logger)
         except Exception as e:
-            self.logger.error(
-                f"Failed to sync {filename}",
-                extra={"error": str(e)}
-            )
+            self.logger.error(f"Failed to sync {filename}", extra={"error": str(e)})
             raise
 
     async def synchronize(self) -> None:
@@ -179,7 +177,7 @@ class HarborSynchronizer:
                 "webhooks.json": sync_webhooks,
                 "purge-job-schedule.json": sync_purge_job_schedule,
                 "garbage-collection-schedule.json": sync_garbage_collection_schedule,
-                "retention-policies.json": sync_retention_policies
+                "retention-policies.json": sync_retention_policies,
             }
 
             for filename, sync_func in config_files.items():
@@ -188,10 +186,7 @@ class HarborSynchronizer:
             self.logger.info("Harbor synchronization completed successfully")
 
         except Exception as e:
-            self.logger.error(
-                "Harbor synchronization failed",
-                extra={"error": str(e)}
-            )
+            self.logger.error("Harbor synchronization failed", extra={"error": str(e)})
             raise
 
 

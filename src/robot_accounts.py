@@ -30,15 +30,13 @@ def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
         return load_json(path)
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.error(
-            "Failed to load robot configuration",
-            extra={"path": path, "error": str(e)}
+            "Failed to load robot configuration", extra={"path": path, "error": str(e)}
         )
         raise
 
 
 def prepare_target_robots(
-    target_robots: List[Dict[str, Any]],
-    logger: Logger
+    target_robots: List[Dict[str, Any]], logger: Logger
 ) -> List[Tuple[str, Dict[str, Any]]]:
     """Prepare target robots by constructing their full names.
 
@@ -60,7 +58,7 @@ def prepare_target_robots(
         except KeyError as e:
             logger.error(
                 "Invalid robot configuration",
-                extra={"robot": target_robot, "error": f"Missing field: {str(e)}"}
+                extra={"robot": target_robot, "error": f"Missing field: {str(e)}"},
             )
             raise
     return target_robots_with_names
@@ -70,7 +68,7 @@ async def delete_unused_robots(
     client: Any,
     current_robot_map: Dict[str, Any],
     target_robot_names: set,
-    logger: Logger
+    logger: Logger,
 ) -> None:
     """Delete robots that exist in Harbor but not in config.
 
@@ -86,15 +84,12 @@ async def delete_unused_robots(
     for robot_name, robot in current_robot_map.items():
         if robot_name not in target_robot_names:
             try:
-                logger.info(
-                    "Deleting robot not in config",
-                    extra={"robot": robot_name}
-                )
+                logger.info("Deleting robot not in config", extra={"robot": robot_name})
                 await client.delete_robot(robot_id=robot.id)
             except Exception as e:
                 logger.error(
                     "Failed to delete robot",
-                    extra={"robot": robot_name, "error": str(e)}
+                    extra={"robot": robot_name, "error": str(e)},
                 )
                 raise
 
@@ -104,7 +99,7 @@ async def process_single_robot(
     full_name: str,
     target_config: Dict[str, Any],
     current_robot_map: Dict[str, Any],
-    logger: Logger
+    logger: Logger,
 ) -> None:
     """Process a single robot account, either updating existing or creating new.
 
@@ -128,32 +123,27 @@ async def process_single_robot(
             robot_id = current_robot_map[full_name].id
             logger.info(
                 "Updating existing robot",
-                extra={"robot": full_name, "robot_id": robot_id}
+                extra={"robot": full_name, "robot_id": robot_id},
             )
             await client.update_robot(robot_id=robot_id, robot=target_robot)
             await set_robot_secret(client, original_name, robot_id, logger)
         else:
             # Create new robot
             try:
-                logger.info(
-                    "Creating new robot",
-                    extra={"robot": full_name}
-                )
+                logger.info("Creating new robot", extra={"robot": full_name})
                 created_robot = await client.create_robot(robot=target_robot)
-                await set_robot_secret(
-                    client, original_name, created_robot.id, logger
-                )
+                await set_robot_secret(client, original_name, created_robot.id, logger)
             except (Conflict, BadRequest) as e:
                 logger.error(
                     "Failed to create robot",
-                    extra={"robot": full_name, "error": str(e)}
+                    extra={"robot": full_name, "error": str(e)},
                 )
                 return
 
     except Exception as e:
         logger.error(
             "Failed to process robot configuration",
-            extra={"robot": full_name, "error": str(e)}
+            extra={"robot": full_name, "error": str(e)},
         )
         raise
 
@@ -197,7 +187,9 @@ async def sync_robot_accounts(client: Any, path: str, logger: Logger) -> None:
         target_robot_names = {name for name, _ in target_robots_with_names}
 
         # Delete robots not in config
-        await delete_unused_robots(client, current_robot_map, target_robot_names, logger)
+        await delete_unused_robots(
+            client, current_robot_map, target_robot_names, logger
+        )
 
         # Update or create robots
         for full_name, target_config in target_robots_with_names:
@@ -226,19 +218,18 @@ async def get_all_robots(client: Any, logger: Logger) -> List[Robot]:
         Exception: If fetching robots fails
     """
     # Get system level robots
-    system_robots = await client.get_robots(query='Level=system', limit=None)
-    
+    system_robots = await client.get_robots(query="Level=system", limit=None)
+
     # Get project level robots
     projects = await client.get_projects(limit=None)
     project_robots = []
-    
+
     for project in projects:
         robots = await client.get_robots(
-            query=f'Level=project,ProjectID={project.project_id}',
-            limit=None
+            query=f"Level=project,ProjectID={project.project_id}", limit=None
         )
         project_robots.extend(robots)
-    
+
     return system_robots + project_robots
 
 
@@ -254,19 +245,16 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
     Raises:
         KeyError: If required fields are missing from configuration
     """
-    namespace = target_robot['permissions'][0]['namespace']
-    robot_name = target_robot['name']
-    
-    if namespace != '*':
-        return f'{ROBOT_NAME_PREFIX}{namespace}+{robot_name}'
-    return f'{ROBOT_NAME_PREFIX}{robot_name}'
+    namespace = target_robot["permissions"][0]["namespace"]
+    robot_name = target_robot["name"]
+
+    if namespace != "*":
+        return f"{ROBOT_NAME_PREFIX}{namespace}+{robot_name}"
+    return f"{ROBOT_NAME_PREFIX}{robot_name}"
 
 
 async def set_robot_secret(
-    client: Any,
-    robot_name: str,
-    robot_id: int,
-    logger: Logger
+    client: Any, robot_name: str, robot_id: int, logger: Logger
 ) -> None:
     """Set robot account secret from environment variable if available.
 
@@ -281,7 +269,7 @@ async def set_robot_secret(
     """
     env_var_name = robot_name.upper().replace("-", "_")
     secret = os.environ.get(env_var_name)
-    
+
     if secret:
         try:
             logger.info("Setting robot secret", extra={"robot": robot_name})
@@ -289,11 +277,11 @@ async def set_robot_secret(
         except Exception as e:
             logger.error(
                 "Failed to set robot secret",
-                extra={"robot": robot_name, "error": str(e)}
+                extra={"robot": robot_name, "error": str(e)},
             )
             raise
     else:
         logger.info(
             "No robot secret found in environment",
-            extra={"robot": robot_name, "env_var": env_var_name}
+            extra={"robot": robot_name, "env_var": env_var_name},
         )

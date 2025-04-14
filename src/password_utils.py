@@ -28,7 +28,7 @@ async def update_password(client: HarborAsyncClient, logger: Logger) -> None:
     """
     try:
         logger.info("Starting admin password update")
-        
+
         # Create client with old password
         old_password_client = HarborAsyncClient(
             url=API_URL,

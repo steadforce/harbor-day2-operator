@@ -5,7 +5,9 @@ from logging import Logger
 from utils import fill_template
 
 
-async def load_retention_policies(client: Any, path: str, logger: Logger) -> List[Dict[str, Any]]:
+async def load_retention_policies(
+    client: Any, path: str, logger: Logger
+) -> List[Dict[str, Any]]:
     """Load and parse retention policies from template file.
 
     Args:
@@ -26,20 +28,19 @@ async def load_retention_policies(client: Any, path: str, logger: Logger) -> Lis
     except FileNotFoundError as e:
         logger.error(
             "Retention policy template file not found",
-            extra={"path": path, "error": str(e)}
+            extra={"path": path, "error": str(e)},
         )
         raise
     except json.JSONDecodeError as e:
         logger.error(
             "Invalid JSON in retention policy template",
-            extra={"path": path, "error": str(e)}
+            extra={"path": path, "error": str(e)},
         )
         raise
 
+
 async def process_single_policy(
-    client: Any,
-    policy: Dict[str, Any],
-    logger: Logger
+    client: Any, policy: Dict[str, Any], logger: Logger
 ) -> None:
     """Process a single retention policy, either updating existing or creating new.
 
@@ -54,56 +55,44 @@ async def process_single_policy(
     """
     try:
         project_id = policy["scope"]["ref"]
-        
+
         try:
             # Try to update existing policy
             retention_id = await client.get_project_retention_id(project_id)
             logger.info(
                 "Updating existing retention policy",
-                extra={
-                    "project_id": project_id,
-                    "retention_id": retention_id
-                }
+                extra={"project_id": project_id, "retention_id": retention_id},
             )
             await client.update_retention_policy(retention_id, policy)
-        
+
         except Exception as e:
             if "not found" in str(e).lower():
                 # Create new policy if one doesn't exist
                 logger.info(
-                    "Creating new retention policy",
-                    extra={"project_id": project_id}
+                    "Creating new retention policy", extra={"project_id": project_id}
                 )
                 await client.create_retention_policy(policy)
             else:
                 # Re-raise unexpected errors
                 logger.error(
                     "Failed to get retention policy ID",
-                    extra={
-                        "project_id": project_id,
-                        "error": str(e)
-                    }
+                    extra={"project_id": project_id, "error": str(e)},
                 )
                 raise
-                
+
     except KeyError as e:
         logger.error(
             "Invalid retention policy configuration",
-            extra={
-                "policy": policy,
-                "error": f"Missing required field: {str(e)}"
-            }
+            extra={"policy": policy, "error": f"Missing required field: {str(e)}"},
         )
         raise
     except Exception as e:
         logger.error(
             "Failed to process retention policy",
-            extra={
-                "project_id": project_id,
-                "error": str(e)
-            }
+            extra={"project_id": project_id, "error": str(e)},
         )
         raise
+
 
 async def sync_retention_policies(client: Any, path: str, logger: Logger) -> None:
     """Synchronize Harbor retention policies with configuration file.

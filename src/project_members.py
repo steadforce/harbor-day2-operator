@@ -18,6 +18,7 @@ from .utils import load_json
 
 class ProjectRole(Enum):
     """Enumeration of available project roles in Harbor."""
+
     ADMIN = 1
     DEVELOPER = 2
     GUEST = 3
@@ -29,7 +30,7 @@ async def remove_unlisted_members(
     project_name: str,
     current_members: Sequence[ProjectMemberEntity],
     target_members: Sequence[ProjectMemberEntity],
-    logger: logging.Logger
+    logger: logging.Logger,
 ) -> None:
     """Remove project members that are not in the target list.
 
@@ -41,15 +42,12 @@ async def remove_unlisted_members(
         logger: Logger instance for output.
     """
     target_usernames = {member.entity_name for member in target_members}
-    
+
     for current_member in current_members:
         if current_member.entity_name not in target_usernames:
             logger.info(
                 "Removing member from project",
-                extra={
-                    "member": current_member.entity_name,
-                    "project": project_name
-                }
+                extra={"member": current_member.entity_name, "project": project_name},
             )
             try:
                 await client.remove_project_member(
@@ -62,8 +60,8 @@ async def remove_unlisted_members(
                     str(e),
                     extra={
                         "member": current_member.entity_name,
-                        "project": project_name
-                    }
+                        "project": project_name,
+                    },
                 )
                 raise
 
@@ -73,7 +71,7 @@ async def sync_member_roles(
     project_name: str,
     current_members: Sequence[ProjectMemberEntity],
     target_members: Sequence[ProjectMemberEntity],
-    logger: logging.Logger
+    logger: logging.Logger,
 ) -> None:
     """Synchronize project member roles and add new members.
 
@@ -86,10 +84,14 @@ async def sync_member_roles(
     """
     for target_member in target_members:
         existing_member_id = next(
-            (existing.id for existing in current_members if existing.entity_name == target_member.entity_name),
-            None
+            (
+                existing.id
+                for existing in current_members
+                if existing.entity_name == target_member.entity_name
+            ),
+            None,
         )
-        
+
         try:
             if existing_member_id:  # Update existing member
                 logger.info(
@@ -97,8 +99,8 @@ async def sync_member_roles(
                     extra={
                         "member": target_member.entity_name,
                         "project": project_name,
-                        "role": target_member.role_id
-                    }
+                        "role": target_member.role_id,
+                    },
                 )
                 await client.update_project_member_role(
                     project_name_or_id=project_name,
@@ -111,8 +113,8 @@ async def sync_member_roles(
                     extra={
                         "member": target_member.entity_name,
                         "project": project_name,
-                        "role": target_member.role_id
-                    }
+                        "role": target_member.role_id,
+                    },
                 )
                 await client.add_project_member_user(
                     project_name_or_id=project_name,
@@ -124,25 +126,20 @@ async def sync_member_roles(
                 "User not found - skipping",
                 extra={
                     "member": target_member.entity_name,
-                    "hint": "Make sure user has logged in at least once"
-                }
+                    "hint": "Make sure user has logged in at least once",
+                },
             )
         except HarborAPIException as e:
             logger.error(
                 "Failed to manage project member: %s",
                 str(e),
-                extra={
-                    "member": target_member.entity_name,
-                    "project": project_name
-                }
+                extra={"member": target_member.entity_name, "project": project_name},
             )
             raise
 
 
 async def sync_project_members(
-    client: HarborAsyncClient,
-    path: str,
-    logger: logging.Logger
+    client: HarborAsyncClient, path: str, logger: logging.Logger
 ) -> None:
     """Synchronize project members and their roles from a configuration file.
 
@@ -167,31 +164,26 @@ async def sync_project_members(
     try:
         logger.info("Loading project members configuration from %s", path)
         config = load_json(path)
-        
+
         for project in config:
             project_name = project["project_name"]
-            logger.info(
-                "Syncing project members",
-                extra={"project": project_name}
-            )
+            logger.info("Syncing project members", extra={"project": project_name})
 
             # Get current members
             current_members = await client.get_project_members(
-                project_name_or_id=project_name,
-                limit=None
+                project_name_or_id=project_name, limit=None
             )
 
             # Build target member list
             target_members = []
             for role in ProjectRole:
                 role_members = project.get(role.name.lower(), [])
-                target_members.extend([
-                    ProjectMemberEntity(
-                        entity_name=username,
-                        role_id=role.value
-                    )
-                    for username in role_members
-                ])
+                target_members.extend(
+                    [
+                        ProjectMemberEntity(entity_name=username, role_id=role.value)
+                        for username in role_members
+                    ]
+                )
 
             # Sync members
             await remove_unlisted_members(

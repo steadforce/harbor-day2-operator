@@ -24,7 +24,7 @@ def load_webhook_configs(path: str, logger: Logger) -> List[Dict[str, Any]]:
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.error(
             "Failed to load webhook configuration",
-            extra={"path": path, "error": str(e)}
+            extra={"path": path, "error": str(e)},
         )
         raise
 
@@ -34,7 +34,7 @@ async def delete_unused_policies(
     project_name: str,
     current_policy_map: Dict[str, Any],
     target_policy_names: Set[str],
-    logger: Logger
+    logger: Logger,
 ) -> None:
     """Delete webhook policies that exist in Harbor but not in config.
 
@@ -53,14 +53,10 @@ async def delete_unused_policies(
             try:
                 logger.info(
                     "Deleting webhook policy not in config",
-                    extra={
-                        "project": project_name,
-                        "policy": policy_name
-                    }
+                    extra={"project": project_name, "policy": policy_name},
                 )
                 await client.delete_webhook_policy(
-                    project_name_or_id=project_name,
-                    webhook_policy_id=policy.id
+                    project_name_or_id=project_name, webhook_policy_id=policy.id
                 )
             except Exception as e:
                 logger.error(
@@ -68,8 +64,8 @@ async def delete_unused_policies(
                     extra={
                         "project": project_name,
                         "policy": policy_name,
-                        "error": str(e)
-                    }
+                        "error": str(e),
+                    },
                 )
                 raise
 
@@ -79,7 +75,7 @@ async def process_single_policy(
     project_name: str,
     target_policy: Dict[str, Any],
     current_policy_map: Dict[str, Any],
-    logger: Logger
+    logger: Logger,
 ) -> None:
     """Process a single webhook policy, either updating existing or creating new.
 
@@ -96,7 +92,7 @@ async def process_single_policy(
     """
     try:
         policy_name = target_policy["name"]
-        
+
         if policy_name in current_policy_map:
             # Update existing policy
             policy_id = current_policy_map[policy_name].id
@@ -105,26 +101,22 @@ async def process_single_policy(
                 extra={
                     "project": project_name,
                     "policy": policy_name,
-                    "policy_id": policy_id
-                }
+                    "policy_id": policy_id,
+                },
             )
             await client.update_webhook_policy(
                 project_name_or_id=project_name,
                 webhook_policy_id=policy_id,
-                policy=target_policy
+                policy=target_policy,
             )
         else:
             # Create new policy
             logger.info(
                 "Creating new webhook policy",
-                extra={
-                    "project": project_name,
-                    "policy": policy_name
-                }
+                extra={"project": project_name, "policy": policy_name},
             )
             await client.create_webhook_policy(
-                project_name_or_id=project_name,
-                policy=target_policy
+                project_name_or_id=project_name, policy=target_policy
             )
     except KeyError as e:
         logger.error(
@@ -132,27 +124,20 @@ async def process_single_policy(
             extra={
                 "project": project_name,
                 "policy": target_policy,
-                "error": f"Missing required field: {str(e)}"
-            }
+                "error": f"Missing required field: {str(e)}",
+            },
         )
         raise
     except Exception as e:
         logger.error(
             "Failed to process webhook policy",
-            extra={
-                "project": project_name,
-                "policy": policy_name,
-                "error": str(e)
-            }
+            extra={"project": project_name, "policy": policy_name, "error": str(e)},
         )
         raise
 
 
 async def sync_webhook(
-    client: Any,
-    logger: Logger,
-    project_name: str,
-    policies: List[Dict[str, Any]]
+    client: Any, logger: Logger, project_name: str, policies: List[Dict[str, Any]]
 ) -> None:
     """Synchronize webhook policies for a specific project.
 
@@ -170,18 +155,14 @@ async def sync_webhook(
     Raises:
         Exception: If any Harbor API operation fails
     """
-    logger.info(
-        "Synchronizing webhooks for project",
-        extra={"project": project_name}
-    )
+    logger.info("Synchronizing webhooks for project", extra={"project": project_name})
 
     try:
         # Get current policies
         current_policies = await client.get_webhook_policies(
-            project_name_or_id=project_name,
-            limit=None
+            project_name_or_id=project_name, limit=None
         )
-        
+
         # Create lookup maps for efficient access
         current_policy_map = {policy.name: policy for policy in current_policies}
         target_policy_names = {policy["name"] for policy in policies}
@@ -200,7 +181,7 @@ async def sync_webhook(
     except Exception as e:
         logger.error(
             "Failed to sync webhooks for project",
-            extra={"project": project_name, "error": str(e)}
+            extra={"project": project_name, "error": str(e)},
         )
         raise
 
@@ -236,7 +217,10 @@ async def sync_webhooks(client: Any, path: str, logger: Logger) -> None:
             except Exception as e:
                 logger.error(
                     "Failed to sync webhooks for project",
-                    extra={"project": config.get("project_name", "unknown"), "error": str(e)}
+                    extra={
+                        "project": config.get("project_name", "unknown"),
+                        "error": str(e),
+                    },
                 )
                 raise
 
