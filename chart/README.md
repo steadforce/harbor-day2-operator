@@ -20,11 +20,11 @@ of existing Harbor instances using the Harbor API.
 ```yaml
 image:
   repository: ghcr.io/steadforce/harbor-day2-operator
-  tag: "your-version-tag"
+  tag: "my-version-tag"
   pullPolicy: IfNotPresent
 
 harbor:
-  apiUrl: "https://your-harbor-instance/api/v2.0/"
+  apiUrl: "https://my-harbor-instance/api/v2.0/"
   adminUsername: "admin"
   newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
   oldAdminSecretName: "harbor-core"     # Name of the secret containing the old admin password
@@ -33,7 +33,7 @@ harbor:
 
 oidc:
   enabled: true  # Set to true to enable OIDC integration
-  endpoint: "https://your-oidc-provider"
+  endpoint: "https://my-oidc-provider"
   secretName: "harbor-oidc-secret"  # Name of the secret containing OIDC client token
   secretKey: "OIDC_STATIC_CLIENT_TOKEN"  # Key in the secret for the OIDC client token
 
@@ -147,7 +147,8 @@ env:
 
 ## Configuration Files
 
-The operator supports mounting configuration files through the `configFiles` section. Any file type is supported and will be mounted as-is in the container at the path specified by `configFolder`.
+The operator supports mounting configuration files through the `configFiles` section. Any file type is supported and
+will be mounted as-is in the container at the path specified by `configFolder`.
 
 Example:
 ```yaml
@@ -197,7 +198,8 @@ The chart creates the following RBAC resources:
 
 ## Security
 
-The chart requires external Kubernetes secrets for all sensitive information. You must create these secrets before deploying the chart:
+The chart requires external Kubernetes secrets for all sensitive information.
+You must create these secrets before deploying the chart:
 
 ### Required Secrets
 
@@ -247,13 +249,13 @@ docker run --pull=always --rm -w /data -v $(pwd):/data quay.io/helmpack/chart-te
 To test the chart locally, you can use the `helm chart-testing` tool helm-unittest:
 
 ```shell
-docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest sinopsys-helpers-tests
+docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest .
 ```
 
 Or with output in JUnit format:
 
 ```shell
-docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest -o test-output.xml sinopsys-helpers-tests
+docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest -o test-output.xml .
 ```
 
 Please note that you should **never change** the content of `README.md` as this file will be
