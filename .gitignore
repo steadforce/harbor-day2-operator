@@ -354,10 +354,11 @@ pyrightconfig.json
 pyvenv.cfg
 pip-selfcheck.json
 
-# Nuitka
-harbor.build
-harbor.bin
-harbor-day2-operator-v1.0.0.tgz
-
 # Act - Local GitHub Actions testing
 .act/
+
+# pyinstaller
+*.tgz
+
+# helm
+test-output.xml
