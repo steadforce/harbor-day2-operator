@@ -53,7 +53,7 @@ The following environment variables are expected:
 
 |Environment Variable|Required|Example Value|Explanation|
 |-------|-------|--------|-------|
-|`ADMIN_USERNAME`|required (defaults to `admin` if not given)|admin|Username of the administrator account used to login via API. The default is `admin`.|
+|`ADMIN_USERNAME`|required (defaults to `admin` if not given)|admin|Username of the administrator account used to log in via API. The default is `admin`.|
 |`ADMIN_PASSWORD_OLD`|not required|***|The administrator password used previously. If the harbor administrator account password has not yet been updated, both `ADMIN_PASSWORD_OLD` and `ADMIN_PASSWORD_NEW` are required and used to update the admin account password to the `ADMIN_PASSWORD_NEW`.|
 |`ADMIN_PASSWORD_NEW`|required|***|The new administrator password. If the harbor administrator account password has already been updated to the `ADMIN_PASSWORD_NEW` nothing changes.|
 |`HARBOR_API_URL`|required|https://harbor.domain.com/api/v2.0/|The full Harbor API URL.|
