@@ -14,9 +14,7 @@ from .utils import load_json
 
 
 async def sync_garbage_collection_schedule(
-    client: HarborAsyncClient,
-    path: str,
-    logger: logging.Logger
+    client: HarborAsyncClient, path: str, logger: logging.Logger
 ) -> None:
     """Synchronize the garbage collection schedule with Harbor.
 
@@ -41,14 +39,16 @@ async def sync_garbage_collection_schedule(
             # Check if schedule exists
             logger.debug("Checking for existing garbage collection schedule")
             await client.get_gc_schedule()
-            
+
             logger.info("Updating existing garbage collection schedule")
             await client.update_gc_schedule(schedule_config)
             logger.info("Garbage collection schedule updated successfully")
-            
+
         except HarborAPIException as e:
-            if hasattr(e, 'status') and e.status == 404:
-                logger.info("No existing schedule found, creating new garbage collection schedule")
+            if hasattr(e, "status") and e.status == 404:
+                logger.info(
+                    "No existing schedule found, creating new garbage collection schedule"
+                )
                 await client.create_gc_schedule(schedule_config)
                 logger.info("Garbage collection schedule created successfully")
             else:

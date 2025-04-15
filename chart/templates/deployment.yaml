@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "harbor-day2-operator.fullname" . }}
+  labels:
+    {{- include "harbor-day2-operator.labels" . | nindent 4 }}
+    {{- with .Values.deployment.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  revisionHistoryLimit: {{ .Values.revisionHistoryLimit }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "harbor-day2-operator.selectorLabels" . | nindent 6 }}
+      {{- with .Values.deployment.selectorLabels }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "harbor-day2-operator.selectorLabels" . | nindent 8 }}
+        {{- with .Values.deployment.selectorLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.deployment.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: ADMIN_PASSWORD_NEW
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.harbor.newAdminSecretName }}
+                  key: ADMIN_PASSWORD
+            - name: ADMIN_PASSWORD_OLD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.harbor.oldAdminSecretName }}
+                  key: HARBOR_ADMIN_PASSWORD
+            - name: HARBOR_API_URL
+              value: {{ .Values.harbor.apiUrl }}
+            - name: ADMIN_USERNAME
+              value: {{ .Values.harbor.adminUsername }}
+            - name: OIDC_ENDPOINT
+              value: {{ .Values.oidc.endpoint }}
+            - name: CONFIG_FOLDER_PATH
+              value: {{ .Values.configFolder }}
+            - name: ROBOT_NAME_PREFIX
+              value: {{ .Values.harbor.robotNamePrefix }}
+            {{- if and .Values.oidc.enabled .Values.oidc.secretName }}
+            - name: OIDC_STATIC_CLIENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.oidc.secretName }}
+                  key: {{ .Values.oidc.secretKey }}
+            {{- end }}
+            {{- range $key, $value := .Values.env }}
+            - name: {{ $key }}
+              {{- if $value.valueFrom }}
+              valueFrom:
+                {{- toYaml $value.valueFrom | nindent 16 }}
+              {{- else }}
+              value: {{ $value.value | default $value | quote }}
+              {{- end }}
+            {{- end }}
+          envFrom:
+            {{- if .Values.harbor.robotSecretName }}
+            - secretRef:
+                name: {{ .Values.harbor.robotSecretName }}
+            {{- end }}
+            {{- with .Values.envFrom }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          command: ["watch", "-n", "60", "/bin/ash", "-ec", "/usr/local/harbor"]
+          volumeMounts:
+            - name: config-volume
+              mountPath: {{ .Values.configFolder }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "harbor-day2-operator.fullname" . }}-config
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

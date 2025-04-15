@@ -1,0 +1,6 @@
+--bind
+--env GITHUB_TOKEN=test-token
+--env REGISTRY=ghcr.io
+--env CHART_DIR=chart
+--env HELM_VERSION=v3.12.3
+-e .github/workflows/event.json 

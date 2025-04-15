@@ -53,7 +53,7 @@ The following environment variables are expected:
 
 |Environment Variable|Required|Example Value|Explanation|
 |-------|-------|--------|-------|
-|`ADMIN_USERNAME`|required (defaults to `admin` if not given)|admin|Username of the administrator account used to login via API. The default is `admin`.|
+|`ADMIN_USERNAME`|required (defaults to `admin` if not given)|admin|Username of the administrator account used to log in via API. The default is `admin`.|
 |`ADMIN_PASSWORD_OLD`|not required|***|The administrator password used previously. If the harbor administrator account password has not yet been updated, both `ADMIN_PASSWORD_OLD` and `ADMIN_PASSWORD_NEW` are required and used to update the admin account password to the `ADMIN_PASSWORD_NEW`.|
 |`ADMIN_PASSWORD_NEW`|required|***|The new administrator password. If the harbor administrator account password has already been updated to the `ADMIN_PASSWORD_NEW` nothing changes.|
 |`HARBOR_API_URL`|required|https://harbor.domain.com/api/v2.0/|The full Harbor API URL.|
@@ -367,3 +367,40 @@ See [Harbor Issue 10272](https://github.com/goharbor/harbor/issues/10272)
     }
 ]
 ```
+
+## Testing Workflows with Act
+
+This repository includes configuration for testing GitHub Actions workflows locally using [Act](https://github.com/nektos/act).
+
+### Prerequisites
+
+- [Act](https://github.com/nektos/act) installed (available in the Steadforce k8s workbench)
+- Docker running on your machine
+
+### Running Tests
+
+To test the Helm chart publishing workflow:
+
+```bash
+# Run the workflow with the provided event.json
+act release
+```
+
+This will execute the workflow using the simulated release event in `.github/workflows/event.json`.
+
+### Configuration
+
+The workflow is configured to be Act-friendly:
+
+- `.actrc` file contains configuration to set required environment variables and specify the event file
+- `event.json` simulates a GitHub release event with the `act: true` property to skip the publish job
+- The publish job in the workflow has a condition to skip when running with Act
+- The upload-artifact step is skipped when running with Act due to limitations with the ACTIONS_RUNTIME_TOKEN
+
+### Limitations
+
+When testing with Act, some GitHub Actions features are not fully supported:
+
+1. The `actions/upload-artifact` and `actions/download-artifact` actions require an `ACTIONS_RUNTIME_TOKEN` which Act doesn't provide
+2. Some GitHub context variables may not be available or may have different values
+3. Secrets handling is limited

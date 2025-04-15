@@ -5,7 +5,9 @@ import json
 from utils import fill_template
 
 
-async def load_replication_configs(client: Any, path: str, logger: Logger) -> List[Dict[str, Any]]:
+async def load_replication_configs(
+    client: Any, path: str, logger: Logger
+) -> List[Dict[str, Any]]:
     """Load replication configurations from template file.
 
     Args:
@@ -26,7 +28,7 @@ async def load_replication_configs(client: Any, path: str, logger: Logger) -> Li
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.error(
             "Failed to load replication configuration",
-            extra={"path": path, "error": str(e)}
+            extra={"path": path, "error": str(e)},
         )
         raise
 
@@ -35,7 +37,7 @@ async def delete_unused_replications(
     client: Any,
     current_replications: List[Any],
     target_replication_names: Set[str],
-    logger: Logger
+    logger: Logger,
 ) -> None:
     """Delete replication rules that exist in Harbor but not in config.
 
@@ -53,18 +55,13 @@ async def delete_unused_replications(
             try:
                 logger.info(
                     "Deleting replication rule as it is not defined in config",
-                    extra={"replication": current_replication.name}
+                    extra={"replication": current_replication.name},
                 )
-                await client.delete_replication_policy(
-                    policy_id=current_replication.id
-                )
+                await client.delete_replication_policy(policy_id=current_replication.id)
             except Exception as e:
                 logger.error(
                     "Failed to delete replication rule",
-                    extra={
-                        "replication": current_replication.name,
-                        "error": str(e)
-                    }
+                    extra={"replication": current_replication.name, "error": str(e)},
                 )
                 raise
 
@@ -73,7 +70,7 @@ async def process_single_replication(
     client: Any,
     target_replication: Dict[str, Any],
     current_replications: List[Any],
-    logger: Logger
+    logger: Logger,
 ) -> None:
     """Process a single replication rule, either updating existing or creating new.
 
@@ -98,37 +95,31 @@ async def process_single_replication(
             ].id
             logger.info(
                 "Updating existing replication rule",
-                extra={"replication": target_replication_name}
+                extra={"replication": target_replication_name},
             )
             await client.update_replication_policy(
-                policy_id=replication_id,
-                policy=target_replication
+                policy_id=replication_id, policy=target_replication
             )
         else:
             # Create new replication
             logger.info(
                 "Creating new replication rule",
-                extra={"replication": target_replication_name}
+                extra={"replication": target_replication_name},
             )
-            await client.create_replication_policy(
-                policy=target_replication
-            )
+            await client.create_replication_policy(policy=target_replication)
     except KeyError as e:
         logger.error(
             "Invalid replication configuration",
             extra={
                 "replication": target_replication,
-                "error": f"Missing required field: {str(e)}"
-            }
+                "error": f"Missing required field: {str(e)}",
+            },
         )
         raise
     except Exception as e:
         logger.error(
             "Failed to process replication rule",
-            extra={
-                "replication": target_replication_name,
-                "error": str(e)
-            }
+            extra={"replication": target_replication_name, "error": str(e)},
         )
         raise
 
@@ -163,7 +154,9 @@ async def sync_replications(client: Any, path: str, logger: Logger) -> None:
         try:
             current_replications = await client.get_replication_policies()
         except Exception as e:
-            logger.error("Failed to fetch existing replications", extra={"error": str(e)})
+            logger.error(
+                "Failed to fetch existing replications", extra={"error": str(e)}
+            )
             raise
 
         # Create set of target replication names

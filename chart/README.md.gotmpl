@@ -1,0 +1,239 @@
+# Harbor Day 2 Operator
+
+{{ template "chart.badgesSection" . }}
+
+{{ template "chart.description" . }}
+
+## Prerequisites
+
+- Kubernetes 1.16+
+- Helm 3.0+
+- An existing Harbor instance
+- OIDC provider configuration (if OIDC integration is enabled)
+- Kubernetes secrets for sensitive data (admin passwords, robot tokens, OIDC tokens)
+
+## Installing the Chart
+
+1. Create a values file with your configuration:
+
+```yaml
+image:
+  repository: ghcr.io/steadforce/harbor-day2-operator
+  tag: "my-version-tag"
+  pullPolicy: IfNotPresent
+
+harbor:
+  apiUrl: "https://my-harbor-instance/api/v2.0/"
+  adminUsername: "admin"
+  newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
+  oldAdminSecretName: "harbor-core"     # Name of the secret containing the old admin password
+  robotNamePrefix: "robot$"
+  robotSecretName: "harbor-robot-secrets"  # Name of the secret containing robot account tokens
+
+oidc:
+  enabled: true  # Set to true to enable OIDC integration
+  endpoint: "https://my-oidc-provider"
+  secretName: "harbor-oidc-secret"  # Name of the secret containing OIDC client token
+  secretKey: "OIDC_STATIC_CLIENT_TOKEN"  # Key in the secret for the OIDC client token
+
+# Optional: Add custom configuration files
+configFiles:
+  enabled: true
+  "config.yaml": |
+    your:
+      configuration: here
+
+# Optional: Add custom environment variables
+env:
+  CUSTOM_VAR:
+    value: "direct-value"
+  SECRET_VAR:
+    valueFrom:
+      secretKeyRef:
+        name: my-secret
+        key: my-key
+
+# Optional: Add custom labels
+deployment:
+  labels:
+    environment: production
+  podLabels:
+    monitoring: enabled
+  selectorLabels:
+    tier: backend
+```
+
+2. Install the chart:
+
+```bash
+helm install harbor-day2-operator ./chart -f values.yaml
+```
+
+## Configuration
+
+The following table lists the configurable parameters of the Harbor Day 2 Operator chart and their default values.
+
+{{ template "chart.valuesTable" . }}
+
+## Environment Variables
+
+The chart supports two ways of defining environment variables:
+
+1. Direct values:
+```yaml
+env:
+  MY_VAR:
+    value: "my-value"
+```
+
+2. Using valueFrom (for secrets, configmaps, or field refs):
+```yaml
+env:
+  SECRET_VAR:
+    valueFrom:
+      secretKeyRef:
+        name: my-secret
+        key: my-key
+  CONFIG_VAR:
+    valueFrom:
+      configMapKeyRef:
+        name: my-configmap
+        key: my-key
+  FIELD_VAR:
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.name
+```
+
+## Configuration Files
+
+The operator supports mounting configuration files through the `configFiles` section. Any file type is supported and 
+will be mounted as-is in the container at the path specified by `configFolder`.
+
+Example:
+```yaml
+configFiles:
+  enabled: true
+  "config.yaml": |
+    settings:
+      timeout: 30
+      retries: 3
+  "script.sh": |
+    #!/bin/bash
+    echo "Running initialization..."
+```
+
+## Custom Labels
+
+The chart allows adding custom labels at different levels:
+
+1. Deployment labels:
+```yaml
+deployment:
+  labels:
+    team: myteam
+    environment: production
+```
+
+2. Pod-specific labels:
+```yaml
+deployment:
+  podLabels:
+    monitoring: enabled
+```
+
+3. Selector labels (added to both matchLabels and pod labels):
+```yaml
+deployment:
+  selectorLabels:
+    tier: backend
+```
+
+## RBAC
+
+The chart creates the following RBAC resources:
+- ServiceAccount: For the Harbor Day 2 Operator
+- Role: With permissions to get, list, and watch secrets and configmaps, and to create and patch events
+- RoleBinding: Binding the Role to the ServiceAccount
+
+## Security
+
+The chart requires external Kubernetes secrets for all sensitive information. 
+You must create these secrets before deploying the chart:
+
+### Required Secrets
+
+1. **Harbor Admin Passwords**:
+   - New admin password in secret specified by `harbor.newAdminSecretName` with key `ADMIN_PASSWORD`
+   - Old admin password in secret specified by `harbor.oldAdminSecretName` with key `HARBOR_ADMIN_PASSWORD`
+
+2. **Robot Account Tokens**:
+   - Secret specified by `harbor.robotSecretName`
+   - Each robot account token should be a key-value pair in the secret
+   - Example:
+     ```yaml
+     apiVersion: v1
+     kind: Secret
+     metadata:
+       name: harbor-robot-secrets
+     type: Opaque
+     data:
+       ROBOT_ACCOUNT_1: <base64-encoded-token>
+       ROBOT_ACCOUNT_2: <base64-encoded-token>
+     ```
+
+3. **OIDC Client Token** (if OIDC is enabled):
+   - Secret specified by `oidc.secretName`
+   - Token stored under key specified by `oidc.secretKey`
+   - Example:
+     ```yaml
+     apiVersion: v1
+     kind: Secret
+     metadata:
+       name: harbor-oidc-secret
+     type: Opaque
+     data:
+       OIDC_STATIC_CLIENT_TOKEN: <base64-encoded-token>
+     ```
+
+Make sure to handle these secrets securely and never commit them to version control.
+
+## Development
+
+The chart can be linted locally with the `chart-testing` tool:
+
+```shell
+docker run --pull=always --rm -w /data -v $(pwd):/data quay.io/helmpack/chart-testing ct lint --charts "." --validate-maintainers=false
+```
+
+To test the chart locally, you can use the `helm chart-testing` tool helm-unittest:
+
+```shell
+docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest .
+```
+
+Or with output in JUnit format:
+
+```shell
+docker run --pull=always -ti --rm -v "$(pwd):/apps" -u $(id -u) helmunittest/helm-unittest -o test-output.xml .
+```
+
+Please note that you should **never change** the content of `README.md` as this file will be
+automatically generated from `README.md.gotmpl` by the build pipeline.
+
+[helm-docs](https://github.com/norwoodj/helm-docs) is used for auto-generating the documentation from the Helm chart.
+
+For development purposes you can also run the `helm-docs` generator locally in your terminal:
+
+```shell
+docker run --pull=always --rm --volume "$(pwd):/helm-docs" -u $(id -u) jnorwood/helm-docs:latest
+```
+
+## Build and Publish
+
+Packaging and publishing of new releases will be done via the build pipeline.
+
+In order to create a new release, please create a pull request with an updated version in `Chart.yaml`.
+The chart will be published with the new version after the pull request is merged onto the master branch.
+
+{{ template "helm-docs.versionFooter" . }}

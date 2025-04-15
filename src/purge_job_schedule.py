@@ -30,7 +30,7 @@ async def sync_purge_job_schedule(client: Any, path: str, logger: Logger) -> Non
         except (FileNotFoundError, json.JSONDecodeError) as e:
             logger.error(
                 "Failed to load purge job schedule configuration",
-                extra={"path": path, "error": str(e)}
+                extra={"path": path, "error": str(e)},
             )
             raise
 
@@ -39,25 +39,26 @@ async def sync_purge_job_schedule(client: Any, path: str, logger: Logger) -> Non
             await client.get_purge_job_schedule()
             logger.info(
                 "Updating existing purge job schedule",
-                extra={"schedule": purge_job_schedule}
+                extra={"schedule": purge_job_schedule},
             )
             await client.update_purge_job_schedule(purge_job_schedule)
         except Exception as e:
             if "not found" in str(e).lower():
                 logger.info(
                     "Creating new purge job schedule",
-                    extra={"schedule": purge_job_schedule}
+                    extra={"schedule": purge_job_schedule},
                 )
                 await client.create_purge_job_schedule(purge_job_schedule)
             else:
                 logger.error(
-                    "Failed to manage purge job schedule",
-                    extra={"error": str(e)}
+                    "Failed to manage purge job schedule", extra={"error": str(e)}
                 )
                 raise
 
         logger.info("Purge job schedule synchronization completed successfully")
 
     except Exception as e:
-        logger.error("Purge job schedule synchronization failed", extra={"error": str(e)})
+        logger.error(
+            "Purge job schedule synchronization failed", extra={"error": str(e)}
+        )
         raise

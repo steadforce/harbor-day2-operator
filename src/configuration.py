@@ -16,9 +16,7 @@ from utils import load_json
 
 
 async def sync_harbor_configuration(
-    client: HarborAsyncClient,
-    path: str,
-    logger: logging.Logger
+    client: HarborAsyncClient, path: str, logger: logging.Logger
 ) -> None:
     """Synchronize the Harbor configuration from a JSON file.
 
@@ -36,16 +34,16 @@ async def sync_harbor_configuration(
     try:
         logger.info("Loading Harbor configuration from %s", path)
         config_data = load_json(path)
-        
+
         # Get required OIDC configuration
         harbor_config = Configurations(**config_data)
         harbor_config.oidc_client_secret = os.environ["OIDC_STATIC_CLIENT_TOKEN"]
         harbor_config.oidc_endpoint = os.environ["OIDC_ENDPOINT"]
-        
+
         logger.info("Updating Harbor configuration")
         await client.update_config(harbor_config)
         logger.info("Harbor configuration updated successfully")
-        
+
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.error("Failed to load configuration: %s", str(e))
         raise
