@@ -81,5 +81,5 @@ jobs:
 
       - name: Push chart to registry
         run: |
-          echo "Publishing Helm chart to ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}"
-          helm push *.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}
+          echo "Publishing Helm chart to ${{ env.REGISTRY }}/${{ github.repository_owner }}"
+          helm push *.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}
