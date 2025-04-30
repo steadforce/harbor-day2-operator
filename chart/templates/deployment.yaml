@@ -80,7 +80,7 @@ spec:
             {{- with .Values.envFrom }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          command: ["watch", "-n", "60", "/bin/ash", "-ec", "/usr/local/harbor"]
+          command: ["watch", "-n", "60", "/bin/ash", "-ec", "/usr/local/bin/harbor"]
           volumeMounts:
             - name: config-volume
               mountPath: {{ .Values.configFolder }}
