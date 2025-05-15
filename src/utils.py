@@ -36,25 +36,54 @@ async def wait_until_healthy(client: HarborAsyncClient, logger: Logger) -> None:
         sleep(5)
 
 
+def replace_env_vars_in_obj(obj: Any) -> Any:
+    """Recursively replace environment variable placeholders in strings within a data structure.
+
+    Args:
+        obj: The data structure (dict, list, or str)
+
+    Returns:
+        The data structure with environment variables replaced in strings.
+    """
+    env_pattern = re.compile(r"\$\{([A-Z0-9_]+)\}")
+
+    if isinstance(obj, dict):
+        return {k: replace_env_vars_in_obj(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_env_vars_in_obj(item) for item in obj]
+    elif isinstance(obj, str):
+        def replacer(match):
+            var_name = match.group(1)
+            value = os.environ.get(var_name)
+            if value is None:
+                raise ValueError(f"Environment variable '{var_name}' not set for placeholder in JSON.")
+            return value
+        return env_pattern.sub(replacer, obj)
+    else:
+        return obj
+
+
 def load_json(path: str) -> Dict[str, Any]:
-    """Load JSON data from a file.
+    """Load JSON data from a file and replace environment variable placeholders.
 
     Args:
         path: Path to the JSON file
 
     Returns:
-        Dict[str, Any]: Parsed JSON data
+        Dict[str, Any]: Parsed JSON data with environment variables replaced
 
     Raises:
         FileNotFoundError: If the file doesn't exist
         json.JSONDecodeError: If the file is not valid JSON
+        ValueError: If an environment variable placeholder is not set
     """
     file_path = Path(path)
     if not file_path.exists():
         raise FileNotFoundError(f"File not found: {path}")
 
     with open(file_path, "r") as f:
-        return json.load(f)
+        data = json.load(f)
+        return replace_env_vars_in_obj(data)
 
 
 async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) -> str:
