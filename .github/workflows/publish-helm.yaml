@@ -38,6 +38,8 @@ jobs:
           VERSION=${GITHUB_REF#refs/tags/}
           VERSION=${VERSION#v}
           echo "Setting chart version and appVersion to: ${VERSION}"
+          # Synchronize 'version' and 'appVersion' fields in Chart.yaml to ensure consistency.
+          # This project uses the same version for both the chart and the application it deploys.
           yq e -i '.version = "'${VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
           yq e -i '.appVersion = "'${VERSION}'"' ${{ env.CHART_DIR }}/Chart.yaml
 
