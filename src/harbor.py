@@ -169,8 +169,8 @@ class HarborSynchronizer:
             # Sync configurations in dependency order
             config_files = {
                 "configurations.json": sync_harbor_configuration,
-                "registries.json": sync_registries,
                 "projects.json": sync_projects,
+                "registries.json": sync_registries,
                 "project-members.json": sync_project_members,
                 "replications.json": sync_replications,
                 "robots.json": sync_robot_accounts,
