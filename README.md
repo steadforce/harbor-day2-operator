@@ -239,7 +239,7 @@ The purge job schedule can be found in the page "Clean Up" under the tab "Log Ro
     "parameters": {
         "audit_retention_hour": 720,
         "dry_run": false,
-        "include_operations": "create,delete,pull"
+        "include_event_types": "create,delete,pull"
     },
     "schedule": {
         "cron": "0 53 0 * * *",
