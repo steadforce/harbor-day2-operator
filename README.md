@@ -111,6 +111,24 @@ All registries have an `id`, whether implicitly or explicitly set.
 ]
 ```
 
+If credentials are needed:
+
+  ```json
+  [
+    {
+      "name": "docker.io",
+      "url": "https://index.docker.io/v1/",
+      "type": "docker-registry",
+      "description": "Docker Hub registry.",
+      "credential": {
+        "access_key": "${REGISTRY_USERNAME}",
+        "access_secret": "${REGISTRY_PASSWORD}",
+        "type": "basic"
+      }
+    }
+  ]
+  ```
+
 ### projects.json
 
 A list of projects and their metadata.
@@ -221,7 +239,7 @@ The purge job schedule can be found in the page "Clean Up" under the tab "Log Ro
     "parameters": {
         "audit_retention_hour": 720,
         "dry_run": false,
-        "include_operations": "create,delete,pull"
+        "include_event_types": "create,delete,pull"
     },
     "schedule": {
         "cron": "0 53 0 * * *",

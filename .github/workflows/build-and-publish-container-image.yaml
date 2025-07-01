@@ -9,6 +9,11 @@ on:
   pull_request:
     branches:
     - "main"
+  release:
+    types: [published]
+    branches:
+      - main
+      - helm-chart
 
 
 env:
@@ -54,7 +59,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@418e4b98bf2841bd337d0b24fe63cb36dc8afa55
       with:
-        images: ${{ env.REGISTRY }}/steadforce/steadops/workbenches/${{ env.IMAGE_NAME }}
+        images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
