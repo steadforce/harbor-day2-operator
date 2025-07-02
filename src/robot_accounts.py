@@ -126,13 +126,13 @@ async def process_single_robot(
                 extra={"robot": full_name, "robot_id": robot_id},
             )
             await client.update_robot(robot_id=robot_id, robot=target_robot)
-            await set_robot_secret(client, original_name, robot_id, logger)
+            await set_robot_secret(client, target_config, robot_id, logger)
         else:
             # Create new robot
             try:
                 logger.info("Creating new robot", extra={"robot": full_name})
                 created_robot = await client.create_robot(robot=target_robot)
-                await set_robot_secret(client, original_name, created_robot.id, logger)
+                await set_robot_secret(client, target_config, created_robot.id, logger)
             except (Conflict, BadRequest) as e:
                 logger.error(
                     "Failed to create robot",
@@ -254,34 +254,51 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
 
 
 async def set_robot_secret(
-    client: Any, robot_name: str, robot_id: int, logger: Logger
+    client: Any, target_config: Dict[str, Any], robot_id: int, logger: Logger
 ) -> None:
     """Set robot account secret from environment variable if available.
 
-    The environment variable name is constructed by converting the robot name
-    to uppercase and replacing hyphens with underscores.
+    The secret is extracted from the target configuration's 'secret' field,
+    which should contain an environment variable reference in the format ${VAR_NAME}.
 
     Args:
         client: Harbor API client instance
-        robot_name: Original robot name (without prefix/namespace)
+        target_config: Robot configuration dictionary containing the secret field
         robot_id: Robot account ID
         logger: Logger instance for recording operations
     """
-    env_var_name = robot_name.upper().replace("-", "_")
-    secret = os.environ.get(env_var_name)
-
-    if secret:
-        try:
-            logger.info("Setting robot secret", extra={"robot": robot_name})
-            await client.refresh_robot_secret(robot_id, secret)
-        except Exception as e:
-            logger.error(
-                "Failed to set robot secret",
-                extra={"robot": robot_name, "error": str(e)},
-            )
-            raise
-    else:
+    if "secret" not in target_config:
         logger.info(
-            "No robot secret found in environment",
-            extra={"robot": robot_name, "env_var": env_var_name},
+            "No secret field in robot configuration",
+            extra={"robot": target_config.get("name", "unknown")},
+        )
+        return
+
+    secret_ref = target_config["secret"]
+    robot_name = target_config.get("name", "unknown")
+
+    # Extract environment variable name from ${VAR_NAME} format
+    if secret_ref.startswith("${") and secret_ref.endswith("}"):
+        env_var_name = secret_ref[2:-1]  # Remove ${ and }
+        secret = os.environ.get(env_var_name)
+
+        if secret:
+            try:
+                logger.info("Setting robot secret", extra={"robot": robot_name})
+                await client.refresh_robot_secret(robot_id, secret)
+            except Exception as e:
+                logger.error(
+                    "Failed to set robot secret",
+                    extra={"robot": robot_name, "error": str(e)},
+                )
+                raise
+        else:
+            logger.info(
+                "No robot secret found in environment",
+                extra={"robot": robot_name, "env_var": env_var_name},
+            )
+    else:
+        logger.warning(
+            "Invalid secret format, expected ${VAR_NAME}",
+            extra={"robot": robot_name, "secret_ref": secret_ref},
         )
