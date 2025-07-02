@@ -115,7 +115,6 @@ async def process_single_robot(
     """
     try:
         target_robot = Robot(**target_config)
-        original_name = target_robot.name
         target_robot.name = full_name
 
         if full_name in current_robot_map:
