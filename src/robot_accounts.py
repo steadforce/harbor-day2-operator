@@ -255,10 +255,9 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
 async def set_robot_secret(
     client: Any, target_config: Dict[str, Any], robot_id: int, logger: Logger
 ) -> None:
-    """Set robot account secret from environment variable if available.
+    """Set robot account secret from configuration.
 
-    The secret is extracted from the target configuration's 'secret' field,
-    which should contain an environment variable reference in the format ${VAR_NAME}.
+    The secret is taken directly from the target configuration's 'secret' field.
 
     Args:
         client: Harbor API client instance
@@ -273,31 +272,21 @@ async def set_robot_secret(
         )
         return
 
-    secret_ref = target_config["secret"]
+    secret = target_config["secret"]
     robot_name = target_config.get("name", "unknown")
 
-    # Extract environment variable name from ${VAR_NAME} format
-    if secret_ref.startswith("${") and secret_ref.endswith("}"):
-        env_var_name = secret_ref[2:-1]  # Remove ${ and }
-        secret = os.environ.get(env_var_name)
-
-        if secret:
-            try:
-                logger.info("Setting robot secret", extra={"robot": robot_name})
-                await client.refresh_robot_secret(robot_id, secret)
-            except Exception as e:
-                logger.error(
-                    "Failed to set robot secret",
-                    extra={"robot": robot_name, "error": str(e)},
-                )
-                raise
-        else:
-            logger.info(
-                "No robot secret found in environment",
-                extra={"robot": robot_name, "env_var": env_var_name},
+    if secret:
+        try:
+            logger.info("Setting robot secret", extra={"robot": robot_name})
+            await client.refresh_robot_secret(robot_id, secret)
+        except Exception as e:
+            logger.error(
+                "Failed to set robot secret",
+                extra={"robot": robot_name, "error": str(e)},
             )
+            raise
     else:
-        logger.warning(
-            "Invalid secret format, expected ${VAR_NAME}",
-            extra={"robot": robot_name, "secret_ref": secret_ref},
+        logger.info(
+            "Empty secret value in robot configuration",
+            extra={"robot": robot_name},
         )
