@@ -179,12 +179,35 @@ A list of projects and team members with their respective roles.
 
 Configuration of robot accounts and their permissions.
 
+Robot names and secrets can be templated using environment variables in the format `${VARIABLE_NAME}`.
+The `secret` field is optional - if provided, it should reference an environment variable containing the robot's secret.
+
 ```json
 [
     {
-        "name": "example-robot",
+        "name": "${ROBOT_AGENT_USER}",
+        "secret": "${ROBOT_AGENT_USER_PW}",
         "duration": "-1",
-        "description": "Example robot.",
+        "description": "Example robot with templated name and secret.",
+        "disable": false,
+        "level": "system",
+        "permissions": [
+            {
+                "kind": "project",
+                "namespace": "*",
+                "access": [
+                    {
+                        "resource": "repository",
+                        "action": "list"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "name": "static-robot",
+        "duration": "-1",
+        "description": "Example robot with static name and no secret.",
         "disable": false,
         "level": "system",
         "permissions": [
