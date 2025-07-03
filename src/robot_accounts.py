@@ -265,15 +265,16 @@ async def set_robot_secret(
         robot_id: Robot account ID
         logger: Logger instance for recording operations
     """
+    robot_name = target_config.get("name", "unknown")
+
     if "secret" not in target_config:
         logger.info(
             "No secret field in robot configuration",
-            extra={"robot": target_config.get("name", "unknown")},
+            extra={"robot": robot_name},
         )
         return
 
     secret = target_config["secret"]
-    robot_name = target_config.get("name", "unknown")
 
     if secret:
         try:
