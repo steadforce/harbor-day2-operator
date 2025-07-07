@@ -115,7 +115,6 @@ async def process_single_robot(
     """
     try:
         target_robot = Robot(**target_config)
-        original_name = target_robot.name
         target_robot.name = full_name
 
         if full_name in current_robot_map:
@@ -126,13 +125,13 @@ async def process_single_robot(
                 extra={"robot": full_name, "robot_id": robot_id},
             )
             await client.update_robot(robot_id=robot_id, robot=target_robot)
-            await set_robot_secret(client, original_name, robot_id, logger)
+            await set_robot_secret(client, target_config, robot_id, logger)
         else:
             # Create new robot
             try:
                 logger.info("Creating new robot", extra={"robot": full_name})
                 created_robot = await client.create_robot(robot=target_robot)
-                await set_robot_secret(client, original_name, created_robot.id, logger)
+                await set_robot_secret(client, target_config, created_robot.id, logger)
             except (Conflict, BadRequest) as e:
                 logger.error(
                     "Failed to create robot",
@@ -254,21 +253,28 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
 
 
 async def set_robot_secret(
-    client: Any, robot_name: str, robot_id: int, logger: Logger
+    client: Any, target_config: Dict[str, Any], robot_id: int, logger: Logger
 ) -> None:
-    """Set robot account secret from environment variable if available.
+    """Set robot account secret from configuration.
 
-    The environment variable name is constructed by converting the robot name
-    to uppercase and replacing hyphens with underscores.
+    The secret is taken directly from the target configuration's 'secret' field.
 
     Args:
         client: Harbor API client instance
-        robot_name: Original robot name (without prefix/namespace)
+        target_config: Robot configuration dictionary containing the secret field
         robot_id: Robot account ID
         logger: Logger instance for recording operations
     """
-    env_var_name = robot_name.upper().replace("-", "_")
-    secret = os.environ.get(env_var_name)
+    robot_name = target_config.get("name", "unknown")
+
+    if "secret" not in target_config:
+        logger.info(
+            "No secret field in robot configuration",
+            extra={"robot": robot_name},
+        )
+        return
+
+    secret = target_config["secret"]
 
     if secret:
         try:
@@ -282,6 +288,6 @@ async def set_robot_secret(
             raise
     else:
         logger.info(
-            "No robot secret found in environment",
-            extra={"robot": robot_name, "env_var": env_var_name},
+            "Empty secret value in robot configuration",
+            extra={"robot": robot_name},
         )

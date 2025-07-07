@@ -52,12 +52,16 @@ def replace_env_vars_in_obj(obj: Any) -> Any:
     elif isinstance(obj, list):
         return [replace_env_vars_in_obj(item) for item in obj]
     elif isinstance(obj, str):
+
         def replacer(match):
             var_name = match.group(1)
             value = os.environ.get(var_name)
             if value is None:
-                raise ValueError(f"Environment variable '{var_name}' not set for placeholder in JSON.")
+                raise ValueError(
+                    f"Environment variable '{var_name}' not set for placeholder in JSON."
+                )
             return value
+
         return env_pattern.sub(replacer, obj)
     else:
         return obj
