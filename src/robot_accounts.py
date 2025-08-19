@@ -10,6 +10,7 @@ from utils import load_json
 
 
 ROBOT_NAME_PREFIX = os.environ.get("ROBOT_NAME_PREFIX", "")
+HARBOR_BUILD_PREFIX = "build."
 
 
 def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
@@ -64,6 +65,24 @@ def prepare_target_robots(
     return target_robots_with_names
 
 
+def normalize_robot_name_for_comparison(robot_name: str) -> str:
+    """Normalize robot name for comparison by removing Harbor's automatic build prefix.
+
+    Harbor automatically adds 'build.' prefix to robot account names during creation.
+    This function removes that prefix to enable proper comparison between target
+    robot names (without prefix) and existing robot names (with prefix).
+
+    Args:
+        robot_name: Robot name that may or may not have the build prefix
+
+    Returns:
+        str: Normalized robot name without the build prefix
+    """
+    if robot_name.startswith(HARBOR_BUILD_PREFIX):
+        return robot_name[len(HARBOR_BUILD_PREFIX) :]
+    return robot_name
+
+
 async def delete_unused_robots(
     client: Any,
     current_robot_map: Dict[str, Any],
@@ -71,6 +90,9 @@ async def delete_unused_robots(
     logger: Logger,
 ) -> None:
     """Delete robots that exist in Harbor but not in config.
+
+    Harbor automatically adds 'build.' prefix to robot account names, so we normalize
+    robot names before comparison to prevent unnecessary deletions.
 
     Args:
         client: Harbor API client instance
@@ -81,8 +103,16 @@ async def delete_unused_robots(
     Raises:
         Exception: If deletion of any robot fails
     """
+    # Create normalized target names for comparison
+    normalized_target_names = {
+        normalize_robot_name_for_comparison(name) for name in target_robot_names
+    }
+
     for robot_name, robot in current_robot_map.items():
-        if robot_name not in target_robot_names:
+        # Normalize current robot name for comparison
+        normalized_current_name = normalize_robot_name_for_comparison(robot_name)
+
+        if normalized_current_name not in normalized_target_names:
             try:
                 logger.info("Deleting robot not in config", extra={"robot": robot_name})
                 await client.delete_robot(robot_id=robot.id)
@@ -117,9 +147,21 @@ async def process_single_robot(
         target_robot = Robot(**target_config)
         target_robot.name = full_name
 
-        if full_name in current_robot_map:
+        # Check if robot exists by comparing normalized names
+        existing_robot = None
+        normalized_target_name = normalize_robot_name_for_comparison(full_name)
+
+        for current_name, current_robot in current_robot_map.items():
+            if (
+                normalize_robot_name_for_comparison(current_name)
+                == normalized_target_name
+            ):
+                existing_robot = current_robot
+                break
+
+        if existing_robot:
             # Update existing robot
-            robot_id = current_robot_map[full_name].id
+            robot_id = existing_robot.id
             logger.info(
                 "Updating existing robot",
                 extra={"robot": full_name, "robot_id": robot_id},
