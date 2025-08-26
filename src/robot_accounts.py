@@ -152,10 +152,8 @@ async def process_single_robot(
         normalized_target_robot_name = normalize_robot_name_for_comparison(full_name)
 
         for current_robot_name, current_robot in current_robot_map.items():
-            if (
-                normalize_robot_name_for_comparison(current_robot_name)
-                == normalized_target_robot_name
-            ):
+            normalized_current_robot_name = normalize_robot_name_for_comparison(current_robot_name)
+            if normalized_current_robot_name == normalized_target_robot_name:
                 existing_robot = current_robot
                 break
 
