@@ -103,16 +103,16 @@ async def delete_unused_robots(
     Raises:
         Exception: If deletion of any robot fails
     """
-    # Create normalized target names for comparison
-    normalized_target_names = {
+    # Create normalized target robot names for comparison
+    normalized_target_robot_names = {
         normalize_robot_name_for_comparison(name) for name in target_robot_names
     }
 
     for robot_name, robot in current_robot_map.items():
         # Normalize current robot name for comparison
-        normalized_current_name = normalize_robot_name_for_comparison(robot_name)
+        normalized_current_robot_name = normalize_robot_name_for_comparison(robot_name)
 
-        if normalized_current_name not in normalized_target_names:
+        if normalized_current_robot_name not in normalized_target_robot_names:
             try:
                 logger.info("Deleting robot not in config", extra={"robot": robot_name})
                 await client.delete_robot(robot_id=robot.id)
@@ -149,12 +149,12 @@ async def process_single_robot(
 
         # Check if robot exists by comparing normalized names
         existing_robot = None
-        normalized_target_name = normalize_robot_name_for_comparison(full_name)
+        normalized_target_robot_name = normalize_robot_name_for_comparison(full_name)
 
-        for current_name, current_robot in current_robot_map.items():
+        for current_robot_name, current_robot in current_robot_map.items():
             if (
-                normalize_robot_name_for_comparison(current_name)
-                == normalized_target_name
+                normalize_robot_name_for_comparison(current_robot_name)
+                == normalized_target_robot_name
             ):
                 existing_robot = current_robot
                 break
