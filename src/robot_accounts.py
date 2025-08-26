@@ -79,7 +79,7 @@ def normalize_robot_name_for_comparison(robot_name: str) -> str:
         str: Normalized robot name without the build prefix
     """
     if robot_name.startswith(HARBOR_BUILD_PREFIX):
-        return robot_name[len(HARBOR_BUILD_PREFIX) :]
+        return robot_name[len(HARBOR_BUILD_PREFIX):]
     return robot_name
 
 
