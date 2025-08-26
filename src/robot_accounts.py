@@ -290,7 +290,7 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
     robot_name = target_robot["name"]
 
     if namespace != "*":
-        return f"{ROBOT_NAME_PREFIX}{namespace}+{robot_name}"
+        return f"{ROBOT_NAME_PREFIX}{namespace}_{robot_name}"
     return f"{ROBOT_NAME_PREFIX}{robot_name}"
 
 

@@ -100,7 +100,7 @@ harbor:
   # -- Name of the Kubernetes secret containing the old admin password
   oldAdminSecretName: "harbor-core"
   # -- Prefix for robot account names
-  robotNamePrefix: "robot$"
+  robotNamePrefix: ""
   # -- Name of the Kubernetes secret containing robot account tokens
   robotSecretName: ""
 
