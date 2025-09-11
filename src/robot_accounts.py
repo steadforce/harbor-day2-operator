@@ -144,9 +144,6 @@ async def process_single_robot(
         Exception: If processing of robot configuration fails
     """
     try:
-        target_robot = Robot(**target_config)
-        target_robot.name = full_name
-
         # Check if robot exists by comparing normalized names
         existing_robot = None
         normalized_target_robot_name = normalize_robot_name_for_comparison(full_name)
@@ -162,15 +159,18 @@ async def process_single_robot(
         if existing_robot:
             # Update existing robot
             robot_id = existing_robot.id
+            target_robot = Robot(**target_config)
             logger.info(
                 "Updating existing robot",
-                extra={"robot": full_name, "robot_id": robot_id},
+                extra={"robot": existing_robot.name, "robot_id": robot_id},
             )
             await client.update_robot(robot_id=robot_id, robot=target_robot)
             await set_robot_secret(client, target_config, robot_id, logger)
         else:
             # Create new robot
             try:
+                target_robot = Robot(**target_config)
+                target_robot.name = full_name
                 logger.info("Creating new robot", extra={"robot": full_name})
                 created_robot = await client.create_robot(robot=target_robot)
                 await set_robot_secret(client, target_config, created_robot.id, logger)
