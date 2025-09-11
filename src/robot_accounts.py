@@ -157,9 +157,13 @@ async def process_single_robot(
                 break
 
         if existing_robot:
-            # Update existing robot
+            # Update existing robot - only include mutable fields
             robot_id = existing_robot.id
-            target_robot = Robot(**target_config)
+            # Filter out immutable fields (name, level) that Harbor doesn't allow updating
+            update_config = {k: v for k, v in target_config.items() if k not in ['name', 'level']}
+            target_robot = Robot(**update_config)
+            logger.info(f"Target config: {target_config}")
+            logger.info(f"Update config: {update_config}")
             logger.info(
                 "Updating existing robot",
                 extra={"robot": existing_robot.name, "robot_id": robot_id},
