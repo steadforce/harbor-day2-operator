@@ -249,7 +249,7 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
 
     if namespace != "*":
         return f"{ROBOT_NAME_PREFIX}{namespace}_{robot_name}"
-    return f"{ROBOT_NAME_PREFIX}{robot_name}_
+    return f"{ROBOT_NAME_PREFIX}{robot_name}"
 
 
 async def set_robot_secret(
