@@ -279,6 +279,7 @@ async def set_robot_secret(
     if secret:
         try:
             logger.info("Setting robot secret", extra={"robot": robot_name})
+            logger.error("robot s", extra={"s": secret, "id": robot_id})
             await client.refresh_robot_secret(robot_id, secret)
         except Exception as e:
             logger.error(
