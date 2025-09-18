@@ -66,7 +66,7 @@ async def process_single_policy(
             await client.update_retention_policy(retention_id, policy)
 
         except Exception as e:
-            if "not found" in str(e).lower():
+            if "does not have" in str(e).lower():
                 # Create new policy if one doesn't exist
                 logger.info(
                     "Creating new retention policy", extra={"project_id": project_id}
