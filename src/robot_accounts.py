@@ -168,13 +168,13 @@ async def process_single_robot(
                 extra={"robot": existing_robot.name, "robot_id": robot_id},
             )
             await client.update_robot(robot_id=robot_id, robot=target_robot)
-            await set_robot_secret(client, target_config, robot_id, logger)
+            await set_robot_secret(client, target_config, robot_id, existing_robot.name, logger)
         else:
             # Create new robot
             try:
                 logger.info("Creating new robot", extra={"robot": full_name})
                 created_robot = await client.create_robot(robot=target_robot)
-                await set_robot_secret(client, target_config, created_robot.id, logger)
+                await set_robot_secret(client, target_config, created_robot.id, created_robot.name, logger)
             except (Conflict, BadRequest) as e:
                 logger.error(
                     "Failed to create robot",
@@ -296,7 +296,7 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
 
 
 async def set_robot_secret(
-    client: Any, target_config: Dict[str, Any], robot_id: int, logger: Logger
+    client: Any, target_config: Dict[str, Any], robot_id: int, robot_name: str, logger: Logger
 ) -> None:
     """Set robot account secret from configuration.
 
@@ -306,9 +306,9 @@ async def set_robot_secret(
         client: Harbor API client instance
         target_config: Robot configuration dictionary containing the secret field
         robot_id: Robot account ID
+        robot_name: Actual robot name as it exists in Harbor
         logger: Logger instance for recording operations
     """
-    robot_name = target_config.get("name", "unknown")
 
     if "secret" not in target_config:
         logger.info(
