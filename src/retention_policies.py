@@ -1,6 +1,7 @@
 import json
 from typing import Any, Dict, List
 from logging import Logger
+from harborapi.exceptions import NotFound
 
 from utils import fill_template
 
@@ -65,20 +66,19 @@ async def process_single_policy(
             )
             await client.update_retention_policy(retention_id, policy)
 
-        except Exception as e:
-            if "not found" in str(e).lower():
-                # Create new policy if one doesn't exist
-                logger.info(
-                    "Creating new retention policy", extra={"project_id": project_id}
-                )
-                await client.create_retention_policy(policy)
-            else:
-                # Re-raise unexpected errors
-                logger.error(
-                    "Failed to get retention policy ID",
-                    extra={"project_id": project_id, "error": str(e)},
-                )
-                raise
+        except NotFound as e:
+            # Create new policy if one doesn't exist
+            logger.info(
+                "Creating new retention policy", extra={"project_id": project_id}
+            )
+            await client.create_retention_policy(policy)
+        else:
+            # Re-raise unexpected errors
+            logger.error(
+                "Failed to get retention policy ID",
+                extra={"project_id": project_id, "error": str(e)},
+            )
+            raise
 
     except KeyError as e:
         logger.error(

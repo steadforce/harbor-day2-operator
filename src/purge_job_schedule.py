@@ -1,6 +1,7 @@
 import json
 from typing import Any, Dict
 from logging import Logger
+from harborapi.exceptions import NotFound
 
 from utils import load_json
 
@@ -42,18 +43,17 @@ async def sync_purge_job_schedule(client: Any, path: str, logger: Logger) -> Non
                 extra={"schedule": purge_job_schedule},
             )
             await client.update_purge_job_schedule(purge_job_schedule)
-        except Exception as e:
-            if "not found" in str(e).lower():
-                logger.info(
-                    "Creating new purge job schedule",
-                    extra={"schedule": purge_job_schedule},
-                )
-                await client.create_purge_job_schedule(purge_job_schedule)
-            else:
-                logger.error(
-                    "Failed to manage purge job schedule", extra={"error": str(e)}
-                )
-                raise
+        except NotFound as e:
+            logger.info(
+                "Creating new purge job schedule",
+                extra={"schedule": purge_job_schedule},
+            )
+            await client.create_purge_job_schedule(purge_job_schedule)
+        else:
+            logger.error(
+                "Failed to manage purge job schedule", extra={"error": str(e)}
+            )
+            raise
 
         logger.info("Purge job schedule synchronization completed successfully")
 
