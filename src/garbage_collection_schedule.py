@@ -35,24 +35,9 @@ async def sync_garbage_collection_schedule(
         logger.info("Loading garbage collection schedule from %s", path)
         schedule_config = load_json(path)
 
-        try:
-            # Check if schedule exists
-            logger.debug("Checking for existing garbage collection schedule")
-            await client.get_gc_schedule()
-
-            logger.info("Updating existing garbage collection schedule")
-            await client.update_gc_schedule(schedule_config)
-            logger.info("Garbage collection schedule updated successfully")
-
-        except HarborAPIException as e:
-            if hasattr(e, "status") and e.status == 404:
-                logger.info(
-                    "No existing schedule found, creating new garbage collection schedule"
-                )
-                await client.create_gc_schedule(schedule_config)
-                logger.info("Garbage collection schedule created successfully")
-            else:
-                raise
+        logger.info("Creating or updating existing garbage collection schedule")
+        await client.update_gc_schedule(schedule_config)
+        logger.info("Garbage collection schedule created/updated successfully")
 
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.error("Failed to load garbage collection schedule: %s", str(e))

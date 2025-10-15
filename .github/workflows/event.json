@@ -1,7 +1,18 @@
 {
   "action": "published",
   "release": {
-    "tag_name": "v1.0.0"
+    "tag_name": "v1.0.0",
+    "target_commitish": "main",
+    "name": "v1.0.0",
+    "draft": false,
+    "prerelease": false,
+    "created_at": "2024-01-01T00:00:00Z",
+    "published_at": "2024-01-01T00:00:00Z"
+  },
+  "ref": "refs/tags/v1.0.0",
+  "ref_type": "tag",
+  "repository": {
+    "default_branch": "main"
   },
   "act": true
 } 
