@@ -72,7 +72,7 @@ async def process_single_policy(
                 "Creating new retention policy", extra={"project_id": project_id}
             )
             await client.create_retention_policy(policy)
-        else:
+        except Exception as e:
             # Re-raise unexpected errors
             logger.error(
                 "Failed to get retention policy ID",

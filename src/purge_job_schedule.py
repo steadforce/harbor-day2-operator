@@ -49,7 +49,7 @@ async def sync_purge_job_schedule(client: Any, path: str, logger: Logger) -> Non
                 extra={"schedule": purge_job_schedule},
             )
             await client.create_purge_job_schedule(purge_job_schedule)
-        else:
+        except Exception as e:
             logger.error(
                 "Failed to manage purge job schedule", extra={"error": str(e)}
             )
