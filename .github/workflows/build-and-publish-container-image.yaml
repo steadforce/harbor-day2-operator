@@ -49,7 +49,7 @@ jobs:
         dockerfile: Dockerfile
 
     - name: Log in to the container registry
-      uses: docker/login-action@3d100841f68d4548bf57e52eb27bd33ec5069f55
+      uses: docker/login-action@28fdb31ff34708d19615a74d67103ddc2ea9725c
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
