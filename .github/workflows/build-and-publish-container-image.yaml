@@ -80,7 +80,7 @@ jobs:
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
     - name: Build container image for test
-      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+      uses: docker/build-push-action@9e436ba9f2d7bcd1d038c8e55d039d37896ddc5d
       with:
         context: .
         push: false
@@ -97,7 +97,7 @@ jobs:
           ${{ env.IMAGE_NAME }}:test --version
 
     - name: Tag and push tested container image
-      uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83
+      uses: docker/build-push-action@9e436ba9f2d7bcd1d038c8e55d039d37896ddc5d
       with:
         context: .
         push: ${{ github.event_name != 'pull_request' }}
