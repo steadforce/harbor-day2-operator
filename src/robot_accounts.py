@@ -11,6 +11,7 @@ from utils import load_json
 
 ROBOT_NAME_PREFIX = os.environ.get("ROBOT_NAME_PREFIX", "")
 HARBOR_BUILD_PREFIX = "build."
+ROBOT_NAME_PROJECT_SUFFIX = "+"
 
 
 def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
@@ -46,7 +47,7 @@ def prepare_target_robots(
         logger: Logger instance
 
     Returns:
-        List of tuples containing (full_name, robot_config)
+        List of tuples containing (name, robot_config)
 
     Raises:
         KeyError: If required fields are missing from robot configuration
@@ -54,8 +55,8 @@ def prepare_target_robots(
     target_robots_with_names = []
     for target_robot in target_robots:
         try:
-            full_name = construct_full_robot_name(target_robot)
-            target_robots_with_names.append((full_name, target_robot))
+            name = target_robot["name"]
+            target_robots_with_names.append((name, target_robot))
         except KeyError as e:
             logger.error(
                 "Invalid robot configuration",
@@ -79,8 +80,11 @@ def normalize_robot_name_for_comparison(robot_name: str) -> str:
         str: Normalized robot name without the build prefix
     """
     if robot_name.startswith(HARBOR_BUILD_PREFIX):
-        return robot_name[len(HARBOR_BUILD_PREFIX) :]
-    return robot_name
+        robot_name = robot_name[len(HARBOR_BUILD_PREFIX) :]
+    if robot_name.startswith(ROBOT_NAME_PREFIX):
+        robot_name = robot_name[len(ROBOT_NAME_PREFIX) :]
+    _, sep, tail = robot_name.partition(ROBOT_NAME_PROJECT_SUFFIX)
+    return tail if sep else robot_name
 
 
 async def delete_unused_robots(
@@ -291,7 +295,7 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
     robot_name = target_robot["name"]
 
     if namespace != "*":
-        return f"{ROBOT_NAME_PREFIX}{namespace}_{robot_name}"
+        return f"{ROBOT_NAME_PREFIX}{namespace}+{robot_name}"
     return f"{ROBOT_NAME_PREFIX}{robot_name}"
 
 
