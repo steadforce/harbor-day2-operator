@@ -88,7 +88,7 @@ async def update_or_create_registries(
                 await client.update_registry(
                     id=current_registry_map[registry_name].id, registry=target_registry
                 )
-                if current_registry_map[registry_name]["type"] != target_registry["type"]:
+                if current_registry_map[registry_name].type != target_registry["type"]:
                     logger.info("Recreating registry because type has changed", extra={"registry": registry_name})
                     await client.delete_registry(id=current_registry_map[registry_name].id)
                     await client.create_registry(registry=target_registry)
