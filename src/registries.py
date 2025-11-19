@@ -94,8 +94,8 @@ async def update_or_create_registries(
                         extra={"registry": registry_name}
                     )
                     registry_id = current_registry_map[registry_name].id
-                    project = await client.get_projects(query=f"registry_id={registry_id}")[0]
-                    project_id = int(project["project_id"])
+                    projects = await client.get_projects(query=f"registry_id={registry_id}")
+                    project_id = int(projects[0]["project_id"])
                     await client.delete_project(project_name_or_id=project_id)
                     await client.delete_registry(id=registry_id)
                     await client.create_registry(registry=target_registry)
