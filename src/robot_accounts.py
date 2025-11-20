@@ -10,6 +10,8 @@ from utils import load_json
 
 
 ROBOT_NAME_PREFIX = os.environ.get("ROBOT_NAME_PREFIX", "")
+HARBOR_BUILD_PREFIX = "build."
+ROBOT_NAME_PROJECT_SUFFIX = "+"
 
 
 def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
@@ -45,7 +47,7 @@ def prepare_target_robots(
         logger: Logger instance
 
     Returns:
-        List of tuples containing (full_name, robot_config)
+        List of tuples containing (name, robot_config)
 
     Raises:
         KeyError: If required fields are missing from robot configuration
@@ -53,8 +55,8 @@ def prepare_target_robots(
     target_robots_with_names = []
     for target_robot in target_robots:
         try:
-            full_name = construct_full_robot_name(target_robot)
-            target_robots_with_names.append((full_name, target_robot))
+            name = target_robot["name"]
+            target_robots_with_names.append((name, target_robot))
         except KeyError as e:
             logger.error(
                 "Invalid robot configuration",
@@ -62,6 +64,27 @@ def prepare_target_robots(
             )
             raise
     return target_robots_with_names
+
+
+def normalize_robot_name_for_comparison(robot_name: str) -> str:
+    """Normalize robot name for comparison by removing Harbor's automatic build prefix.
+
+    Harbor automatically adds 'build.' prefix to robot account names during creation.
+    This function removes that prefix to enable proper comparison between target
+    robot names (without prefix) and existing robot names (with prefix).
+
+    Args:
+        robot_name: Robot name that may or may not have the build prefix
+
+    Returns:
+        str: Normalized robot name without the build prefix
+    """
+    if robot_name.startswith(HARBOR_BUILD_PREFIX):
+        robot_name = robot_name[len(HARBOR_BUILD_PREFIX) :]
+    if robot_name.startswith(ROBOT_NAME_PREFIX):
+        robot_name = robot_name[len(ROBOT_NAME_PREFIX) :]
+    _, sep, tail = robot_name.partition(ROBOT_NAME_PROJECT_SUFFIX)
+    return tail if sep else robot_name
 
 
 async def delete_unused_robots(
@@ -72,6 +95,9 @@ async def delete_unused_robots(
 ) -> None:
     """Delete robots that exist in Harbor but not in config.
 
+    Harbor automatically adds 'build.' prefix to robot account names, so we normalize
+    robot names before comparison to prevent unnecessary deletions.
+
     Args:
         client: Harbor API client instance
         current_robot_map: Map of current robot names to their configurations
@@ -81,8 +107,16 @@ async def delete_unused_robots(
     Raises:
         Exception: If deletion of any robot fails
     """
+    # Create normalized target robot names for comparison
+    normalized_target_robot_names = {
+        normalize_robot_name_for_comparison(name) for name in target_robot_names
+    }
+
     for robot_name, robot in current_robot_map.items():
-        if robot_name not in target_robot_names:
+        # Normalize current robot name for comparison
+        normalized_current_robot_name = normalize_robot_name_for_comparison(robot_name)
+
+        if normalized_current_robot_name not in normalized_target_robot_names:
             try:
                 logger.info("Deleting robot not in config", extra={"robot": robot_name})
                 await client.delete_robot(robot_id=robot.id)
@@ -117,21 +151,34 @@ async def process_single_robot(
         target_robot = Robot(**target_config)
         target_robot.name = full_name
 
-        if full_name in current_robot_map:
-            # Update existing robot
-            robot_id = current_robot_map[full_name].id
+        # Check if robot exists by comparing normalized names
+        existing_robot = None
+        normalized_target_robot_name = normalize_robot_name_for_comparison(full_name)
+
+        for current_robot_name, current_robot in current_robot_map.items():
+            normalized_current_robot_name = normalize_robot_name_for_comparison(
+                current_robot_name
+            )
+            if normalized_current_robot_name == normalized_target_robot_name:
+                existing_robot = current_robot
+                break
+
+        if existing_robot:
+            # Use the existing robot's actual name for updates
+            target_robot.name = existing_robot.name  # Don't change the name
+            robot_id = existing_robot.id
             logger.info(
                 "Updating existing robot",
-                extra={"robot": full_name, "robot_id": robot_id},
+                extra={"robot": existing_robot.name, "robot_id": robot_id},
             )
             await client.update_robot(robot_id=robot_id, robot=target_robot)
-            await set_robot_secret(client, target_config, robot_id, logger)
+            await set_robot_secret(client, target_config, robot_id, existing_robot.name, logger)
         else:
             # Create new robot
             try:
                 logger.info("Creating new robot", extra={"robot": full_name})
                 created_robot = await client.create_robot(robot=target_robot)
-                await set_robot_secret(client, target_config, created_robot.id, logger)
+                await set_robot_secret(client, target_config, created_robot.id, created_robot.name, logger)
             except (Conflict, BadRequest) as e:
                 logger.error(
                     "Failed to create robot",
@@ -253,7 +300,7 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
 
 
 async def set_robot_secret(
-    client: Any, target_config: Dict[str, Any], robot_id: int, logger: Logger
+    client: Any, target_config: Dict[str, Any], robot_id: int, robot_name: str, logger: Logger
 ) -> None:
     """Set robot account secret from configuration.
 
@@ -263,9 +310,9 @@ async def set_robot_secret(
         client: Harbor API client instance
         target_config: Robot configuration dictionary containing the secret field
         robot_id: Robot account ID
+        robot_name: Actual robot name as it exists in Harbor
         logger: Logger instance for recording operations
     """
-    robot_name = target_config.get("name", "unknown")
 
     if "secret" not in target_config:
         logger.info(

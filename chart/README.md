@@ -28,7 +28,7 @@ harbor:
   adminUsername: "admin"
   newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
   oldAdminSecretName: "harbor-core"     # Name of the secret containing the old admin password
-  robotNamePrefix: "robot$"
+  robotNamePrefix: ""
   robotSecretName: "harbor-robot-secrets"  # Name of the secret containing robot account tokens
 
 oidc:
@@ -86,12 +86,12 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | deployment.selectorLabels | object | `{}` | Labels to add to the selector |
 | env | object | `{}` | Environment variables for the operator |
 | envFrom | list | `[]` | Environment variables from sources for the operator |
-| harbor | object | `{"adminUsername":"admin","apiUrl":"","newAdminSecretName":"harbor-secrets","oldAdminSecretName":"harbor-core","robotNamePrefix":"robot$","robotSecretName":""}` | Harbor configuration |
+| harbor | object | `{"adminUsername":"admin","apiUrl":"","newAdminSecretName":"harbor-secrets","oldAdminSecretName":"harbor-core","robotNamePrefix":"","robotSecretName":""}` | Harbor configuration |
 | harbor.adminUsername | string | `"admin"` | Username for Harbor admin account |
 | harbor.apiUrl | string | `""` | URL of the Harbor API endpoint (e.g., https://harbor.example.com/api/v2.0/) |
 | harbor.newAdminSecretName | string | `"harbor-secrets"` | Name of the Kubernetes secret containing the new admin password |
 | harbor.oldAdminSecretName | string | `"harbor-core"` | Name of the Kubernetes secret containing the old admin password |
-| harbor.robotNamePrefix | string | `"robot$"` | Prefix for robot account names |
+| harbor.robotNamePrefix | string | `""` | Prefix for robot account names |
 | harbor.robotSecretName | string | `""` | Name of the Kubernetes secret containing robot account tokens |
 | image | object | `{"pullPolicy":"IfNotPresent","repository":"ghcr.io/steadforce/harbor-day2-operator","tag":""}` | Image configuration for the operator |
 | image.pullPolicy | string | `"IfNotPresent"` | Docker image pull policy (IfNotPresent, Always, or Never) |

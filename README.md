@@ -58,7 +58,7 @@ The following environment variables are expected:
 |`ADMIN_PASSWORD_NEW`|required|***|The new administrator password. If the harbor administrator account password has already been updated to the `ADMIN_PASSWORD_NEW` nothing changes.|
 |`HARBOR_API_URL`|required|https://harbor.domain.com/api/v2.0/|The full Harbor API URL.|
 |`CONFIG_FOLDER_PATH`|required|/usr/local/scripts|The path to the folder containing all configuration files. The files are defined and documented in the harbor repository. The path depends on how the `harbor-day2-operator` is deployed.|
-|`ROBOT_NAME_PREFIX`|not required|robot$|The prefix used in all robot names.|
+|`ROBOT_NAME_PREFIX`|not required|(empty)|The prefix used in all robot names.|
 |`OIDC_STATIC_CLIENT_TOKEN`|required|***|The OIDC provider secret.|
 |`OIDC_ENDPOINT`|required|https://oidc.domain.com/api|The endpoint of the OIDC provider.|
 

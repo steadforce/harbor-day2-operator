@@ -39,6 +39,7 @@ async def sync_harbor_configuration(
         harbor_config = Configurations(**config_data)
         harbor_config.oidc_client_secret = os.environ["OIDC_STATIC_CLIENT_TOKEN"]
         harbor_config.oidc_endpoint = os.environ["OIDC_ENDPOINT"]
+        harbor_config.robot_name_prefix = os.environ["ROBOT_NAME_PREFIX"]
 
         logger.info("Updating Harbor configuration")
         await client.update_config(harbor_config)

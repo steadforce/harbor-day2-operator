@@ -49,6 +49,7 @@ jobs:
         dockerfile: Dockerfile
 
     - name: Log in to the container registry
+      if: ${{ !github.event.act }}
       uses: docker/login-action@28fdb31ff34708d19615a74d67103ddc2ea9725c
       with:
         registry: ${{ env.REGISTRY }}
@@ -56,6 +57,7 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Extract metadata (tags, labels) for container
+      if: ${{ !github.event.act }}
       id: meta
       uses: docker/metadata-action@be19121bfd18b9c1ac415d9571d4f67b9b357886
       with:
@@ -100,6 +102,6 @@ jobs:
       uses: docker/build-push-action@9e436ba9f2d7bcd1d038c8e55d039d37896ddc5d
       with:
         context: .
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
+        push: ${{ github.event_name != 'pull_request' && !github.event.act }}
+        tags: ${{ github.event.act && steps.meta-local.outputs.tags || steps.meta.outputs.tags }}
+        labels: ${{ github.event.act && steps.meta-local.outputs.labels || steps.meta.outputs.labels }}
