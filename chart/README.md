@@ -28,7 +28,7 @@ harbor:
   adminUsername: "admin"
   newAdminSecretName: "harbor-secrets"  # Name of the secret containing the new admin password
   oldAdminSecretName: "harbor-core"     # Name of the secret containing the old admin password
-  robotNamePrefix: "robot$"
+  robotNamePrefix: ""
   robotSecretName: "harbor-robot-secrets"  # Name of the secret containing robot account tokens
 
 oidc:
