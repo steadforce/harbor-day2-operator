@@ -59,7 +59,7 @@ jobs:
     - name: Extract metadata (tags, labels) for container
       if: ${{ !github.event.act }}
       id: meta
-      uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+      uses: docker/metadata-action@f0a4bc3c2d4c68c4ddaeaca7ba2497760fe0ead4
       with:
         images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
         tags: |
