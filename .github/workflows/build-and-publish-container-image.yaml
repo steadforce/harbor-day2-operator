@@ -50,7 +50,7 @@ jobs:
 
     - name: Log in to the container registry
       if: ${{ !github.event.act }}
-      uses: docker/login-action@916386b00027d425839f8da46d302dab33f5875b
+      uses: docker/login-action@0567fa5ae8c9a197cb207537dc5cbb43ca3d803f
       with:
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
