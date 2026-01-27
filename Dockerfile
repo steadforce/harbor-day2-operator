@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.20-labs 
-FROM cgr.dev/chainguard/wolfi-base:latest@sha256:e735a9b94027e0d33e0056f94cfdca6d88adfbdf1ffa96bdbed0d43dc72fd179 AS base
+FROM cgr.dev/chainguard/wolfi-base:latest@sha256:17ab0709456ce1a2aedd85e95f72e58d73133bb70c33ae945a4d4b2424e984f1 AS base
 ENV PYTHONUNBUFFERED=1
 RUN apk update --no-cache && apk upgrade --no-cache
 # renovate: datasource=python-version depName=python versioning=python
