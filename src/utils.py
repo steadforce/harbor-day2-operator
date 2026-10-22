@@ -1,9 +1,9 @@
 import json
 import os
 import re
+from asyncio import sleep
 from logging import Logger
 from pathlib import Path
-from time import sleep
 from typing import Any, Dict
 
 import chevron
@@ -110,7 +110,7 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
         Exception: If any Harbor API operation fails
     """
     try:
-        with open(path, "r") as file:
+        with open(path, "r") as file:  # noqa: ASYNC230
             content = file.read()
 
             placeholders = re.findall(
