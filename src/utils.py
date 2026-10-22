@@ -1,14 +1,13 @@
-import os
 import json
+import os
 import re
+from logging import Logger
 from pathlib import Path
 from time import sleep
-from typing import Dict, Any
-from logging import Logger
+from typing import Any, Dict
 
 import chevron
 from harborapi import HarborAsyncClient
-
 
 # Environment variables for Harbor configuration
 API_URL = os.environ.get("HARBOR_API_URL")
@@ -31,7 +30,7 @@ async def wait_until_healthy(client: HarborAsyncClient, logger: Logger) -> None:
                 logger.info("Harbor is healthy")
                 break
             logger.info("Waiting for harbor to become healthy")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.warning("Health check failed", extra={"error": str(e)})
         sleep(5)
 

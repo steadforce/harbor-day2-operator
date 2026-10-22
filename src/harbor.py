@@ -217,7 +217,7 @@ async def main() -> None:
         logger = logging.getLogger()
         logger.error("Fatal error: %s", str(e))
         sys.exit(1)
-    except Exception as e:
+    except Exception as e:  # noqa BLE001
         logger = logging.getLogger()
         logger.error("Fatal error: %s", str(e))
         sys.exit(1)

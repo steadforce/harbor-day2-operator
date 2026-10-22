@@ -1,6 +1,6 @@
 import json
-from typing import List, Dict, Any, Set
 from logging import Logger
+from typing import Any, Dict, List, Set
 
 from utils import fill_template
 
@@ -39,7 +39,7 @@ async def delete_unused_projects(
         target_project_names: Set of project names from target configuration
         logger: Logger instance
     """
-    for project_name, _ in current_projects.items():
+    for project_name in current_projects.keys():
         if project_name not in target_project_names:
             try:
                 repositories = await client.get_repositories(
@@ -57,7 +57,7 @@ async def delete_unused_projects(
                             "repo_count": len(repositories),
                         },
                     )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001
                 logger.error(
                     "Failed to process project deletion",
                     extra={"project": project_name, "error": str(e)},
@@ -91,7 +91,7 @@ async def update_or_create_projects(
             else:
                 logger.info("Creating new project", extra={"project": project_name})
                 await client.create_project(project=target_project)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(
                 "Failed to process project configuration",
                 extra={"project": project_name, "error": str(e)},
