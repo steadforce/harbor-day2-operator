@@ -5,29 +5,28 @@ It handles various aspects of Harbor configuration including projects, registrie
 robot accounts, webhooks, and more.
 """
 
-import os
-import sys
 import asyncio
 import logging
+import os
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 from harborapi import HarborAsyncClient
 from pythonjsonlogger import jsonlogger
 
-from src.utils import wait_until_healthy
-from src.password_utils import sync_admin_password
 from src.configuration import sync_harbor_configuration
-from src.registries import sync_registries
-from src.purge_job_schedule import sync_purge_job_schedule
 from src.garbage_collection_schedule import sync_garbage_collection_schedule
+from src.password_utils import load_new_admin_password, sync_admin_password
 from src.project_members import sync_project_members
 from src.projects import sync_projects
-from src.robot_accounts import sync_robot_accounts
-from src.webhooks import sync_webhooks
-from src.retention_policies import sync_retention_policies
+from src.purge_job_schedule import sync_purge_job_schedule
+from src.registries import sync_registries
 from src.replications import sync_replications
-
+from src.retention_policies import sync_retention_policies
+from src.robot_accounts import sync_robot_accounts
+from src.utils import wait_until_healthy
+from src.webhooks import sync_webhooks
 
 __version__ = os.getenv("HARBOR_OPERATOR_VERSION", "0.0.0-dev")
 
@@ -52,7 +51,7 @@ class HarborConfig:
         Raises:
             ValueError: If required environment variables are missing
         """
-        admin_password = os.environ.get("ADMIN_PASSWORD_NEW")
+        admin_password = load_new_admin_password()
         api_url = os.environ.get("HARBOR_API_URL")
         config_folder = os.environ.get("CONFIG_FOLDER_PATH")
 

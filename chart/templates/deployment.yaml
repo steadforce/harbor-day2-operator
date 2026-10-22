@@ -36,16 +36,6 @@ spec:
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           env:
-            - name: ADMIN_PASSWORD_NEW
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.harbor.newAdminSecretName }}
-                  key: ADMIN_PASSWORD
-            - name: ADMIN_PASSWORD_OLD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.harbor.oldAdminSecretName }}
-                  key: HARBOR_ADMIN_PASSWORD
             - name: HARBOR_API_URL
               value: {{ .Values.harbor.apiUrl }}
             - name: ADMIN_USERNAME
@@ -84,12 +74,33 @@ spec:
           volumeMounts:
             - name: config-volume
               mountPath: {{ .Values.configFolder }}
+            - name: admin-password-new
+              mountPath: /etc/secrets
+              readOnly: true
+            - name: admin-password-old
+              mountPath: /etc/secrets
+              readOnly: true
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
         - name: config-volume
           configMap:
             name: {{ include "harbor-day2-operator.fullname" . }}-config
+        - name: admin-password-new
+          secret:
+            secretName: {{ .Values.harbor.newAdminSecretName }}
+            items:
+              - key: ADMIN_PASSWORD
+                path: ADMIN_PASSWORD
+        - name: admin-password-old
+          secret:
+            secretName: {{ .Values.harbor.oldAdminSecretName }}
+            items:
+              - key: HARBOR_ADMIN_PASSWORD
+                path: HARBOR_ADMIN_PASSWORD
+        - name: oidc-static-client-token
+          secret:
+            secretName: {{  }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

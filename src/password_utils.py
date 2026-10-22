@@ -1,15 +1,25 @@
 import os
 from logging import Logger
+from pathlib import Path
 
 from harborapi import HarborAsyncClient
 from harborapi.exceptions import Unauthorized
 
-
 # Environment variables for Harbor configuration
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-OLD_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD_OLD")
-NEW_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD_NEW")
 API_URL = os.environ.get("HARBOR_API_URL")
+
+
+def load_new_admin_password() -> str:
+    """Load the new admin password from secret path."""
+    SECRET_PATH = Path("/etc/secrets/ADMIN_PASSWORD")
+    return SECRET_PATH.read_text().strip() if SECRET_PATH.exists() else None
+
+
+def load_old_admin_password() -> str:
+    """Load the old admin password from secret path."""
+    SECRET_PATH = Path("/etc/secrets/HARBOR_ADMIN_PASSWORD")
+    return SECRET_PATH.read_text().strip() if SECRET_PATH.exists() else None
 
 
 async def update_password(client: HarborAsyncClient, logger: Logger) -> None:
@@ -33,7 +43,7 @@ async def update_password(client: HarborAsyncClient, logger: Logger) -> None:
         old_password_client = HarborAsyncClient(
             url=API_URL,
             username=ADMIN_USERNAME,
-            secret=OLD_ADMIN_PASSWORD,
+            secret=load_old_admin_password(),
             timeout=10,
             verify=False,
         )
@@ -49,8 +59,8 @@ async def update_password(client: HarborAsyncClient, logger: Logger) -> None:
         try:
             await old_password_client.set_user_password(
                 user_id=admin.user_id,
-                old_password=OLD_ADMIN_PASSWORD,
-                new_password=NEW_ADMIN_PASSWORD,
+                old_password=load_old_admin_password(),
+                new_password=load_old_admin_password(),
             )
             logger.info("Admin password updated successfully")
         except Exception as e:
