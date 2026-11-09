@@ -8,9 +8,11 @@ The Harbor API of your instance can be found at: `your-harbor-origin/devcenter-a
 
 ## Requirements
 
-The project uses two requirements files:
+The project uses these requirements files:
 - `requirements.txt`: Contains the production dependencies with pinned versions
 - `dev_requirements.txt`: Contains development dependencies and base package names
+
+`build_requirements.txt` pins the build tools of the image (pip, setuptools, wheel, pyinstaller); Renovate proposes updates for it like for the other requirements files.
 
 `test_requirements.txt` holds the test tools (pytest) and is not part of the image: the script below generates
 `requirements.txt` from `dev_requirements.txt`, so test tools do not belong there. The unit tests run in CI before the image build and locally with:
@@ -453,3 +455,9 @@ When testing with Act, some GitHub Actions features are not fully supported:
 1. The `actions/upload-artifact` and `actions/download-artifact` actions require an `ACTIONS_RUNTIME_TOKEN` which Act doesn't provide
 2. Some GitHub context variables may not be available or may have different values
 3. Secrets handling is limited
+
+## Releases and tags
+
+A release is created by publishing a GitHub release whose tag is a plain semantic version without a `v` prefix (for example `1.2.3`).
+Publishing the release builds the image (`1.2.3`, `1.2`, `1`) and publishes the Helm chart. Pushing a tag alone does not start a build,
+so a release builds exactly once.
