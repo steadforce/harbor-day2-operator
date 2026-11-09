@@ -2,5 +2,13 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "config:recommended"
+  ],
+  "packageRules": [
+    {
+      "description": "Merge all GitHub Actions updates (versions, majors and digests) as soon as the checks of the pull request pass. Renovate merges itself because the repository does not allow GitHub auto-merge.",
+      "matchManagers": ["github-actions"],
+      "automerge": true,
+      "platformAutomerge": false
+    }
   ]
 }
