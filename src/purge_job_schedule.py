@@ -1,6 +1,7 @@
 import json
-from typing import Any, Dict
 from logging import Logger
+from typing import Any
+
 from harborapi.exceptions import NotFound
 
 from utils import load_json
@@ -27,7 +28,7 @@ async def sync_purge_job_schedule(client: Any, path: str, logger: Logger) -> Non
     try:
         # Load configuration using utility function
         try:
-            purge_job_schedule: Dict[str, Any] = load_json(path)
+            purge_job_schedule: dict[str, Any] = load_json(path)
         except (FileNotFoundError, json.JSONDecodeError) as e:
             logger.error(
                 "Failed to load purge job schedule configuration",
@@ -43,7 +44,7 @@ async def sync_purge_job_schedule(client: Any, path: str, logger: Logger) -> Non
                 extra={"schedule": purge_job_schedule},
             )
             await client.update_purge_job_schedule(purge_job_schedule)
-        except NotFound as e:
+        except NotFound:
             logger.info(
                 "Creating new purge job schedule",
                 extra={"schedule": purge_job_schedule},

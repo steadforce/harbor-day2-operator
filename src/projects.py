@@ -1,13 +1,13 @@
 import json
-from typing import List, Dict, Any, Set
 from logging import Logger
+from typing import Any
 
 from utils import fill_template
 
 
 async def load_target_projects(
     client: Any, path: str, logger: Logger
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Load and parse the target project configuration.
 
     Args:
@@ -27,8 +27,8 @@ async def load_target_projects(
 
 async def delete_unused_projects(
     client: Any,
-    current_projects: Dict[str, Any],
-    target_project_names: Set[str],
+    current_projects: dict[str, Any],
+    target_project_names: set[str],
     logger: Logger,
 ) -> None:
     """Delete projects that are not in the target configuration if they are empty.
@@ -39,7 +39,7 @@ async def delete_unused_projects(
         target_project_names: Set of project names from target configuration
         logger: Logger instance
     """
-    for project_name, _ in current_projects.items():
+    for project_name in current_projects:
         if project_name not in target_project_names:
             try:
                 repositories = await client.get_repositories(
@@ -57,7 +57,7 @@ async def delete_unused_projects(
                             "repo_count": len(repositories),
                         },
                     )
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - log and continue with the next project
                 logger.error(
                     "Failed to process project deletion",
                     extra={"project": project_name, "error": str(e)},
@@ -66,8 +66,8 @@ async def delete_unused_projects(
 
 async def update_or_create_projects(
     client: Any,
-    target_projects: List[Dict[str, Any]],
-    current_project_map: Dict[str, Any],
+    target_projects: list[dict[str, Any]],
+    current_project_map: dict[str, Any],
     logger: Logger,
 ) -> None:
     """Update existing projects or create new ones based on target configuration.
@@ -91,7 +91,7 @@ async def update_or_create_projects(
             else:
                 logger.info("Creating new project", extra={"project": project_name})
                 await client.create_project(project=target_project)
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - log and continue with the next project
             logger.error(
                 "Failed to process project configuration",
                 extra={"project": project_name, "error": str(e)},

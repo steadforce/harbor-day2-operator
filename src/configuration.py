@@ -4,13 +4,13 @@ This module handles the synchronization of Harbor configuration settings,
 including OIDC authentication parameters.
 """
 
+import json
 import logging
 import os
-import json
 
 from harborapi.client import HarborAsyncClient
-from harborapi.models import Configurations
 from harborapi.exceptions import HarborAPIException
+from harborapi.models import Configurations
 
 from utils import load_json
 

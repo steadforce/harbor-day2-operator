@@ -4,7 +4,6 @@ from logging import Logger
 from harborapi import HarborAsyncClient
 from harborapi.exceptions import Unauthorized
 
-
 # Environment variables for Harbor configuration
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
 OLD_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD_OLD")

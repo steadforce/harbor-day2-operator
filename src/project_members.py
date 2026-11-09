@@ -4,14 +4,14 @@ This module handles the synchronization of Harbor project members,
 including role assignments and member management.
 """
 
-import logging
 import json
+import logging
+from collections.abc import Sequence
 from enum import Enum
-from typing import Sequence
 
 from harborapi.client import HarborAsyncClient
+from harborapi.exceptions import HarborAPIException, NotFound
 from harborapi.models import ProjectMemberEntity
-from harborapi.exceptions import NotFound, HarborAPIException
 
 from .utils import load_json
 

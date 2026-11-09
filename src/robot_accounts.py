@@ -1,20 +1,19 @@
 import json
 import os
-from typing import List, Dict, Any, Tuple
 from logging import Logger
+from typing import Any
 
+from harborapi.exceptions import BadRequest, Conflict
 from harborapi.models import Robot
-from harborapi.exceptions import Conflict, BadRequest
 
 from utils import load_json
-
 
 ROBOT_NAME_PREFIX = os.environ.get("ROBOT_NAME_PREFIX", "")
 HARBOR_BUILD_PREFIX = "build."
 ROBOT_NAME_PROJECT_SUFFIX = "+"
 
 
-def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
+def load_target_robots(path: str, logger: Logger) -> list[dict[str, Any]]:
     """Load robot account configurations from file.
 
     Args:
@@ -38,8 +37,8 @@ def load_target_robots(path: str, logger: Logger) -> List[Dict[str, Any]]:
 
 
 def prepare_target_robots(
-    target_robots: List[Dict[str, Any]], logger: Logger
-) -> List[Tuple[str, Dict[str, Any]]]:
+    target_robots: list[dict[str, Any]], logger: Logger
+) -> list[tuple[str, dict[str, Any]]]:
     """Prepare target robots by constructing their full names.
 
     Args:
@@ -60,7 +59,7 @@ def prepare_target_robots(
         except KeyError as e:
             logger.error(
                 "Invalid robot configuration",
-                extra={"robot": target_robot, "error": f"Missing field: {str(e)}"},
+                extra={"robot": target_robot, "error": f"Missing field: {e!s}"},
             )
             raise
     return target_robots_with_names
@@ -79,17 +78,15 @@ def normalize_robot_name_for_comparison(robot_name: str) -> str:
     Returns:
         str: Normalized robot name without the build prefix
     """
-    if robot_name.startswith(HARBOR_BUILD_PREFIX):
-        robot_name = robot_name[len(HARBOR_BUILD_PREFIX) :]
-    if robot_name.startswith(ROBOT_NAME_PREFIX):
-        robot_name = robot_name[len(ROBOT_NAME_PREFIX) :]
+    robot_name = robot_name.removeprefix(HARBOR_BUILD_PREFIX)
+    robot_name = robot_name.removeprefix(ROBOT_NAME_PREFIX)
     _, sep, tail = robot_name.partition(ROBOT_NAME_PROJECT_SUFFIX)
     return tail if sep else robot_name
 
 
 async def delete_unused_robots(
     client: Any,
-    current_robot_map: Dict[str, Any],
+    current_robot_map: dict[str, Any],
     target_robot_names: set,
     logger: Logger,
 ) -> None:
@@ -131,8 +128,8 @@ async def delete_unused_robots(
 async def process_single_robot(
     client: Any,
     full_name: str,
-    target_config: Dict[str, Any],
-    current_robot_map: Dict[str, Any],
+    target_config: dict[str, Any],
+    current_robot_map: dict[str, Any],
     logger: Logger,
 ) -> None:
     """Process a single robot account, either updating existing or creating new.
@@ -250,7 +247,7 @@ async def sync_robot_accounts(client: Any, path: str, logger: Logger) -> None:
         raise
 
 
-async def get_all_robots(client: Any, logger: Logger) -> List[Robot]:
+async def get_all_robots(client: Any, logger: Logger) -> list[Robot]:
     """Fetch all robot accounts from Harbor (both system and project level).
 
     Args:
@@ -279,7 +276,7 @@ async def get_all_robots(client: Any, logger: Logger) -> List[Robot]:
     return system_robots + project_robots
 
 
-def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
+def construct_full_robot_name(target_robot: dict[str, Any]) -> str:
     """Construct the full robot name including prefix and namespace if applicable.
 
     Args:
@@ -300,7 +297,7 @@ def construct_full_robot_name(target_robot: Dict[str, Any]) -> str:
 
 
 async def set_robot_secret(
-    client: Any, target_config: Dict[str, Any], robot_id: int, robot_name: str, logger: Logger
+    client: Any, target_config: dict[str, Any], robot_id: int, robot_name: str, logger: Logger
 ) -> None:
     """Set robot account secret from configuration.
 

@@ -1,11 +1,11 @@
-from typing import List, Dict, Any, Set
-from logging import Logger
 import json
+from logging import Logger
+from typing import Any
 
 from utils import load_json
 
 
-def load_webhook_configs(path: str, logger: Logger) -> List[Dict[str, Any]]:
+def load_webhook_configs(path: str, logger: Logger) -> list[dict[str, Any]]:
     """Load webhook configurations from file.
 
     Args:
@@ -32,8 +32,8 @@ def load_webhook_configs(path: str, logger: Logger) -> List[Dict[str, Any]]:
 async def delete_unused_policies(
     client: Any,
     project_name: str,
-    current_policy_map: Dict[str, Any],
-    target_policy_names: Set[str],
+    current_policy_map: dict[str, Any],
+    target_policy_names: set[str],
     logger: Logger,
 ) -> None:
     """Delete webhook policies that exist in Harbor but not in config.
@@ -73,8 +73,8 @@ async def delete_unused_policies(
 async def process_single_policy(
     client: Any,
     project_name: str,
-    target_policy: Dict[str, Any],
-    current_policy_map: Dict[str, Any],
+    target_policy: dict[str, Any],
+    current_policy_map: dict[str, Any],
     logger: Logger,
 ) -> None:
     """Process a single webhook policy, either updating existing or creating new.
@@ -124,7 +124,7 @@ async def process_single_policy(
             extra={
                 "project": project_name,
                 "policy": target_policy,
-                "error": f"Missing required field: {str(e)}",
+                "error": f"Missing required field: {e!s}",
             },
         )
         raise
@@ -137,7 +137,7 @@ async def process_single_policy(
 
 
 async def sync_webhook(
-    client: Any, logger: Logger, project_name: str, policies: List[Dict[str, Any]]
+    client: Any, logger: Logger, project_name: str, policies: list[dict[str, Any]]
 ) -> None:
     """Synchronize webhook policies for a specific project.
 

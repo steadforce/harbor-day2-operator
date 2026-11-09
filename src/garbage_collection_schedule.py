@@ -4,8 +4,8 @@ This module handles the synchronization of Harbor garbage collection schedules,
 including creation and updates of GC schedules.
 """
 
-import logging
 import json
+import logging
 
 from harborapi.client import HarborAsyncClient
 from harborapi.exceptions import HarborAPIException

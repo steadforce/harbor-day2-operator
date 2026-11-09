@@ -1,6 +1,7 @@
 import json
-from typing import Any, Dict, List
 from logging import Logger
+from typing import Any
+
 from harborapi.exceptions import NotFound
 
 from utils import fill_template
@@ -8,7 +9,7 @@ from utils import fill_template
 
 async def load_retention_policies(
     client: Any, path: str, logger: Logger
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Load and parse retention policies from template file.
 
     Args:
@@ -41,7 +42,7 @@ async def load_retention_policies(
 
 
 async def process_single_policy(
-    client: Any, policy: Dict[str, Any], logger: Logger
+    client: Any, policy: dict[str, Any], logger: Logger
 ) -> None:
     """Process a single retention policy, either updating existing or creating new.
 
@@ -66,7 +67,7 @@ async def process_single_policy(
             )
             await client.update_retention_policy(retention_id, policy)
 
-        except NotFound as e:
+        except NotFound:
             # Create new policy if one doesn't exist
             logger.info(
                 "Creating new retention policy", extra={"project_id": project_id}
@@ -83,7 +84,7 @@ async def process_single_policy(
     except KeyError as e:
         logger.error(
             "Invalid retention policy configuration",
-            extra={"policy": policy, "error": f"Missing required field: {str(e)}"},
+            extra={"policy": policy, "error": f"Missing required field: {e!s}"},
         )
         raise
     except Exception as e:

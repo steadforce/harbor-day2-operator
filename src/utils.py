@@ -1,14 +1,13 @@
-import os
+import asyncio
 import json
+import os
 import re
-from pathlib import Path
-from time import sleep
-from typing import Dict, Any
 from logging import Logger
+from pathlib import Path
+from typing import Any
 
 import chevron
 from harborapi import HarborAsyncClient
-
 
 # Environment variables for Harbor configuration
 API_URL = os.environ.get("HARBOR_API_URL")
@@ -31,9 +30,9 @@ async def wait_until_healthy(client: HarborAsyncClient, logger: Logger) -> None:
                 logger.info("Harbor is healthy")
                 break
             logger.info("Waiting for harbor to become healthy")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 - any failure means "not healthy yet", retry
             logger.warning("Health check failed", extra={"error": str(e)})
-        sleep(5)
+        await asyncio.sleep(5)
 
 
 def replace_env_vars_in_obj(obj: Any) -> Any:
@@ -67,7 +66,7 @@ def replace_env_vars_in_obj(obj: Any) -> Any:
         return obj
 
 
-def load_json(path: str) -> Dict[str, Any]:
+def load_json(path: str) -> dict[str, Any]:
     """Load JSON data from a file and replace environment variable placeholders.
 
     Args:
@@ -111,7 +110,7 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
         Exception: If any Harbor API operation fails
     """
     try:
-        with open(path, "r") as file:
+        with open(path, "r") as file:  # noqa: ASYNC230 - small local template file
             content = file.read()
 
             placeholders = re.findall(
@@ -119,7 +118,7 @@ async def fill_template(client: HarborAsyncClient, path: str, logger: Logger) ->
             )
             logger.info("Found id templates", extra={"placeholders": placeholders})
 
-            replacements: Dict[str, Any] = {}
+            replacements: dict[str, Any] = {}
             for placeholder in (p.strip(" {}") for p in placeholders):
                 try:
                     placeholder_type, placeholder_value = placeholder.split(":")
