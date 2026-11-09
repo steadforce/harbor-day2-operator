@@ -43,6 +43,17 @@ jobs:
         src: "./src"
         args: format
 
+    - name: Set up Python
+      uses: actions/setup-python@v6
+      with:
+        python-version: "3.13"
+
+    - name: Install dependencies for the tests
+      run: pip install -r requirements.txt -r test_requirements.txt
+
+    - name: Run tests
+      run: python -m pytest tests
+
     - name: Lint Dockerfile
       uses: hadolint/hadolint-action@v3.3.0
       with:
