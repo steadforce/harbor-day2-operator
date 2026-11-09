@@ -5,10 +5,10 @@
   ],
   "packageRules": [
     {
-      "description": "Merge all GitHub Actions updates (versions, majors and digests) as soon as the checks of the pull request pass. Renovate merges itself because the repository does not allow GitHub auto-merge.",
+      "description": "Merge all GitHub Actions updates (versions, majors and digests) as soon as the checks of the pull request pass. GitHub auto-merge waits for the required check of the main-requires-green-build ruleset.",
       "matchManagers": ["github-actions"],
       "automerge": true,
-      "platformAutomerge": false
+      "platformAutomerge": true
     }
   ]
 }
