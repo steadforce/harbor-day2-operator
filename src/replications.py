@@ -1,13 +1,13 @@
-from typing import List, Dict, Any, Set
-from logging import Logger
 import json
+from logging import Logger
+from typing import Any
 
 from utils import fill_template
 
 
 async def load_replication_configs(
     client: Any, path: str, logger: Logger
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Load replication configurations from template file.
 
     Args:
@@ -35,8 +35,8 @@ async def load_replication_configs(
 
 async def delete_unused_replications(
     client: Any,
-    current_replications: List[Any],
-    target_replication_names: Set[str],
+    current_replications: list[Any],
+    target_replication_names: set[str],
     logger: Logger,
 ) -> None:
     """Delete replication rules that exist in Harbor but not in config.
@@ -68,8 +68,8 @@ async def delete_unused_replications(
 
 async def process_single_replication(
     client: Any,
-    target_replication: Dict[str, Any],
-    current_replications: List[Any],
+    target_replication: dict[str, Any],
+    current_replications: list[Any],
     logger: Logger,
 ) -> None:
     """Process a single replication rule, either updating existing or creating new.
@@ -112,7 +112,7 @@ async def process_single_replication(
             "Invalid replication configuration",
             extra={
                 "replication": target_replication,
-                "error": f"Missing required field: {str(e)}",
+                "error": f"Missing required field: {e!s}",
             },
         )
         raise

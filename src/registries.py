@@ -1,11 +1,11 @@
-from typing import Any, Dict, List, Set
-from logging import Logger
 import json
+from logging import Logger
+from typing import Any
 
 from utils import load_json
 
 
-def load_target_registries(path: str, logger: Logger) -> List[Dict[str, Any]]:
+def load_target_registries(path: str, logger: Logger) -> list[dict[str, Any]]:
     """Load registry configurations from file.
 
     Args:
@@ -31,8 +31,8 @@ def load_target_registries(path: str, logger: Logger) -> List[Dict[str, Any]]:
 
 async def delete_unused_registries(
     client: Any,
-    current_registry_map: Dict[str, Any],
-    target_registry_names: Set[str],
+    current_registry_map: dict[str, Any],
+    target_registry_names: set[str],
     logger: Logger,
 ) -> None:
     """Delete registries that exist in Harbor but not in the config.
@@ -63,8 +63,8 @@ async def delete_unused_registries(
 
 async def update_or_create_registries(
     client: Any,
-    target_registries: List[Dict[str, Any]],
-    current_registry_map: Dict[str, Any],
+    target_registries: list[dict[str, Any]],
+    current_registry_map: dict[str, Any],
     logger: Logger,
 ) -> None:
     """Update existing registries or create new ones based on configuration.
