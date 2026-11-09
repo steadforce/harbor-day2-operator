@@ -2,6 +2,8 @@ import json
 from logging import Logger
 from typing import Any
 
+from harborapi.models import QuotaUpdateReq, ResourceList
+
 from utils import fill_template
 
 
@@ -64,6 +66,60 @@ async def delete_unused_projects(
                 )
 
 
+async def sync_project_quota(
+    client: Any,
+    current_project: Any,
+    target_project: dict[str, Any],
+    logger: Logger,
+) -> None:
+    """Set the storage quota of an existing project to its configured storage_limit.
+
+    Harbor ignores storage_limit in the project update (PUT /projects/{id}); the
+    limit of an existing project is changed through the quota (PUT /quotas/{id}).
+    A failure is logged like other project errors and does not stop the run.
+
+    Args:
+        client: Harbor API client instance
+        current_project: The project as returned by Harbor (has project_id)
+        target_project: Target project configuration; without storage_limit nothing is changed
+        logger: Logger instance
+    """
+    project_name = target_project["project_name"]
+    if "storage_limit" not in target_project:
+        return
+    target_limit = int(target_project["storage_limit"])
+    try:
+        quotas = await client.get_quotas(
+            reference="project", reference_id=str(current_project.project_id)
+        )
+        if len(quotas) != 1:
+            logger.error(
+                "Expected exactly one quota for the project",
+                extra={"project": project_name, "quotas": len(quotas)},
+            )
+            return
+        quota = quotas[0]
+        current_limit = (quota.hard.root if quota.hard else {}).get("storage")
+        if current_limit == target_limit:
+            return
+        logger.info(
+            "Updating project storage quota",
+            extra={
+                "project": project_name,
+                "from": current_limit,
+                "to": target_limit,
+            },
+        )
+        await client.update_quota(
+            quota.id, QuotaUpdateReq(hard=ResourceList(root={"storage": target_limit}))
+        )
+    except Exception as e:  # noqa: BLE001 - log and continue with the next project
+        logger.error(
+            "Failed to update project storage quota",
+            extra={"project": project_name, "error": str(e)},
+        )
+
+
 async def update_or_create_projects(
     client: Any,
     target_projects: list[dict[str, Any]],
@@ -87,6 +143,12 @@ async def update_or_create_projects(
                 )
                 await client.update_project(
                     project_name_or_id=project_name, project=target_project
+                )
+                await sync_project_quota(
+                    client,
+                    current_project_map[project_name],
+                    target_project,
+                    logger,
                 )
             else:
                 logger.info("Creating new project", extra={"project": project_name})
