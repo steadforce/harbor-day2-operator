@@ -11,9 +11,9 @@ ENV PATH="${PATH}:/home/nonroot/.local/bin"
 FROM base AS builder_package
 # hadolint ignore=DL3018
 RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev
-COPY build_requirements.txt build_requirements.txt
+COPY build_requirements.txt /build_requirements.txt
 # hadolint ignore=DL3059
-RUN pip3 install --no-cache-dir -r build_requirements.txt
+RUN pip3 install --no-cache-dir -r /build_requirements.txt
 
 FROM builder_package AS builder
 WORKDIR /build
