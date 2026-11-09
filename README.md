@@ -12,6 +12,14 @@ The project uses two requirements files:
 - `requirements.txt`: Contains the production dependencies with pinned versions
 - `dev_requirements.txt`: Contains development dependencies and base package names
 
+`test_requirements.txt` holds the test tools (pytest) and is not part of the image: the script below generates
+`requirements.txt` from `dev_requirements.txt`, so test tools do not belong there. The unit tests run in CI before the image build and locally with:
+
+```bash
+pip install -r requirements.txt -r test_requirements.txt
+python -m pytest tests
+```
+
 To update the `requirements.txt` file with proper version pinning, use the `create_requirements_in_container.sh` script:
 
 ```bash
