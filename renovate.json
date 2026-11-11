@@ -7,8 +7,10 @@
   "labels": ["dependencies"],
   "packageRules": [
     {
-      "description": "Merge all GitHub Actions updates (versions, majors and digests) as soon as the checks of the pull request pass. GitHub auto-merge waits for the required check of the main-requires-green-build ruleset.",
+      "description": "Merge all GitHub Actions updates (versions, majors and digests) three days after release, once the checks of the pull request pass. Updates without a release date (digests) are not held. GitHub auto-merge waits for the required check of the main-requires-green-build ruleset.",
       "matchManagers": ["github-actions"],
+      "minimumReleaseAge": "3 days",
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
       "automerge": true,
       "platformAutomerge": true
     },
