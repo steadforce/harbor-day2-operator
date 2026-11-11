@@ -213,7 +213,7 @@ jobs:
         format: table
         exit-code: ${{ github.event_name == 'pull_request' && '0' || '1' }}
         skip-dirs: "**/site-packages/pip,**/site-packages/setuptools,**/site-packages/pkg_resources"
-        skip-files: "**/site-packages/pyinstaller*.dist-info/METADATA,**/site-packages/pyinstaller_hooks_contrib*.dist-info/METADATA,**/site-packages/altgraph*.dist-info/METADATA,**/site-packages/wheel*.dist-info/METADATA"
+        skip-files: "**/site-packages/pip-*.dist-info/METADATA,**/site-packages/setuptools-*.dist-info/METADATA,**/site-packages/pyinstaller*.dist-info/METADATA,**/site-packages/pyinstaller_hooks_contrib*.dist-info/METADATA,**/site-packages/altgraph*.dist-info/METADATA,**/site-packages/wheel*.dist-info/METADATA"
 
     - name: Push the scanned image
       id: push
