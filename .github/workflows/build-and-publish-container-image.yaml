@@ -200,6 +200,10 @@ jobs:
     - name: Scan the Python libraries with Trivy
       if: ${{ !github.event.act }}
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      env:
+        # Libraries only: the builder stage also has build-only OS packages (build-base, openssl-dev, glibc-dev) that are
+        # not in the published image; the OS packages of the published image are scanned above.
+        TRIVY_PKG_TYPES: library
       with:
         image-ref: ${{ env.IMAGE_NAME }}:builder-scan
         version: v0.76.1
