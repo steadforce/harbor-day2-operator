@@ -114,8 +114,7 @@ jobs:
         context: .
         push: false
         tags: ${{ env.IMAGE_NAME }}:test
-      env:
-        HARBOR_OPERATOR_VERSION: ${{ env.VERSION }}
+        build-args: HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
 
     - name: Test harbor binary
       run: |
@@ -130,5 +129,6 @@ jobs:
       with:
         context: .
         push: ${{ github.event_name != 'pull_request' && !github.event.act }}
+        build-args: HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
         tags: ${{ github.event.act && steps.meta-local.outputs.tags || steps.meta.outputs.tags }}
         labels: ${{ github.event.act && steps.meta-local.outputs.labels || steps.meta.outputs.labels }}
