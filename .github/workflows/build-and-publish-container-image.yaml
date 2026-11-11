@@ -29,6 +29,9 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: harbor-day2-operator
+  # Trivy version of all scan and SBOM steps, kept up to date by Renovate (customManagers in renovate.json).
+  # renovate: datasource=github-releases depName=aquasecurity/trivy
+  SCANNER_TRIVY_VERSION: v0.76.2
 
 jobs:
   build-and-push-image:
@@ -177,7 +180,7 @@ jobs:
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
         image-ref: ${{ steps.image.outputs.ref }}
-        version: v0.76.2
+        version: ${{ env.SCANNER_TRIVY_VERSION }}
         scanners: vuln
         severity: CRITICAL,HIGH
         ignore-unfixed: true
@@ -206,7 +209,7 @@ jobs:
         TRIVY_PKG_TYPES: library
       with:
         image-ref: ${{ env.IMAGE_NAME }}:builder-scan
-        version: v0.76.1
+        version: ${{ env.SCANNER_TRIVY_VERSION }}
         scanners: vuln
         severity: CRITICAL,HIGH
         ignore-unfixed: true
@@ -257,7 +260,7 @@ jobs:
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
         image-ref: ${{ steps.image.outputs.ref }}
-        version: v0.76.1
+        version: ${{ env.SCANNER_TRIVY_VERSION }}
         format: cyclonedx
         output: sbom-os.cdx.json
         exit-code: "0"
@@ -269,7 +272,7 @@ jobs:
         TRIVY_PKG_TYPES: library
       with:
         image-ref: ${{ env.IMAGE_NAME }}:builder-scan
-        version: v0.76.1
+        version: ${{ env.SCANNER_TRIVY_VERSION }}
         format: cyclonedx
         output: sbom-python.cdx.json
         exit-code: "0"

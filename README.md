@@ -496,6 +496,9 @@ Every image that is pushed (releases, `main` and branch builds) is scanned and s
   public Rekor log) and the signature is verified in the same run. There is no key or secret to manage.
 - **Pinned scan tools:** `trivy-action` and `cosign-installer` are pinned to commit SHAs (most `trivy-action` tags were rewritten to
   malicious commits in March 2026); Renovate keeps the SHAs and the version comments up to date.
+  The Trivy version itself is set once in `SCANNER_TRIVY_VERSION` at the top of the build workflow and used by all four Trivy steps; Renovate
+  updates it (a custom regex manager in `renovate.json`) three days after release and merges it when the checks pass (a malicious Trivy
+  release was published in March 2026, hence the wait).
 
 Verify an image before using it:
 

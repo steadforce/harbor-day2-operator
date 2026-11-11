@@ -5,12 +5,30 @@
   ],
   "internalChecksFilter": "strict",
   "labels": ["dependencies"],
+  "customManagers": [
+    {
+      "description": "Version of the Trivy binary that trivy-action installs, set once in an env variable of the workflows (comment above it names datasource and package).",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.ya?ml$/"],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+\\w+: (?<currentValue>\\S+)"
+      ]
+    }
+  ],
   "packageRules": [
     {
       "description": "Merge all GitHub Actions updates (versions, majors and digests) three days after release, once the checks of the pull request pass. Updates without a release date (digests) are not held. GitHub auto-merge waits for the required check of the main-requires-green-build ruleset.",
       "matchManagers": ["github-actions"],
       "minimumReleaseAge": "3 days",
       "minimumReleaseAgeBehaviour": "timestamp-optional",
+      "automerge": true,
+      "platformAutomerge": true
+    },
+    {
+      "description": "Trivy is the gate for every published image, so its updates wait three days like the GitHub Actions updates (a malicious Trivy release was published in March 2026) and are merged once the checks pass.",
+      "matchDepNames": ["aquasecurity/trivy"],
+      "matchManagers": ["custom.regex"],
+      "minimumReleaseAge": "3 days",
       "automerge": true,
       "platformAutomerge": true
     },
