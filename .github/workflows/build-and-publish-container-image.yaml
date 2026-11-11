@@ -52,9 +52,11 @@ jobs:
         # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
         # or publish commits that are no longer the head of main.
         set -euo pipefail
-        existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
+        # The tag exists with or without the `v` prefix
+        existing=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/" --jq ".[].ref" \
+          | grep -cxE "refs/tags/v?${VERSION//./\\.}" || true)
         if [[ "$existing" != "0" ]]; then
-          echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+          echo "Tag ${VERSION} (or v${VERSION}) already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
           exit 1
         fi
         main=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
@@ -127,6 +129,7 @@ jobs:
           VERSION=$INPUT_VERSION
         elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
           VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION#v}
         else
           VERSION=0.0.0-dev
         fi
@@ -324,8 +327,9 @@ jobs:
         TAG: ${{ github.event.release.tag_name }}
       run: |
         set -euo pipefail
-        mv sbom.cdx.json "harbor-day2-operator-${TAG}.cdx.json"
-        gh release upload "$TAG" "harbor-day2-operator-${TAG}.cdx.json" --repo "$GITHUB_REPOSITORY" --clobber
+        # The file name carries the version without a `v` prefix
+        mv sbom.cdx.json "harbor-day2-operator-${TAG#v}.cdx.json"
+        gh release upload "$TAG" "harbor-day2-operator-${TAG#v}.cdx.json" --repo "$GITHUB_REPOSITORY" --clobber
 
   # Announces manual releases (published GitHub release) in the Teams release channel. Builds called by the nightly
   # release workflow are announced there, and branch and pull request builds are not announced. The steps skip
@@ -339,6 +343,10 @@ jobs:
     env:
       MS_TEAMS_RELEASE_WEBHOOK: ${{ secrets.STEADOPS_RELEASE_MS_TEAMS_WEBHOOK }}
     steps:
+    - name: Name the version without prefix
+      run: echo "RELEASE_VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      env:
+        TAG: ${{ github.event.release.tag_name }}
     - name: Notify MS Teams about the published image
       if: ${{ needs.build-and-push-image.result == 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
@@ -348,7 +356,7 @@ jobs:
         status: success
         title: "Image ${{ github.event.release.tag_name }} published"
         facts: |
-          Image=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
+          Image=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.RELEASE_VERSION }}
           Release=${{ github.event.release.html_url }}
     - name: Notify MS Teams about the failed image
       if: ${{ needs.build-and-push-image.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}

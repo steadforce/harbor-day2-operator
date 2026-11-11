@@ -1,8 +1,10 @@
 name: Nightly patch release
 
-# Creates a patch release (x.y.z -> x.y.z+1) when a DEPENDENCY changed since the newest stable release tag.
+# Creates a patch release (x.y.z -> x.y.z+1, or vX.Y.Z -> vX.Y.Z+1) when a DEPENDENCY changed since the newest stable release tag.
 # Only the files in DEPENDENCY_FILES count: changes of src/, tests/, chart/, .github/ and the README never trigger a release.
 # Minor and major releases stay manual: publish a GitHub release by hand, the next nightly run continues from its tag.
+# Release tags may have a `v` prefix (v1.4.0) or not (1.4.0); the next tag gets the prefix style of the newest one.
+# Image tags, chart version, binary version and the SBOM file name never have the prefix.
 #
 # Order: plan -> image and chart (workflows called with the version and the commit) -> tag and GitHub release with generated notes.
 # The tag and release are created last, so a failed build leaves no release behind and the next night tries again.
@@ -39,6 +41,7 @@ jobs:
     outputs:
       release: ${{ steps.plan.outputs.release }}
       version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
       last: ${{ steps.plan.outputs.last }}
       sha: ${{ steps.plan.outputs.sha }}
     steps:
@@ -55,12 +58,16 @@ jobs:
           echo "Releases are only created from main, this run is on $GITHUB_REF" >&2
           exit 1
         fi
-        # Newest stable tag, prereleases such as 1.1.1-test4 are ignored
-        last=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+        # Newest stable tag with or without `v` prefix, prereleases such as 1.1.1-test4 are ignored. The tags are sorted by
+        # their version without the prefix, otherwise every `v` tag would sort after every plain tag.
+        last=$(git tag --list | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | while read -r t; do echo "${t#v} $t"; done \
+          | sort -V -k1,1 | tail -1 | cut -d' ' -f2 || true)
         if [[ -z "$last" ]]; then
-          echo "No stable release tag (x.y.z) found" >&2
+          echo "No stable release tag (x.y.z or vX.Y.Z) found" >&2
           exit 1
         fi
+        prefix=""
+        if [[ "$last" == v* ]]; then prefix="v"; fi
         # A re-run of an older run checks out its old commit but sees newer tags: never plan from a commit behind the newest release
         if ! git merge-base --is-ancestor "refs/tags/${last}" HEAD; then
           echo "Newest release ${last} is not an ancestor of this commit, start a new run on the current main" >&2
@@ -83,17 +90,18 @@ jobs:
           echo "- No dependency file changed since \`$last\`: **no release**" >> "$GITHUB_STEP_SUMMARY"
           exit 0
         fi
-        IFS=. read -r major minor patch <<< "$last"
+        IFS=. read -r major minor patch <<< "${last#v}"
         version="${major}.${minor}.$((patch + 1))"
         {
           echo "release=true"
           echo "version=$version"
+          echo "tag=${prefix}${version}"
         } >> "$GITHUB_OUTPUT"
         {
           echo "- Changed dependency files:"
           # shellcheck disable=SC2001,SC2016 # backticks are meant literally (Markdown)
           echo "$changed" | sed 's/^/  - `/; s/$/`/'
-          echo "- New release: **\`$version\`**"
+          echo "- New release: **\`${prefix}${version}\`**"
           if [[ "${{ inputs.dry_run }}" == "true" ]]; then echo "- Dry run: nothing is built or published"; fi
         } >> "$GITHUB_STEP_SUMMARY"
 
@@ -142,13 +150,14 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: ${{ needs.plan.outputs.version }}
+        TAG: ${{ needs.plan.outputs.tag }}
         LAST: ${{ needs.plan.outputs.last }}
         SHA: ${{ needs.plan.outputs.sha }}
       run: |
         set -euo pipefail
         mv sbom.cdx.json "harbor-day2-operator-${VERSION}.cdx.json"
-        gh release create "$VERSION" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
-          --title "$VERSION" --generate-notes --notes-start-tag "$LAST"
+        gh release create "$TAG" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
+          --title "$TAG" --generate-notes --notes-start-tag "$LAST"
 
   # Announces published and failed releases in the Teams release channel (nothing is sent when no release is due).
   # The steps skip themselves while the secret is empty.
@@ -168,11 +177,11 @@ jobs:
       with:
         webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
         status: success
-        title: "Release ${{ needs.plan.outputs.version }} published"
+        title: "Release ${{ needs.plan.outputs.tag }} published"
         facts: |
           Image=ghcr.io/${{ github.repository_owner }}/harbor-day2-operator:${{ needs.plan.outputs.version }}
           Chart=oci://ghcr.io/${{ github.repository_owner }}/chart/harbor-day2-operator:${{ needs.plan.outputs.version }}
-          Release=${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.plan.outputs.version }}
+          Release=${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.plan.outputs.tag }}
     - name: Notify MS Teams about the failed release
       if: ${{ needs.release.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
@@ -180,7 +189,7 @@ jobs:
       with:
         webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
         status: failure
-        title: "Release ${{ needs.plan.outputs.version || '(planning)' }} failed"
+        title: "Release ${{ needs.plan.outputs.tag || '(planning)' }} failed"
         facts: |
           Plan=${{ needs.plan.result }}
           Image=${{ needs.image.result }}
