@@ -1,0 +1,13 @@
+# Configuration of the generated GitHub release notes ("Generate release notes", `gh release create --generate-notes`).
+# Pull requests are grouped by label; Renovate adds the label `dependencies` (see renovate.json).
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+  categories:
+    - title: Dependency updates
+      labels:
+        - dependencies
+    - title: Other changes
+      labels:
+        - "*"
