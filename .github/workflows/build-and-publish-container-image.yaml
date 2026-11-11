@@ -305,7 +305,7 @@ jobs:
   attach-sbom:
     name: Attach the SBOM to the release
     needs: build-and-push-image
-    if: ${{ github.event_name == 'release' && needs.build-and-push-image.result == 'success' }}
+    if: ${{ github.event_name == 'release' && needs.build-and-push-image.result == 'success' && !github.event.act }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
