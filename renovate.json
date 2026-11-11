@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended"
   ],
+  "internalChecksFilter": "strict",
   "packageRules": [
     {
       "description": "Merge all GitHub Actions updates (versions, majors and digests) as soon as the checks of the pull request pass. GitHub auto-merge waits for the required check of the main-requires-green-build ruleset.",
@@ -11,9 +12,11 @@
       "platformAutomerge": true
     },
     {
-      "description": "Merge patch, digest and pin updates of Python requirements and of the Dockerfile (base image digest, syntax image) as soon as the checks pass. Minor and major updates stay manual.",
+      "description": "Merge patch, digest and pin updates of Python requirements and of the Dockerfile (base image digest, syntax image) three days after release, once the checks pass. Digests have no release date and are not held (wolfi-base only offers latest). Minor and major updates stay manual.",
       "matchManagers": ["pip_requirements", "dockerfile"],
       "matchUpdateTypes": ["patch", "digest", "pin"],
+      "minimumReleaseAge": "3 days",
+      "minimumReleaseAgeBehaviour": "timestamp-optional",
       "automerge": true,
       "platformAutomerge": true
     }
