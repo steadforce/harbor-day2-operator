@@ -12,6 +12,18 @@ on:
     branches:
       - main
       - helm-chart
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version without prefix (for example 1.2.3), used for image tags, chart version and the binary version"
+        type: string
+        required: false
+        default: ""
+      ref:
+        description: "Commit to build, empty for the commit of the triggering event"
+        type: string
+        required: false
+        default: ""
 
 
 env:
@@ -26,8 +38,31 @@ jobs:
       packages: write
 
     steps:
+    - name: Refuse to publish an outdated release plan
+      if: ${{ inputs.version != '' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ inputs.version }}
+        REF: ${{ inputs.ref || github.sha }}
+      run: |
+        # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
+        # or publish commits that are no longer the head of main.
+        set -euo pipefail
+        existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
+        if [[ "$existing" != "0" ]]; then
+          echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+          exit 1
+        fi
+        main=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
+        if [[ "$main" != "$REF" ]]; then
+          echo "Planned commit $REF is not the head of main ($main) any more. Start a new run of the nightly workflow." >&2
+          exit 1
+        fi
+
     - name: Checkout repository
       uses: actions/checkout@v7
+      with:
+        ref: ${{ inputs.ref }}
 
     - name: Run Ruff Check
       uses: astral-sh/ruff-action@v4.1.0
@@ -74,15 +109,19 @@ jobs:
         tags: |
           type=ref,event=branch
           type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
+          type=semver,pattern={{version}},value=${{ inputs.version }}
+          type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+          type=semver,pattern={{major}},value=${{ inputs.version }}
           type=sha
 
     - name: Set version
       id: version
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
-        if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+        if [[ -n "$INPUT_VERSION" ]]; then
+          VERSION=$INPUT_VERSION
+        elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
           VERSION=${GITHUB_REF#refs/tags/}
         else
           VERSION=0.0.0-dev
@@ -96,8 +135,7 @@ jobs:
         context: .
         push: false
         tags: ${{ env.IMAGE_NAME }}:test
-      env:
-        HARBOR_OPERATOR_VERSION: ${{ env.VERSION }}
+        build-args: HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
 
     - name: Test harbor binary
       run: |
@@ -112,5 +150,6 @@ jobs:
       with:
         context: .
         push: ${{ github.event_name != 'pull_request' && !github.event.act }}
+        build-args: HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
         tags: ${{ github.event.act && steps.meta-local.outputs.tags || steps.meta.outputs.tags }}
         labels: ${{ github.event.act && steps.meta-local.outputs.labels || steps.meta.outputs.labels }}

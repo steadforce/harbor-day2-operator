@@ -1,0 +1,178 @@
+name: Nightly patch release
+
+# Creates a patch release (x.y.z -> x.y.z+1) when a DEPENDENCY changed since the newest stable release tag.
+# Only the files in DEPENDENCY_FILES count: changes of src/, tests/, chart/, .github/ and the README never trigger a release.
+# Minor and major releases stay manual: publish a GitHub release by hand, the next nightly run continues from its tag.
+#
+# Order: plan -> image and chart (workflows called with the version and the commit) -> tag and GitHub release with generated notes.
+# The tag and release are created last, so a failed build leaves no release behind and the next night tries again.
+# Everything runs with the default GITHUB_TOKEN: calling the workflows replaces the `release: published` trigger, which a
+# GITHUB_TOKEN release would not fire.
+
+on:
+  schedule:
+  # 02:17 UTC = 03:17 (winter) / 04:17 (summer) in Berlin; an odd minute avoids the busy full hour
+  - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Only report what would be released, build and publish nothing"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-patch-release
+  cancel-in-progress: false
+
+env:
+  DEPENDENCY_FILES: "requirements.txt dev_requirements.txt build_requirements.txt Dockerfile"
+
+jobs:
+  plan:
+    name: Plan the release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      release: ${{ steps.plan.outputs.release }}
+      version: ${{ steps.plan.outputs.version }}
+      last: ${{ steps.plan.outputs.last }}
+      sha: ${{ steps.plan.outputs.sha }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+
+    - name: Decide whether a release is due
+      id: plan
+      run: |
+        set -euo pipefail
+        if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+          echo "Releases are only created from main, this run is on $GITHUB_REF" >&2
+          exit 1
+        fi
+        # Newest stable tag, prereleases such as 1.1.1-test4 are ignored
+        last=$(git tag --list | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+        if [[ -z "$last" ]]; then
+          echo "No stable release tag (x.y.z) found" >&2
+          exit 1
+        fi
+        # A re-run of an older run checks out its old commit but sees newer tags: never plan from a commit behind the newest release
+        if ! git merge-base --is-ancestor "refs/tags/${last}" HEAD; then
+          echo "Newest release ${last} is not an ancestor of this commit, start a new run on the current main" >&2
+          exit 1
+        fi
+        # shellcheck disable=SC2086 # DEPENDENCY_FILES is a list of file names
+        changed=$(git diff --name-only "refs/tags/${last}..HEAD" -- $DEPENDENCY_FILES)
+        sha=$(git rev-parse HEAD)
+        {
+          echo "last=$last"
+          echo "sha=$sha"
+        } >> "$GITHUB_OUTPUT"
+        {
+          echo "### Nightly patch release"
+          echo "- Newest release: \`$last\`"
+          echo "- Commit: \`$sha\`"
+        } >> "$GITHUB_STEP_SUMMARY"
+        if [[ -z "$changed" ]]; then
+          echo "release=false" >> "$GITHUB_OUTPUT"
+          echo "- No dependency file changed since \`$last\`: **no release**" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        IFS=. read -r major minor patch <<< "$last"
+        version="${major}.${minor}.$((patch + 1))"
+        {
+          echo "release=true"
+          echo "version=$version"
+        } >> "$GITHUB_OUTPUT"
+        {
+          echo "- Changed dependency files:"
+          # shellcheck disable=SC2001,SC2016 # backticks are meant literally (Markdown)
+          echo "$changed" | sed 's/^/  - `/; s/$/`/'
+          echo "- New release: **\`$version\`**"
+          if [[ "${{ inputs.dry_run }}" == "true" ]]; then echo "- Dry run: nothing is built or published"; fi
+        } >> "$GITHUB_STEP_SUMMARY"
+
+  image:
+    name: Image
+    needs: plan
+    if: ${{ needs.plan.outputs.release == 'true' && !inputs.dry_run }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/build-and-publish-container-image.yaml
+    with:
+      version: ${{ needs.plan.outputs.version }}
+      ref: ${{ needs.plan.outputs.sha }}
+
+  chart:
+    name: Chart
+    needs: plan
+    if: ${{ needs.plan.outputs.release == 'true' && !inputs.dry_run }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/publish-helm.yaml
+    with:
+      version: ${{ needs.plan.outputs.version }}
+      ref: ${{ needs.plan.outputs.sha }}
+
+  release:
+    name: Tag and GitHub release
+    needs: [plan, image, chart]
+    if: ${{ needs.plan.outputs.release == 'true' && !inputs.dry_run }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Create the tag and the release with generated notes
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ needs.plan.outputs.version }}
+        LAST: ${{ needs.plan.outputs.last }}
+        SHA: ${{ needs.plan.outputs.sha }}
+      run: |
+        set -euo pipefail
+        gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
+          --title "$VERSION" --generate-notes --notes-start-tag "$LAST"
+
+  # Announces published and failed releases in the Teams release channel (nothing is sent when no release is due).
+  # The steps skip themselves while the secret is empty.
+  notify:
+    name: Notify Teams
+    needs: [plan, image, chart, release]
+    if: ${{ always() && !inputs.dry_run && (needs.plan.result == 'failure' || needs.plan.outputs.release == 'true') }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      MS_TEAMS_RELEASE_WEBHOOK: ${{ secrets.STEADOPS_RELEASE_MS_TEAMS_WEBHOOK }}
+    steps:
+    - name: Notify MS Teams about the published release
+      if: ${{ needs.release.result == 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
+      continue-on-error: true
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.3.0
+      with:
+        webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
+        status: success
+        title: "Release ${{ needs.plan.outputs.version }} published"
+        facts: |
+          Image=ghcr.io/${{ github.repository_owner }}/harbor-day2-operator:${{ needs.plan.outputs.version }}
+          Chart=oci://ghcr.io/${{ github.repository_owner }}/chart
+          Release=${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.plan.outputs.version }}
+    - name: Notify MS Teams about the failed release
+      if: ${{ needs.release.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
+      continue-on-error: true
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.3.0
+      with:
+        webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
+        status: failure
+        title: "Release ${{ needs.plan.outputs.version || '(planning)' }} failed"
+        facts: |
+          Plan=${{ needs.plan.result }}
+          Image=${{ needs.image.result }}
+          Chart=${{ needs.chart.result }}
+          Release=${{ needs.release.result }}

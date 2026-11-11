@@ -7,6 +7,18 @@ on:
     branches:
       - main
       - helm-chart
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version without prefix (for example 1.2.3), used for image tags, chart version and the binary version"
+        type: string
+        required: false
+        default: ""
+      ref:
+        description: "Commit to build, empty for the commit of the triggering event"
+        type: string
+        required: false
+        default: ""
 
 env:
   REGISTRY: ghcr.io
@@ -22,10 +34,32 @@ jobs:
       packages: write
 
     steps:
+      - name: Refuse to publish an outdated release plan
+        if: ${{ inputs.version != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          REF: ${{ inputs.ref || github.sha }}
+        run: |
+          # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
+          # or publish commits that are no longer the head of main.
+          set -euo pipefail
+          existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
+          if [[ "$existing" != "0" ]]; then
+            echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+            exit 1
+          fi
+          main=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
+          if [[ "$main" != "$REF" ]]; then
+            echo "Planned commit $REF is not the head of main ($main) any more. Start a new run of the nightly workflow." >&2
+            exit 1
+          fi
+
       - name: Check out repository
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          ref: ${{ inputs.ref }}
 
       - name: Set up Helm
         uses: azure/setup-helm@v5
@@ -33,9 +67,11 @@ jobs:
           version: ${{ env.HELM_VERSION }}
 
       - name: Update chart version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          # Extract version from release tag and remove 'v' prefix if present
-          VERSION=${GITHUB_REF#refs/tags/}
+          # Version of the call (nightly release) or of the release tag, 'v' prefix removed if present
+          VERSION=${INPUT_VERSION:-${GITHUB_REF#refs/tags/}}
           VERSION=${VERSION#v}
           echo "Setting chart version and appVersion to: ${VERSION}"
           # Synchronize 'version' and 'appVersion' fields in Chart.yaml to ensure consistency.
@@ -69,6 +105,22 @@ jobs:
     # Skip this job when running with Act
     if: ${{ !github.event.act }}
     steps:
+      - name: Refuse to publish an outdated release plan
+        if: ${{ inputs.version != '' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          REF: ${{ inputs.ref || github.sha }}
+        run: |
+          # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
+          # or publish commits that are no longer the head of main.
+          set -euo pipefail
+          existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
+          if [[ "$existing" != "0" ]]; then
+            echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+            exit 1
+          fi
+
       - name: Download chart artifact
         uses: actions/download-artifact@v8
         with:
