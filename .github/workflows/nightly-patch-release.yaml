@@ -130,6 +130,11 @@ jobs:
     permissions:
       contents: write
     steps:
+    - name: Download the SBOM of the image
+      uses: actions/download-artifact@v8
+      with:
+        name: sbom
+
     - name: Create the tag and the release with generated notes
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,7 +143,8 @@ jobs:
         SHA: ${{ needs.plan.outputs.sha }}
       run: |
         set -euo pipefail
-        gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
+        mv sbom.cdx.json "harbor-day2-operator-${VERSION}.cdx.json"
+        gh release create "$VERSION" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
           --title "$VERSION" --generate-notes --notes-start-tag "$LAST"
 
   # Announces published and failed releases in the Teams release channel (nothing is sent when no release is due).

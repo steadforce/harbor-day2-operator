@@ -250,6 +250,80 @@ jobs:
           "$IMAGE" > /dev/null
         echo "Signed and verified \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
 
+    # SBOM (CycloneDX) of the pushed image: the operating system packages of the image plus the Python libraries, which are
+    # bundled inside the PyInstaller binary and therefore only visible in the builder stage. Same exclusions as the library scan.
+    - name: Generate the SBOM of the operating system packages
+      if: ${{ steps.push.outcome == 'success' }}
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      with:
+        image-ref: ${{ steps.image.outputs.ref }}
+        version: v0.76.1
+        format: cyclonedx
+        output: sbom-os.cdx.json
+        exit-code: "0"
+
+    - name: Generate the SBOM of the Python libraries
+      if: ${{ steps.push.outcome == 'success' }}
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      env:
+        TRIVY_PKG_TYPES: library
+      with:
+        image-ref: ${{ env.IMAGE_NAME }}:builder-scan
+        version: v0.76.1
+        format: cyclonedx
+        output: sbom-python.cdx.json
+        exit-code: "0"
+        skip-dirs: "**/site-packages/pip,**/site-packages/setuptools,**/site-packages/pkg_resources"
+        skip-files: "**/site-packages/pip-*.dist-info/METADATA,**/site-packages/setuptools-*.dist-info/METADATA,**/site-packages/pyinstaller*.dist-info/METADATA,**/site-packages/pyinstaller_hooks_contrib*.dist-info/METADATA,**/site-packages/altgraph*.dist-info/METADATA,**/site-packages/wheel*.dist-info/METADATA"
+
+    - name: Merge the SBOMs
+      if: ${{ steps.push.outcome == 'success' }}
+      run: python3 -I .github/sbom/merge_sbom.py sbom-os.cdx.json sbom-python.cdx.json sbom.cdx.json
+
+    # Signed attestation on the image digest (keyless, like the image signature), verified in the same run.
+    - name: Attest and verify the SBOM
+      if: ${{ steps.push.outcome == 'success' }}
+      env:
+        IMAGE: ${{ steps.image.outputs.repository }}@${{ steps.push.outputs.digest }}
+      run: |
+        set -euo pipefail
+        cosign attest --yes --type cyclonedx --predicate sbom.cdx.json "$IMAGE"
+        cosign verify-attestation --type cyclonedx \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          --certificate-identity-regexp "^https://github\.com/${GITHUB_REPOSITORY}/\.github/workflows/build-and-publish-container-image\.yaml@" \
+          "$IMAGE" > /dev/null
+        echo "SBOM attached to \`$IMAGE\` and verified" >> "$GITHUB_STEP_SUMMARY"
+
+    - name: Keep the SBOM as a build artifact
+      if: ${{ steps.push.outcome == 'success' }}
+      uses: actions/upload-artifact@v7
+      with:
+        name: sbom
+        path: sbom.cdx.json
+
+  # A manually published release gets the SBOM as an asset. The nightly release workflow attaches it when it creates the release.
+  attach-sbom:
+    name: Attach the SBOM to the release
+    needs: build-and-push-image
+    if: ${{ github.event_name == 'release' && needs.build-and-push-image.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - name: Download the SBOM
+      uses: actions/download-artifact@v8
+      with:
+        name: sbom
+
+    - name: Upload the SBOM to the release
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ github.event.release.tag_name }}
+      run: |
+        set -euo pipefail
+        mv sbom.cdx.json "harbor-day2-operator-${TAG}.cdx.json"
+        gh release upload "$TAG" "harbor-day2-operator-${TAG}.cdx.json" --repo "$GITHUB_REPOSITORY" --clobber
+
   # Announces manual releases (published GitHub release) in the Teams release channel. Builds called by the nightly
   # release workflow are announced there, and branch and pull request builds are not announced. The steps skip
   # themselves while the secret is empty.

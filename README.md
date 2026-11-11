@@ -505,3 +505,23 @@ cosign verify \
   --certificate-identity-regexp '^https://github\.com/steadforce/harbor-day2-operator/\.github/workflows/build-and-publish-container-image\.yaml@' \
   ghcr.io/steadforce/harbor-day2-operator:1.3.0
 ```
+
+### SBOM
+
+Every pushed image gets a CycloneDX SBOM (JSON). It lists the operating system packages of the image and the Python libraries, which are
+bundled inside the PyInstaller binary (taken from the builder stage, build tools excluded; merged by
+[`.github/sbom/merge_sbom.py`](.github/sbom/merge_sbom.py)).
+
+- **Signed attestation on the image:** attached to the image digest with `cosign attest` (keyless, same identity as the image signature) and
+  verified in the same run. Download and verify it:
+
+  ```bash
+  cosign verify-attestation --type cyclonedx \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-identity-regexp '^https://github\.com/steadforce/harbor-day2-operator/\.github/workflows/build-and-publish-container-image\.yaml@' \
+    ghcr.io/steadforce/harbor-day2-operator:1.3.0 | jq -r '.payload | @base64d | fromjson | .predicate' > sbom.cdx.json
+  ```
+
+- **Asset of the GitHub release:** `harbor-day2-operator-<version>.cdx.json` is attached to every release (nightly and manual).
+- **Build artifact:** the file `sbom` of the workflow run for 90 days (releases, `main` and branch builds).
+- Scan it later for new vulnerabilities: `trivy sbom sbom.cdx.json`.
