@@ -488,7 +488,10 @@ Every image that is pushed (releases, `main` and branch builds) is scanned and s
 - **Trivy scan before the push:** the image is built once, scanned, and only pushed when the scan passes. The build fails on `HIGH` and `CRITICAL`
   vulnerabilities that already have a fixed version (`ignore-unfixed`). Pull requests are only reported, so the update that fixes a finding
   can still be merged. A finding that has to be accepted goes into `.trivyignore` with a comment and an expiry date (`CVE-... exp:2026-12-31`).
-  Limit: the scan sees the operating system packages of the image; the Python libraries are bundled inside the PyInstaller binary and are not scanned.
+  The Python libraries are bundled inside the PyInstaller binary, which Trivy cannot look into, so a second scan covers the builder stage, where they are
+  installed with all their dependencies (the build tools pip, setuptools, wheel and pyinstaller are skipped because they are not shipped). The same gate applies.
+  Only libraries are scanned there (the build-only OS packages are not shipped; the OS packages of the published image are scanned by the first scan).
+  Limit: the builder stage contains every installed library, also ones that PyInstaller may not bundle.
 - **Cosign keyless signature:** after the push the image digest is signed with the identity of the workflow (GitHub OIDC, recorded in the
   public Rekor log) and the signature is verified in the same run. There is no key or secret to manage.
 - **Pinned scan tools:** `trivy-action` and `cosign-installer` are pinned to commit SHAs (most `trivy-action` tags were rewritten to
@@ -502,3 +505,23 @@ cosign verify \
   --certificate-identity-regexp '^https://github\.com/steadforce/harbor-day2-operator/\.github/workflows/build-and-publish-container-image\.yaml@' \
   ghcr.io/steadforce/harbor-day2-operator:1.3.0
 ```
+
+### SBOM
+
+Every pushed image gets a CycloneDX SBOM (JSON). It lists the operating system packages of the image and the Python libraries, which are
+bundled inside the PyInstaller binary (taken from the builder stage, build tools excluded; merged by
+[`.github/sbom/merge_sbom.py`](.github/sbom/merge_sbom.py)).
+
+- **Signed attestation on the image:** attached to the image digest with `cosign attest` (keyless, same identity as the image signature) and
+  verified in the same run. Download and verify it:
+
+  ```bash
+  cosign verify-attestation --type cyclonedx \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-identity-regexp '^https://github\.com/steadforce/harbor-day2-operator/\.github/workflows/build-and-publish-container-image\.yaml@' \
+    ghcr.io/steadforce/harbor-day2-operator:1.3.0 | jq -r '.payload | @base64d | fromjson | .predicate' > sbom.cdx.json
+  ```
+
+- **Asset of the GitHub release:** `harbor-day2-operator-<version>.cdx.json` is attached to every release (nightly and manual).
+- **Build artifact:** the file `sbom` of the workflow run for 90 days (releases, `main` and branch builds).
+- Scan it later for new vulnerabilities: `trivy sbom sbom.cdx.json`.

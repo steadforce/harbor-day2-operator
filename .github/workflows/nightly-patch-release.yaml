@@ -101,8 +101,11 @@ jobs:
     name: Image
     needs: plan
     if: ${{ needs.plan.outputs.release == 'true' && !inputs.dry_run }}
+    # A called workflow cannot get more permissions than its caller grants, also for jobs that do not run in this call:
+    # the job "attach-sbom" of the build workflow (manual releases) needs contents: write. The jobs of the build workflow
+    # declare their own, smaller permissions, so the build itself keeps contents: read.
     permissions:
-      contents: read
+      contents: write
       packages: write
       id-token: write
     uses: ./.github/workflows/build-and-publish-container-image.yaml
@@ -130,6 +133,11 @@ jobs:
     permissions:
       contents: write
     steps:
+    - name: Download the SBOM of the image
+      uses: actions/download-artifact@v8
+      with:
+        name: sbom
+
     - name: Create the tag and the release with generated notes
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -138,7 +146,8 @@ jobs:
         SHA: ${{ needs.plan.outputs.sha }}
       run: |
         set -euo pipefail
-        gh release create "$VERSION" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
+        mv sbom.cdx.json "harbor-day2-operator-${VERSION}.cdx.json"
+        gh release create "$VERSION" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
           --title "$VERSION" --generate-notes --notes-start-tag "$LAST"
 
   # Announces published and failed releases in the Teams release channel (nothing is sent when no release is due).
