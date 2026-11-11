@@ -44,9 +44,12 @@ jobs:
           # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
           # or publish commits that are no longer the head of main.
           set -euo pipefail
-          existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
+          # The tag exists with or without the `v` prefix
+          # Fetched on its own, so that a failing API call aborts the step instead of counting as "no tag found"
+          refs=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/" --jq ".[].ref")
+          existing=$(printf '%s\n' "$refs" | grep -cxE "refs/tags/v?${VERSION//./\\.}" || true)
           if [[ "$existing" != "0" ]]; then
-            echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+            echo "Tag ${VERSION} (or v${VERSION}) already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
             exit 1
           fi
           main=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
@@ -115,9 +118,12 @@ jobs:
           # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
           # or publish commits that are no longer the head of main.
           set -euo pipefail
-          existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
+          # The tag exists with or without the `v` prefix
+          # Fetched on its own, so that a failing API call aborts the step instead of counting as "no tag found"
+          refs=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/" --jq ".[].ref")
+          existing=$(printf '%s\n' "$refs" | grep -cxE "refs/tags/v?${VERSION//./\\.}" || true)
           if [[ "$existing" != "0" ]]; then
-            echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+            echo "Tag ${VERSION} (or v${VERSION}) already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
             exit 1
           fi
 
@@ -150,6 +156,10 @@ jobs:
     env:
       MS_TEAMS_RELEASE_WEBHOOK: ${{ secrets.STEADOPS_RELEASE_MS_TEAMS_WEBHOOK }}
     steps:
+    - name: Name the version without prefix
+      run: echo "RELEASE_VERSION=${TAG#v}" >> "$GITHUB_ENV"
+      env:
+        TAG: ${{ github.event.release.tag_name }}
     - name: Notify MS Teams about the published chart
       if: ${{ needs.publish.result == 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
@@ -159,7 +169,7 @@ jobs:
         status: success
         title: "Chart ${{ github.event.release.tag_name }} published"
         facts: |
-          Chart=oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}/harbor-day2-operator:${{ github.event.release.tag_name }}
+          Chart=oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}/harbor-day2-operator:${{ env.RELEASE_VERSION }}
           Release=${{ github.event.release.html_url }}
     - name: Notify MS Teams about the failed chart
       if: ${{ needs.publish.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
