@@ -61,6 +61,11 @@ jobs:
           echo "No stable release tag (x.y.z) found" >&2
           exit 1
         fi
+        # A re-run of an older run checks out its old commit but sees newer tags: never plan from a commit behind the newest release
+        if ! git merge-base --is-ancestor "refs/tags/${last}" HEAD; then
+          echo "Newest release ${last} is not an ancestor of this commit, start a new run on the current main" >&2
+          exit 1
+        fi
         # shellcheck disable=SC2086 # DEPENDENCY_FILES is a list of file names
         changed=$(git diff --name-only "refs/tags/${last}..HEAD" -- $DEPENDENCY_FILES)
         sha=$(git rev-parse HEAD)

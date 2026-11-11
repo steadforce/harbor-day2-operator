@@ -38,17 +38,24 @@ jobs:
       packages: write
 
     steps:
-    - name: Refuse to publish a version that is already released
+    - name: Refuse to publish an outdated release plan
       if: ${{ inputs.version != '' }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: ${{ inputs.version }}
+        REF: ${{ inputs.ref }}
       run: |
-        # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released.
+        # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
+        # or publish commits that are no longer the head of main.
         set -euo pipefail
         existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
         if [[ "$existing" != "0" ]]; then
           echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+          exit 1
+        fi
+        main=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
+        if [[ "$main" != "$REF" ]]; then
+          echo "Planned commit $REF is not the head of main ($main) any more. Start a new run of the nightly workflow." >&2
           exit 1
         fi
 
