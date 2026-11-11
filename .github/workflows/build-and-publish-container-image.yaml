@@ -38,6 +38,20 @@ jobs:
       packages: write
 
     steps:
+    - name: Refuse to publish a version that is already released
+      if: ${{ inputs.version != '' }}
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: ${{ inputs.version }}
+      run: |
+        # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released.
+        set -euo pipefail
+        existing=$(gh api "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/${VERSION}" --jq "map(select(.ref == \"refs/tags/${VERSION}\")) | length")
+        if [[ "$existing" != "0" ]]; then
+          echo "Tag ${VERSION} already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
+          exit 1
+        fi
+
     - name: Checkout repository
       uses: actions/checkout@v7
       with:
