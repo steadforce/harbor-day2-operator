@@ -137,3 +137,39 @@ jobs:
         run: |
           echo "Publishing Helm chart to ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}"
           helm push *.tgz oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}
+
+  # Announces manual releases (published GitHub release) in the Teams release channel. Builds called by the nightly
+  # release workflow are announced there, and branch and pull request builds are not announced. The steps skip
+  # themselves while the secret is empty.
+  notify-release:
+    name: Notify Teams
+    needs: [build, publish]
+    if: ${{ always() && github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      MS_TEAMS_RELEASE_WEBHOOK: ${{ secrets.STEADOPS_RELEASE_MS_TEAMS_WEBHOOK }}
+    steps:
+    - name: Notify MS Teams about the published chart
+      if: ${{ needs.publish.result == 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
+      continue-on-error: true
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.3.0
+      with:
+        webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
+        status: success
+        title: "Chart ${{ github.event.release.tag_name }} published"
+        facts: |
+          Chart=oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}
+          Release=${{ github.event.release.html_url }}
+    - name: Notify MS Teams about the failed chart
+      if: ${{ needs.publish.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
+      continue-on-error: true
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.3.0
+      with:
+        webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
+        status: failure
+        title: "Chart ${{ github.event.release.tag_name }} failed"
+        facts: |
+          Build=${{ needs.build.result }}
+          Publish=${{ needs.publish.result }}
+          Release=${{ github.event.release.html_url }}

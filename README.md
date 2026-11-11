@@ -477,3 +477,6 @@ GitHub release with generated notes. Changes of `src/`, `tests/`, `chart/` and `
 release contains them if they were merged since the last release. Minor and major releases stay manual: publish a GitHub release
 by hand, the next nightly run continues from its tag. The result (published or failed) is posted to the Teams release channel
 (secret `STEADOPS_RELEASE_MS_TEAMS_WEBHOOK`).
+
+A manually published GitHub release (for example a minor release `1.3.0`, tag without `v`, target `main`) builds the image and the chart
+in the same way and posts one card per result, "Image <tag> published/failed" and "Chart <tag> published/failed", to the same channel.
