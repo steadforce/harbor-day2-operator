@@ -159,7 +159,7 @@ jobs:
         status: success
         title: "Chart ${{ github.event.release.tag_name }} published"
         facts: |
-          Chart=oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}
+          Chart=oci://${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.CHART_DIR }}/harbor-day2-operator:${{ github.event.release.tag_name }}
           Release=${{ github.event.release.html_url }}
     - name: Notify MS Teams about the failed chart
       if: ${{ needs.publish.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
