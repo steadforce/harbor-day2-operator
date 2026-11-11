@@ -480,3 +480,25 @@ by hand, the next nightly run continues from its tag. The result (published or f
 
 A manually published GitHub release (for example a minor release `1.3.0`, tag without `v`, target `main`) builds the image and the chart
 in the same way and posts one card per result, "Image <tag> published/failed" and "Chart <tag> published/failed", to the same channel.
+
+### Image scanning and signing
+
+Every image that is pushed (releases, `main` and branch builds) is scanned and signed; pull request images are not pushed.
+
+- **Trivy scan before the push:** the image is built once, scanned, and only pushed when the scan passes. The build fails on `HIGH` and `CRITICAL`
+  vulnerabilities that already have a fixed version (`ignore-unfixed`). Pull requests are only reported, so the update that fixes a finding
+  can still be merged. A finding that has to be accepted goes into `.trivyignore` with a comment and an expiry date (`CVE-... exp:2026-12-31`).
+  Limit: the scan sees the operating system packages of the image; the Python libraries are bundled inside the PyInstaller binary and are not scanned.
+- **Cosign keyless signature:** after the push the image digest is signed with the identity of the workflow (GitHub OIDC, recorded in the
+  public Rekor log) and the signature is verified in the same run. There is no key or secret to manage.
+- **Pinned scan tools:** `trivy-action` and `cosign-installer` are pinned to commit SHAs (most `trivy-action` tags were rewritten to
+  malicious commits in March 2026); Renovate keeps the SHAs and the version comments up to date.
+
+Verify an image before using it:
+
+```bash
+cosign verify \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github\.com/steadforce/harbor-day2-operator/\.github/workflows/build-and-publish-container-image\.yaml@' \
+  ghcr.io/steadforce/harbor-day2-operator:1.3.0
+```

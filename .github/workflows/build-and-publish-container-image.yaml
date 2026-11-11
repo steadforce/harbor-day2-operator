@@ -36,6 +36,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      id-token: write # keyless signing with cosign (GitHub OIDC)
 
     steps:
     - name: Refuse to publish an outdated release plan
@@ -145,14 +146,78 @@ jobs:
           -e CONFIG_FOLDER_PATH=/config \
           ${{ env.IMAGE_NAME }}:test --version
 
-    - name: Tag and push tested container image
+    # The image that is scanned is the image that is pushed and signed: it is built once, scanned, then pushed.
+    - name: Build the image to publish
+      if: ${{ !github.event.act }}
       uses: docker/build-push-action@64c9b141502b80dbbd71e008a0130ad330f480f8
       with:
         context: .
-        push: ${{ github.event_name != 'pull_request' && !github.event.act }}
+        load: true
+        push: false
         build-args: HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
-        tags: ${{ github.event.act && steps.meta-local.outputs.tags || steps.meta.outputs.tags }}
-        labels: ${{ github.event.act && steps.meta-local.outputs.labels || steps.meta.outputs.labels }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+
+    - name: Name the image to scan and push
+      id: image
+      if: ${{ !github.event.act }}
+      env:
+        TAGS: ${{ steps.meta.outputs.tags }}
+      run: |
+        first=$(printf '%s\n' "$TAGS" | head -n 1)
+        echo "ref=${first}" >> "$GITHUB_OUTPUT"
+        echo "repository=${first%:*}" >> "$GITHUB_OUTPUT"
+
+    # Fails the build for HIGH and CRITICAL vulnerabilities that have a fixed version, so such an image is never pushed.
+    # Pull requests are only reported (exit code 0), otherwise the update that fixes the finding could not be merged.
+    # Accepted findings go into .trivyignore (with a comment and an expiry date), which Trivy reads by itself.
+    # Pinned to commit SHAs: in March 2026 most version tags of trivy-action were rewritten to malicious commits.
+    - name: Scan the image with Trivy
+      if: ${{ !github.event.act }}
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      with:
+        image-ref: ${{ steps.image.outputs.ref }}
+        version: v0.76.1
+        scanners: vuln
+        severity: CRITICAL,HIGH
+        ignore-unfixed: true
+        format: table
+        exit-code: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+
+    - name: Push the scanned image
+      id: push
+      if: ${{ github.event_name != 'pull_request' && !github.event.act }}
+      env:
+        REF: ${{ steps.image.outputs.ref }}
+        REPOSITORY: ${{ steps.image.outputs.repository }}
+      run: |
+        set -euo pipefail
+        docker push --all-tags "$REPOSITORY"
+        digest=$(docker inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$REF" | grep -F "${REPOSITORY}@" | head -n 1 | cut -d@ -f2)
+        if [[ "$digest" != sha256:* ]]; then
+          echo "No digest of the pushed image found" >&2
+          exit 1
+        fi
+        echo "digest=${digest}" >> "$GITHUB_OUTPUT"
+
+    - name: Install cosign
+      if: ${{ steps.push.outcome == 'success' }}
+      uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+    # Keyless: the signature is bound to the identity of this workflow (GitHub OIDC) and recorded in the Rekor log.
+    # It signs the digest, so all tags of the image are covered.
+    - name: Sign and verify the image
+      if: ${{ steps.push.outcome == 'success' }}
+      env:
+        IMAGE: ${{ steps.image.outputs.repository }}@${{ steps.push.outputs.digest }}
+      run: |
+        set -euo pipefail
+        cosign sign --yes "$IMAGE"
+        cosign verify \
+          --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+          --certificate-identity-regexp "^https://github\.com/${GITHUB_REPOSITORY}/\.github/workflows/build-and-publish-container-image\.yaml@" \
+          "$IMAGE" > /dev/null
+        echo "Signed and verified \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
 
   # Announces manual releases (published GitHub release) in the Teams release channel. Builds called by the nightly
   # release workflow are announced there, and branch and pull request builds are not announced. The steps skip
