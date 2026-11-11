@@ -488,7 +488,9 @@ Every image that is pushed (releases, `main` and branch builds) is scanned and s
 - **Trivy scan before the push:** the image is built once, scanned, and only pushed when the scan passes. The build fails on `HIGH` and `CRITICAL`
   vulnerabilities that already have a fixed version (`ignore-unfixed`). Pull requests are only reported, so the update that fixes a finding
   can still be merged. A finding that has to be accepted goes into `.trivyignore` with a comment and an expiry date (`CVE-... exp:2026-12-31`).
-  Limit: the scan sees the operating system packages of the image; the Python libraries are bundled inside the PyInstaller binary and are not scanned.
+  The Python libraries are bundled inside the PyInstaller binary, which Trivy cannot look into, so a second scan covers the builder stage, where they are
+  installed with all their dependencies (the build tools pip, setuptools, wheel and pyinstaller are skipped because they are not shipped). The same gate applies.
+  Limit: the builder stage contains every installed package, also ones that PyInstaller may not bundle.
 - **Cosign keyless signature:** after the push the image digest is signed with the identity of the workflow (GitHub OIDC, recorded in the
   public Rekor log) and the signature is verified in the same run. There is no key or secret to manage.
 - **Pinned scan tools:** `trivy-action` and `cosign-installer` are pinned to commit SHAs (most `trivy-action` tags were rewritten to
