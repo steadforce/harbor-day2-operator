@@ -12,6 +12,18 @@ on:
     branches:
       - main
       - helm-chart
+  workflow_call:
+    inputs:
+      version:
+        description: "Release version without prefix (for example 1.2.3), used for image tags, chart version and the binary version"
+        type: string
+        required: false
+        default: ""
+      ref:
+        description: "Commit to build, empty for the commit of the triggering event"
+        type: string
+        required: false
+        default: ""
 
 
 env:
@@ -28,6 +40,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v7
+      with:
+        ref: ${{ inputs.ref }}
 
     - name: Run Ruff Check
       uses: astral-sh/ruff-action@v4.1.0
@@ -74,15 +88,19 @@ jobs:
         tags: |
           type=ref,event=branch
           type=ref,event=pr
-          type=semver,pattern={{version}}
-          type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
+          type=semver,pattern={{version}},value=${{ inputs.version }}
+          type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
+          type=semver,pattern={{major}},value=${{ inputs.version }}
           type=sha
 
     - name: Set version
       id: version
+      env:
+        INPUT_VERSION: ${{ inputs.version }}
       run: |
-        if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+        if [[ -n "$INPUT_VERSION" ]]; then
+          VERSION=$INPUT_VERSION
+        elif [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
           VERSION=${GITHUB_REF#refs/tags/}
         else
           VERSION=0.0.0-dev
