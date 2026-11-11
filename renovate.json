@@ -9,6 +9,13 @@
       "matchManagers": ["github-actions"],
       "automerge": true,
       "platformAutomerge": true
+    },
+    {
+      "description": "Merge patch, digest and pin updates of Python requirements and of the Dockerfile (base image digest, syntax image) as soon as the checks pass. Minor and major updates stay manual.",
+      "matchManagers": ["pip_requirements", "dockerfile"],
+      "matchUpdateTypes": ["patch", "digest", "pin"],
+      "automerge": true,
+      "platformAutomerge": true
     }
   ]
 }
