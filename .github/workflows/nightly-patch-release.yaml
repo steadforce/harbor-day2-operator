@@ -101,8 +101,11 @@ jobs:
     name: Image
     needs: plan
     if: ${{ needs.plan.outputs.release == 'true' && !inputs.dry_run }}
+    # A called workflow cannot get more permissions than its caller grants, also for jobs that do not run in this call:
+    # the job "attach-sbom" of the build workflow (manual releases) needs contents: write. The jobs of the build workflow
+    # declare their own, smaller permissions, so the build itself keeps contents: read.
     permissions:
-      contents: read
+      contents: write
       packages: write
       id-token: write
     uses: ./.github/workflows/build-and-publish-container-image.yaml
