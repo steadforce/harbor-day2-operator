@@ -53,8 +53,9 @@ jobs:
         # or publish commits that are no longer the head of main.
         set -euo pipefail
         # The tag exists with or without the `v` prefix
-        existing=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/" --jq ".[].ref" \
-          | grep -cxE "refs/tags/v?${VERSION//./\\.}" || true)
+        # Fetched on its own, so that a failing API call aborts the step instead of counting as "no tag found"
+        refs=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/" --jq ".[].ref")
+        existing=$(printf '%s\n' "$refs" | grep -cxE "refs/tags/v?${VERSION//./\\.}" || true)
         if [[ "$existing" != "0" ]]; then
           echo "Tag ${VERSION} (or v${VERSION}) already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
           exit 1
