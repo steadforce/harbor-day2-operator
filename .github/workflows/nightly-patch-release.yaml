@@ -161,7 +161,7 @@ jobs:
         title: "Release ${{ needs.plan.outputs.version }} published"
         facts: |
           Image=ghcr.io/${{ github.repository_owner }}/harbor-day2-operator:${{ needs.plan.outputs.version }}
-          Chart=oci://ghcr.io/${{ github.repository_owner }}/chart
+          Chart=oci://ghcr.io/${{ github.repository_owner }}/chart/harbor-day2-operator:${{ needs.plan.outputs.version }}
           Release=${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.plan.outputs.version }}
     - name: Notify MS Teams about the failed release
       if: ${{ needs.release.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}

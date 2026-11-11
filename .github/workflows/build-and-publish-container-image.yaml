@@ -153,3 +153,38 @@ jobs:
         build-args: HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
         tags: ${{ github.event.act && steps.meta-local.outputs.tags || steps.meta.outputs.tags }}
         labels: ${{ github.event.act && steps.meta-local.outputs.labels || steps.meta.outputs.labels }}
+
+  # Announces manual releases (published GitHub release) in the Teams release channel. Builds called by the nightly
+  # release workflow are announced there, and branch and pull request builds are not announced. The steps skip
+  # themselves while the secret is empty.
+  notify-release:
+    name: Notify Teams
+    needs: build-and-push-image
+    if: ${{ always() && github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions: {}
+    env:
+      MS_TEAMS_RELEASE_WEBHOOK: ${{ secrets.STEADOPS_RELEASE_MS_TEAMS_WEBHOOK }}
+    steps:
+    - name: Notify MS Teams about the published image
+      if: ${{ needs.build-and-push-image.result == 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
+      continue-on-error: true
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.3.0
+      with:
+        webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
+        status: success
+        title: "Image ${{ github.event.release.tag_name }} published"
+        facts: |
+          Image=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ github.event.release.tag_name }}
+          Release=${{ github.event.release.html_url }}
+    - name: Notify MS Teams about the failed image
+      if: ${{ needs.build-and-push-image.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
+      continue-on-error: true
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.3.0
+      with:
+        webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
+        status: failure
+        title: "Image ${{ github.event.release.tag_name }} failed"
+        facts: |
+          Build=${{ needs.build-and-push-image.result }}
+          Release=${{ github.event.release.html_url }}
