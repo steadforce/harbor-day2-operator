@@ -39,6 +39,15 @@ def main(os_path: str, py_path: str, out_path: str) -> None:
             depends_on.extend(r for r in dep.get("dependsOn", []) if r in added_refs and r not in depends_on)
         elif dep["ref"] in added_refs:
             dependencies.append(dep)
+        elif dep["ref"] in known:
+            # a component that both SBOMs list: keep the edges of both
+            targets = [r for r in dep.get("dependsOn", []) if r in known or r in added_refs]
+            existing = next((d for d in dependencies if d["ref"] == dep["ref"]), None)
+            if existing is None:
+                dependencies.append({"ref": dep["ref"], "dependsOn": targets})
+            else:
+                merged = existing.setdefault("dependsOn", [])
+                merged.extend(r for r in targets if r not in merged)
 
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(base, f, indent=2)
