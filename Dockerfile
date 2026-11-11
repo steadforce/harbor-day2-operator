@@ -23,7 +23,9 @@ COPY src/ src/
 RUN pyinstaller --onefile --paths src src/harbor.py
 
 FROM base AS package
-USER nonroot
+ARG NONROOT_UID=65532
+RUN test "$(id -u nonroot)" = "${NONROOT_UID}"
+USER ${NONROOT_UID}:${NONROOT_UID}
 WORKDIR /usr/local/bin/
 COPY --from=builder /build/dist/harbor ./harbor
 
