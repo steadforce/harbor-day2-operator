@@ -43,7 +43,7 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: ${{ inputs.version }}
-        REF: ${{ inputs.ref }}
+        REF: ${{ inputs.ref || github.sha }}
       run: |
         # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
         # or publish commits that are no longer the head of main.
