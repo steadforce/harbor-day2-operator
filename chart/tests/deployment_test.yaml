@@ -9,7 +9,7 @@ tests:
   - it: starts the operator in watch mode every 60 seconds by default
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: &containerArgsPath spec.template.spec.containers[0].args
           value: ["--watch", "60"]
 
   # The image entrypoint is the operator itself; no `watch` and no shell are needed any more.
@@ -23,7 +23,7 @@ tests:
       watchIntervalSeconds: 15
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: *containerArgsPath
           value: ["--watch", "15"]
 
   - it: accepts the interval as a string
@@ -31,7 +31,7 @@ tests:
       watchIntervalSeconds: "30"
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: *containerArgsPath
           value: ["--watch", "30"]
 
   - it: accepts a long interval
@@ -39,50 +39,40 @@ tests:
       watchIntervalSeconds: 3600
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: *containerArgsPath
           value: ["--watch", "3600"]
 
   - it: refuses an interval of zero
     set:
       watchIntervalSeconds: 0
-    asserts:
+    asserts: &invalidWatchIntervalAssert
       - failedTemplate:
           errorPattern: watchIntervalSeconds must be a whole number of seconds
 
   - it: refuses a negative interval
     set:
       watchIntervalSeconds: -5
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses a fractional interval
     set:
       watchIntervalSeconds: 1.5
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses a fractional interval given as a string
     set:
       watchIntervalSeconds: "1.5"
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses a boolean interval
     set:
       watchIntervalSeconds: true
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses an interval that is not a number
     set:
       watchIntervalSeconds: abc
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: runs the image of the chart version when no tag is set
     chart:
@@ -344,7 +334,7 @@ tests:
   - it: reads the admin passwords from the default secrets
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: &containerEnvPath spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
           content:
             name: ADMIN_PASSWORD_NEW
             valueFrom:
@@ -352,7 +342,7 @@ tests:
                 name: harbor-secrets
                 key: ADMIN_PASSWORD
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: ADMIN_PASSWORD_OLD
             valueFrom:
@@ -360,7 +350,7 @@ tests:
                 name: harbor-core
                 key: HARBOR_ADMIN_PASSWORD
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: ADMIN_USERNAME
             value: admin
@@ -384,17 +374,17 @@ tests:
       harbor.robotNamePrefix: robot-
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: HARBOR_API_URL
             value: https://harbor.example.com/api/v2.0/
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: ADMIN_USERNAME
             value: operator-admin
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: ROBOT_NAME_PREFIX
             value: robot-
@@ -405,7 +395,7 @@ tests:
       oidc.endpoint: https://oidc.example.com/api
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: OIDC_ENDPOINT
             value: https://oidc.example.com/api
@@ -416,7 +406,7 @@ tests:
       oidc.secretName: oidc-client
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: OIDC_STATIC_CLIENT_TOKEN
             valueFrom:
@@ -440,7 +430,7 @@ tests:
       oidc.secretName: oidc-client
     asserts:
       - notContains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: OIDC_STATIC_CLIENT_TOKEN
           any: true
@@ -450,7 +440,7 @@ tests:
       oidc.enabled: true
     asserts:
       - notContains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: OIDC_STATIC_CLIENT_TOKEN
           any: true
@@ -460,14 +450,14 @@ tests:
   - it: adds no environment from sources by default
     asserts:
       - isNullOrEmpty:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].envFrom
+          path: &containerEnvFromPath spec.template.spec.containers[?(@.name == "harbor-day2-operator")].envFrom
 
   - it: reads the robot account tokens from the configured secret
     set:
       harbor.robotSecretName: robot-tokens
     asserts:
       - equal:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].envFrom
+          path: *containerEnvFromPath
           value:
             - secretRef:
                 name: robot-tokens
@@ -480,7 +470,7 @@ tests:
             name: extra-settings
     asserts:
       - equal:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].envFrom
+          path: *containerEnvFromPath
           value:
             - secretRef:
                 name: robot-tokens
@@ -500,12 +490,12 @@ tests:
               key: my-key
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: FIRST
             value: one
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: SECOND
             valueFrom:
@@ -521,17 +511,17 @@ tests:
         FLAG: true
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: TEXT
             value: hello
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: COUNT
             value: "3"
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: FLAG
             value: "true"
@@ -539,7 +529,7 @@ tests:
   - it: adds no extra environment variables by default
     asserts:
       - notContains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: TEXT
           any: true
@@ -556,7 +546,7 @@ tests:
   - it: tells the operator the default configuration folder
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: CONFIG_FOLDER_PATH
             value: /usr/local/scripts
@@ -575,7 +565,7 @@ tests:
       configFolder: /etc/harbor-config
     asserts:
       - contains:
-          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          path: *containerEnvPath
           content:
             name: CONFIG_FOLDER_PATH
             value: /etc/harbor-config
