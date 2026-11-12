@@ -17,9 +17,11 @@ import logging
 import math
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
@@ -280,6 +282,33 @@ def run_child(
     return TIMEOUT_EXIT_CODE
 
 
+def run_cycle_in_temp_dir(
+    argv: Sequence[str],
+    env: Mapping[str, str],
+    timeout: float,
+    stop: StopLike,
+) -> int:
+    """Run one cycle with a temporary directory of its own, which is removed afterwards in any case.
+
+    A frozen onefile executable unpacks itself below TMPDIR and removes the files when it ends. A cycle that has to be killed cannot do
+    that, and repeated hangs would fill the temporary directory. The directory belongs to this cycle alone, so removing it is safe.
+
+    Args:
+        argv: Command of the child
+        env: Environment of the child
+        timeout: Maximum run time in seconds
+        stop: Stop signal of the loop
+
+    Returns:
+        int: Exit code of the child, TIMEOUT_EXIT_CODE if it had to be terminated
+    """
+    cycle_dir = tempfile.mkdtemp(prefix="harbor-cycle-")
+    try:
+        return run_child(argv, {**env, "TMPDIR": cycle_dir}, timeout, stop)
+    finally:
+        shutil.rmtree(cycle_dir, ignore_errors=True)
+
+
 def watch_loop(
     run_cycle: Callable[[], int],
     interval: float,
@@ -347,7 +376,7 @@ def run_watch(
         if getattr(sys, "frozen", False):
             # A onefile executable that starts itself would otherwise share the unpack directory of the parent
             child_env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
-        return run_child(child_argv, child_env, timeout, stop)
+        return run_cycle_in_temp_dir(child_argv, child_env, timeout, stop)
 
     logger.info("Watch mode: one synchronization every %s seconds", interval)
     watch_loop(run_cycle, interval, stop, logger)

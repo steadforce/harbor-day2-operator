@@ -20,6 +20,7 @@ from watch_mode import (
     parse_cycle_timeout,
     parse_watch_args,
     run_child,
+    run_cycle_in_temp_dir,
     watch_loop,
 )
 
@@ -426,3 +427,61 @@ class TestSubreaper:
             run_child([sys.executable, "-c", "pass"], os.environ, 30, threading.Event())
             time.sleep(0.1)
         assert not process_exists(worker_pid)
+
+
+class TestCycleTempDir:
+    def test_the_child_gets_its_own_temp_dir_that_is_removed_after_a_normal_exit(
+        self, tmp_path
+    ):
+        record = tmp_path / "tmpdir.txt"
+        code = (
+            "import os, pathlib\n"
+            f"pathlib.Path({str(record)!r}).write_text(os.environ['TMPDIR'])\n"
+            "pathlib.Path(os.environ['TMPDIR'], 'unpacked.bin').write_text('x')\n"
+        )
+
+        result = run_cycle_in_temp_dir(
+            [sys.executable, "-c", code], os.environ, 30, threading.Event()
+        )
+
+        assert result == 0
+        cycle_dir = record.read_text()
+        assert os.path.basename(cycle_dir).startswith("harbor-cycle-")
+        assert not os.path.exists(cycle_dir)
+
+    def test_the_temp_dir_is_removed_when_the_child_is_killed(
+        self, tmp_path, monkeypatch
+    ):
+        """A child that cannot clean up after itself (SIGKILL) must not leave its files behind."""
+        monkeypatch.setattr(watch_mode, "POLL_SECONDS", 0.1)
+        monkeypatch.setattr(watch_mode, "TERMINATE_GRACE_SECONDS", 1)
+        record = tmp_path / "tmpdir.txt"
+        code = (
+            "import os, pathlib, signal, time\n"
+            f"pathlib.Path({str(record)!r}).write_text(os.environ['TMPDIR'])\n"
+            "pathlib.Path(os.environ['TMPDIR'], 'unpacked.bin').write_text('x')\n"
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "time.sleep(60)\n"
+        )
+
+        result = run_cycle_in_temp_dir(
+            [sys.executable, "-c", code], os.environ, 2, threading.Event()
+        )
+
+        assert result == TIMEOUT_EXIT_CODE
+        assert not os.path.exists(record.read_text())
+
+    def test_every_cycle_gets_a_new_directory(self, tmp_path):
+        record = tmp_path / "dirs.txt"
+        code = (
+            "import os\n"
+            f"open({str(record)!r}, 'a').write(os.environ['TMPDIR'] + '\\n')\n"
+        )
+
+        for _ in range(2):
+            run_cycle_in_temp_dir(
+                [sys.executable, "-c", code], os.environ, 30, threading.Event()
+            )
+
+        first, second = record.read_text().split()
+        assert first != second
