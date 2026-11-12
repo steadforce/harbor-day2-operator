@@ -59,7 +59,7 @@ jobs:
           exit 1
         fi
         # Newest stable tag vX.Y.Z; prereleases such as v1.1.1-test4 and the older tags without `v` are ignored
-        last=$(git tag --list | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+        last=$(git tag --list | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -1 || true)
         if [[ -z "$last" ]]; then
           echo "No stable release tag (vX.Y.Z) found" >&2
           exit 1
@@ -166,7 +166,7 @@ jobs:
           exit 1
         fi
         # A newer stable release than the one the plan started from (for example a manual minor release) makes this release stale.
-        newest=$(printf '%s\n' "$refs" | sed 's#^refs/tags/##' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1 || true)
+        newest=$(printf '%s\n' "$refs" | sed 's#^refs/tags/##' | grep -E '^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' | sort -V | tail -1 || true)
         if [[ "$newest" != "$LAST" ]]; then
           echo "The newest release is ${newest:-none}, but this release was planned from ${LAST}. No release was created." >&2
           echo "The image and chart of this run may have been published; check them, then start a new nightly run." >&2

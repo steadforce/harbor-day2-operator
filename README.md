@@ -461,7 +461,8 @@ When testing with Act, some GitHub Actions features are not fully supported:
 A release is created by publishing a GitHub release whose tag is a semantic version with a `v` prefix (for example `v1.2.3`; prereleases
 such as `v1.2.3-rc.1` are possible). Publishing the release builds the image (`1.2.3`, `1.2`, `1`) and publishes the Helm chart. Pushing a tag
 alone does not start a build, so a release builds exactly once. A release whose tag does not have the form `vX.Y.Z` (for example `1.2.3`)
-fails right at the start and publishes nothing.
+fails right at the start and publishes nothing; so do tags that are not valid SemVer (such as `v1.2.3-rc..1` or `v01.2.3`) and a stable release that is older
+than the newest one (it would overwrite the shared image tags `1.2`, `1` and `latest`).
 
 The `v` prefix belongs to the Git tag and the GitHub release only. Image tags, chart version, the version printed by the binary and the
 SBOM file name never have it: the release `v1.2.3` publishes the image `1.2.3` and the chart `1.2.3`. Tags without the prefix from before
