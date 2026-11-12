@@ -86,15 +86,19 @@ spec:
             {{- end }}
           # The operator repeats the synchronization itself, no shell or `watch` needed
           args: ["--watch", {{ $interval | quote }}]
+          {{- if .Values.configFiles.enabled }}
           volumeMounts:
             - name: config-volume
               mountPath: {{ .Values.configFolder }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.configFiles.enabled }}
       volumes:
         - name: config-volume
           configMap:
             name: {{ include "harbor-day2-operator.fullname" . }}-config
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

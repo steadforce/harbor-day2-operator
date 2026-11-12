@@ -485,19 +485,33 @@ tests:
                 key: my-key
 
   # ---- configuration folder
-  - it: mounts the configuration files into the default configuration folder
+  # The ConfigMap with the configuration files only exists when configFiles are enabled, so the pod only mounts it then.
+  - it: mounts no configuration files by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].volumeMounts
+
+  - it: tells the operator the default configuration folder
     asserts:
       - contains:
           path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
           content:
             name: CONFIG_FOLDER_PATH
             value: /usr/local/scripts
+
+  - it: mounts the configuration files into the default configuration folder when they are enabled
+    set:
+      configFiles.enabled: true
+    asserts:
       - equal:
           path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].volumeMounts[?(@.name == "config-volume")].mountPath
           value: /usr/local/scripts
 
   - it: mounts the configuration files into the configured folder and tells the operator
     set:
+      configFiles.enabled: true
       configFolder: /etc/harbor-config
     asserts:
       - contains:
@@ -509,7 +523,9 @@ tests:
           path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].volumeMounts[?(@.name == "config-volume")].mountPath
           value: /etc/harbor-config
 
-  - it: mounts the configmap that is named after the full name
+  - it: mounts the configmap that is named after the full name when the files are enabled
+    set:
+      configFiles.enabled: true
     asserts:
       - equal:
           path: spec.template.spec.volumes[?(@.name == "config-volume")].configMap.name
