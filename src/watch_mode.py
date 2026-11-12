@@ -13,6 +13,7 @@ need one:
 from __future__ import annotations
 
 import logging
+import math
 import os
 import re
 import signal
@@ -136,6 +137,31 @@ def parse_watch_args(argv: Sequence[str], environ: Mapping[str, str]) -> int | N
     return interval
 
 
+def parse_cycle_timeout(environ: Mapping[str, str]) -> float:
+    """Return the maximum run time of one cycle in seconds (CYCLE_TIMEOUT, default 900).
+
+    Args:
+        environ: Environment variables
+
+    Returns:
+        float: Timeout in seconds
+
+    Raises:
+        ValueError: If CYCLE_TIMEOUT is not a positive, finite number
+    """
+    value = environ.get("CYCLE_TIMEOUT", str(DEFAULT_CYCLE_TIMEOUT))
+    try:
+        timeout = float(value)
+    except ValueError:
+        timeout = 0.0
+    # nan and inf would never end a cycle, zero and negative numbers would end every cycle at once
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise ValueError(
+            f"CYCLE_TIMEOUT must be a positive number of seconds, got '{value}'"
+        )
+    return timeout
+
+
 def build_child_argv(
     frozen: bool, module_name: str | None, script_path: str, executable: str
 ) -> list[str]:
@@ -250,7 +276,7 @@ def run_watch(
     """
     environ = os.environ if environ is None else environ
     secrets_dir = environ.get("SECRETS_DIR", DEFAULT_SECRETS_DIR)
-    timeout = float(environ.get("CYCLE_TIMEOUT", DEFAULT_CYCLE_TIMEOUT))
+    timeout = parse_cycle_timeout(environ)
 
     stop = threading.Event()
 

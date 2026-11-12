@@ -16,6 +16,7 @@ from watch_mode import (
     TIMEOUT_EXIT_CODE,
     build_child_argv,
     load_secret_env,
+    parse_cycle_timeout,
     parse_watch_args,
     run_child,
     watch_loop,
@@ -315,3 +316,17 @@ class TestBuildChildArgv:
         assert by_module.returncode == 0
         assert by_file.returncode != 0
         assert b"No module named 'pkg'" in by_file.stderr
+
+
+class TestParseCycleTimeout:
+    def test_default_is_900_seconds(self):
+        assert parse_cycle_timeout({}) == 900
+
+    def test_accepts_a_positive_number(self):
+        assert parse_cycle_timeout({"CYCLE_TIMEOUT": "30"}) == 30
+        assert parse_cycle_timeout({"CYCLE_TIMEOUT": "0.5"}) == 0.5
+
+    @pytest.mark.parametrize("value", ["0", "-1", "nan", "inf", "-inf", "abc", ""])
+    def test_rejects_a_value_that_would_disable_or_break_the_timeout(self, value):
+        with pytest.raises(ValueError):
+            parse_cycle_timeout({"CYCLE_TIMEOUT": value})

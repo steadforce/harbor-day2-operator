@@ -1,5 +1,5 @@
 {{- $interval := .Values.watchIntervalSeconds | int }}
-{{- if or (kindIs "bool" .Values.watchIntervalSeconds) (lt $interval 1) }}
+{{- if or (kindIs "bool" .Values.watchIntervalSeconds) (lt $interval 1) (ne ($interval | float64) (.Values.watchIntervalSeconds | float64)) }}
 {{- fail (printf "watchIntervalSeconds must be a whole number of seconds, 1 or more (got %v)" .Values.watchIntervalSeconds) }}
 {{- end }}
 apiVersion: apps/v1

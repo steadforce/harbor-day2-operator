@@ -247,7 +247,11 @@ def run_watch_mode(interval: int) -> int:
         script_path=os.path.abspath(__file__),
         executable=sys.executable,
     )
-    return run_watch(interval, child_argv, logger)
+    try:
+        return run_watch(interval, child_argv, logger)
+    except ValueError as error:
+        print(f"Fatal error: {error}", file=sys.stderr)
+        return 2
 
 
 if __name__ == "__main__":
