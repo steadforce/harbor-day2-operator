@@ -5,6 +5,9 @@
 # -- Number of replicas for the operator deployment
 replicaCount: 1
 
+# -- Number of old ReplicaSets to keep for rollbacks (the Kubernetes default)
+revisionHistoryLimit: 10
+
 # -- Image configuration for the operator
 image:
   # -- Docker image repository for the operator
@@ -43,9 +46,6 @@ affinity: {}
 
 # -- Pod annotations for the operator
 podAnnotations: {}
-
-# -- Pod labels for the operator
-podLabels: {}
 
 # -- Deployment labels for the operator
 deployment:

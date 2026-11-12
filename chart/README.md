@@ -104,7 +104,6 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | oidc.secretKey | string | `"OIDC_STATIC_CLIENT_TOKEN"` | Key in the secret for the OIDC client token |
 | oidc.secretName | string | `""` | Name of the Kubernetes secret containing the OIDC client token |
 | podAnnotations | object | `{}` | Pod annotations for the operator |
-| podLabels | object | `{}` | Pod labels for the operator |
 | replicaCount | int | `1` | Number of replicas for the operator deployment |
 | resources | object | `{"limits":{"cpu":"600m","memory":"256Mi"},"requests":{"cpu":"200m","memory":"80Mi"}}` | Resources configuration for the operator |
 | resources.limits | object | `{"cpu":"600m","memory":"256Mi"}` | Resource limits for the operator |
@@ -113,6 +112,7 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | resources.requests | object | `{"cpu":"200m","memory":"80Mi"}` | Resource requests for the operator |
 | resources.requests.cpu | string | `"200m"` | CPU request for the operator |
 | resources.requests.memory | string | `"80Mi"` | Memory request for the operator |
+| revisionHistoryLimit | int | `10` | Number of old ReplicaSets to keep for rollbacks (the Kubernetes default) |
 | tolerations | list | `[]` | Tolerations configuration for the operator |
 | watchIntervalSeconds | int | `60` | Seconds between two synchronizations; the operator runs with `--watch <seconds>` |
 

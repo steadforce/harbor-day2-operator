@@ -134,6 +134,12 @@ tests:
           path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].imagePullPolicy
           value: Always
 
+  - it: keeps the history of ten revisions by default
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 10
+
   - it: keeps the history of the configured number of revisions
     set:
       revisionHistoryLimit: 3
