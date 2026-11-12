@@ -133,6 +133,32 @@ def parse_watch_args(argv: Sequence[str], environ: Mapping[str, str]) -> int | N
     return interval
 
 
+def build_child_argv(
+    frozen: bool, module_name: str | None, script_path: str, executable: str
+) -> list[str]:
+    """Return the command that runs a single synchronization.
+
+    * A frozen executable (PyInstaller) starts itself.
+    * Started as a module (``python -m src.harbor``) the child is started as the same module. Running the file instead would put
+      its directory first on the module search path, and the ``from src...`` imports would fail.
+    * Otherwise the file is run again (the module search path is inherited through PYTHONPATH).
+
+    Args:
+        frozen: Whether the program is a frozen executable
+        module_name: Name of the running module (``__spec__.name``), None when run as a file
+        script_path: Path of the running file
+        executable: The Python interpreter or the frozen executable
+
+    Returns:
+        list[str]: Command of the child
+    """
+    if frozen:
+        return [executable]
+    if module_name:
+        return [executable, "-m", module_name]
+    return [executable, script_path]
+
+
 def run_child(
     argv: Sequence[str],
     env: Mapping[str, str],
@@ -189,11 +215,16 @@ def watch_loop(
         try:
             exit_code = run_cycle()
             if exit_code != 0 and not stop.is_set():
+                # The values are also in the message: the text log format ignores the extra fields
                 logger.error(
-                    "Synchronization cycle failed", extra={"exit_code": exit_code}
+                    "Synchronization cycle failed (exit code %s)",
+                    exit_code,
+                    extra={"exit_code": exit_code},
                 )
         except Exception as e:  # noqa: BLE001 - a broken cycle must not end the loop
-            logger.error("Synchronization cycle could not run", extra={"error": str(e)})
+            logger.error(
+                "Synchronization cycle could not run: %s", e, extra={"error": str(e)}
+            )
         stop.wait(interval)
 
 

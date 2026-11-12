@@ -2,6 +2,7 @@
 
 import logging
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -13,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import watch_mode
 from watch_mode import (
     TIMEOUT_EXIT_CODE,
+    build_child_argv,
     load_secret_env,
     parse_watch_args,
     run_child,
@@ -144,9 +146,14 @@ class TestWatchLoop:
         failed = [
             r
             for r in caplog.records
-            if r.getMessage() == "Synchronization cycle failed"
+            if r.getMessage().startswith("Synchronization cycle failed")
         ]
         assert [r.exit_code for r in failed] == [3, 1]
+        # the text log format ignores the extra fields, so the exit code is in the message as well
+        assert [r.getMessage() for r in failed] == [
+            "Synchronization cycle failed (exit code 3)",
+            "Synchronization cycle failed (exit code 1)",
+        ]
         assert len(stop.waits) == 3
 
     def test_continues_after_an_exception(self, caplog):
@@ -161,7 +168,11 @@ class TestWatchLoop:
             watch_loop(broken, 1, stop, LOGGER)
 
         assert len(calls) == 2
-        assert any("could not run" in r.getMessage() for r in caplog.records)
+        assert any(
+            r.getMessage()
+            == "Synchronization cycle could not run: cannot read the secret"
+            for r in caplog.records
+        )
 
     def test_does_not_run_when_already_stopped(self):
         stop = CountingStop(stop_after=0)
@@ -245,3 +256,55 @@ class TestRunChild:
 
         assert code == TIMEOUT_EXIT_CODE
         assert time.monotonic() - started < 15
+
+
+class TestBuildChildArgv:
+    def test_a_frozen_executable_starts_itself(self):
+        assert build_child_argv(
+            True, "src.harbor", "/app/harbor.py", "/usr/bin/harbor"
+        ) == ["/usr/bin/harbor"]
+
+    def test_a_module_is_started_as_a_module(self):
+        assert build_child_argv(
+            False, "src.harbor", "/repo/src/harbor.py", "/usr/bin/python3"
+        ) == [
+            "/usr/bin/python3",
+            "-m",
+            "src.harbor",
+        ]
+
+    def test_a_file_is_run_again_as_a_file(self):
+        assert build_child_argv(
+            False, None, "/repo/src/harbor.py", "/usr/bin/python3"
+        ) == [
+            "/usr/bin/python3",
+            "/repo/src/harbor.py",
+        ]
+
+    def test_the_module_child_keeps_the_package_imports_working(self, tmp_path):
+        """With the project root only in the working directory, `python -m` finds the package, running the file does not."""
+        package = tmp_path / "pkg"
+        package.mkdir()
+        (package / "__init__.py").write_text("")
+        (package / "helper.py").write_text("VALUE = 1\n")
+        (package / "main.py").write_text(
+            "from pkg.helper import VALUE\nraise SystemExit(0 if VALUE == 1 else 1)\n"
+        )
+        env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+        as_module = build_child_argv(
+            False, "pkg.main", str(package / "main.py"), sys.executable
+        )
+        as_file = build_child_argv(
+            False, None, str(package / "main.py"), sys.executable
+        )
+
+        by_module = subprocess.run(
+            as_module, cwd=tmp_path, env=env, check=False, capture_output=True
+        )
+        by_file = subprocess.run(
+            as_file, cwd=tmp_path, env=env, check=False, capture_output=True
+        )
+
+        assert by_module.returncode == 0
+        assert by_file.returncode != 0
+        assert b"No module named 'pkg'" in by_file.stderr
