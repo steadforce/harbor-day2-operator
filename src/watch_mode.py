@@ -12,6 +12,7 @@ need one:
 
 from __future__ import annotations
 
+import ctypes
 import logging
 import math
 import os
@@ -43,6 +44,9 @@ VALID_ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 # Time a child gets to exit after SIGTERM before it is killed
 TERMINATE_GRACE_SECONDS = 10
 POLL_SECONDS = 0.5
+
+# prctl(2) option: orphaned descendants are re-parented to this process instead of to PID 1
+PR_SET_CHILD_SUBREAPER = 36
 
 # Exit code reported for a cycle that was terminated because it ran too long
 TIMEOUT_EXIT_CODE = -1
@@ -188,6 +192,39 @@ def build_child_argv(
     return [executable, script_path]
 
 
+def become_subreaper() -> bool:
+    """Make this process the parent of orphaned descendants (Linux).
+
+    A worker that is killed while its parent is gone would be re-parented to PID 1 of the container. In the PyInstaller image that is
+    the bootloader, which does not collect it, and the zombies would pile up. As a subreaper this process collects them itself.
+
+    Returns:
+        bool: Whether the setting was applied
+    """
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        return libc.prctl(PR_SET_CHILD_SUBREAPER, 1, 0, 0, 0) == 0
+    except (OSError, AttributeError):
+        return False
+
+
+def reap_orphans() -> int:
+    """Collect terminated orphans that were re-parented to this process; nothing of the current cycle may be running.
+
+    Returns:
+        int: Number of processes collected
+    """
+    collected = 0
+    while True:
+        try:
+            pid, _status = os.waitpid(-1, os.WNOHANG)
+        except ChildProcessError:
+            return collected
+        if pid == 0:
+            return collected
+        collected += 1
+
+
 def _signal_group(process: subprocess.Popen, signum: int) -> None:
     """Send a signal to the process group of the child; a group that is gone already is fine."""
     try:
@@ -216,6 +253,7 @@ def run_child(
     Returns:
         int: Exit code of the child, TIMEOUT_EXIT_CODE if it had to be terminated
     """
+    reap_orphans()  # leftovers of the previous cycle that were still dying when it ended
     # Own process group: a frozen onefile executable consists of a bootloader and the worker below it, and a SIGKILL of the bootloader
     # alone would leave the worker running into the next cycle. The signals go to the whole group.
     process = subprocess.Popen(list(argv), env=dict(env), start_new_session=True)
@@ -238,6 +276,7 @@ def run_child(
     # Also after a clean exit of the first process: kill whatever of the group is left
     _signal_group(process, signal.SIGKILL)
     process.wait()
+    reap_orphans()
     return TIMEOUT_EXIT_CODE
 
 
@@ -299,6 +338,7 @@ def run_watch(
         logger.info("Stopping after signal %s", signum)
         stop.set()
 
+    become_subreaper()
     signal.signal(signal.SIGTERM, request_stop)
     signal.signal(signal.SIGINT, request_stop)
 

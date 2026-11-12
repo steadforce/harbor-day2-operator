@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import watch_mode
 from watch_mode import (
     TIMEOUT_EXIT_CODE,
+    become_subreaper,
     build_child_argv,
     load_secret_env,
     parse_cycle_timeout,
@@ -215,6 +216,11 @@ class TestWatchLoop:
         assert not caplog.records
 
 
+def process_exists(pid):
+    """True while the process has an entry at all, a zombie that nobody has collected included."""
+    return os.path.exists(f"/proc/{pid}")
+
+
 def process_is_gone(pid):
     """True when the process does not exist or is only a zombie that nobody has collected yet."""
     try:
@@ -390,3 +396,32 @@ class TestProcessGroup:
         while not process_is_gone(worker_pid) and time.monotonic() < deadline:
             time.sleep(0.1)
         assert process_is_gone(worker_pid)
+
+
+class TestSubreaper:
+    def test_orphans_that_are_killed_are_collected_not_left_as_zombies(
+        self, tmp_path, monkeypatch
+    ):
+        """The worker ignores SIGTERM and is orphaned by the kill: without a subreaper it stays a zombie of PID 1."""
+        assert become_subreaper()
+        monkeypatch.setattr(watch_mode, "POLL_SECONDS", 0.1)
+        monkeypatch.setattr(watch_mode, "TERMINATE_GRACE_SECONDS", 1)
+        pid_file = tmp_path / "worker.pid"
+        code = (
+            "import signal, subprocess, sys, time\n"
+            "worker = subprocess.Popen([sys.executable, '-c', "
+            "'import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)'])\n"
+            f"open({str(pid_file)!r}, 'w').write(str(worker.pid))\n"
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "time.sleep(60)\n"
+        )
+
+        run_child([sys.executable, "-c", code], os.environ, 2, threading.Event())
+
+        worker_pid = int(pid_file.read_text())
+        # the worker dies a moment after the kill; the next cycle collects it before it starts its own child
+        deadline = time.monotonic() + 5
+        while process_exists(worker_pid) and time.monotonic() < deadline:
+            run_child([sys.executable, "-c", "pass"], os.environ, 30, threading.Event())
+            time.sleep(0.1)
+        assert not process_exists(worker_pid)
