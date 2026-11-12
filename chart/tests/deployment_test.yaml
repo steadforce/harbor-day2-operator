@@ -1,11 +1,15 @@
 suite: operator deployment
+# The release name does not contain the chart name, so the full name is `operator-harbor-day2-operator`.
+release:
+  name: operator
+  namespace: harbor
 templates:
   - templates/deployment.yaml
 tests:
   - it: starts the operator in watch mode every 60 seconds by default
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: &containerArgsPath spec.template.spec.containers[0].args
           value: ["--watch", "60"]
 
   # The image entrypoint is the operator itself; no `watch` and no shell are needed any more.
@@ -19,7 +23,7 @@ tests:
       watchIntervalSeconds: 15
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: *containerArgsPath
           value: ["--watch", "15"]
 
   - it: accepts the interval as a string
@@ -27,7 +31,7 @@ tests:
       watchIntervalSeconds: "30"
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: *containerArgsPath
           value: ["--watch", "30"]
 
   - it: accepts a long interval
@@ -35,50 +39,40 @@ tests:
       watchIntervalSeconds: 3600
     asserts:
       - equal:
-          path: spec.template.spec.containers[0].args
+          path: *containerArgsPath
           value: ["--watch", "3600"]
 
   - it: refuses an interval of zero
     set:
       watchIntervalSeconds: 0
-    asserts:
+    asserts: &invalidWatchIntervalAssert
       - failedTemplate:
           errorPattern: watchIntervalSeconds must be a whole number of seconds
 
   - it: refuses a negative interval
     set:
       watchIntervalSeconds: -5
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses a fractional interval
     set:
       watchIntervalSeconds: 1.5
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses a fractional interval given as a string
     set:
       watchIntervalSeconds: "1.5"
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses a boolean interval
     set:
       watchIntervalSeconds: true
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: refuses an interval that is not a number
     set:
       watchIntervalSeconds: abc
-    asserts:
-      - failedTemplate:
-          errorPattern: watchIntervalSeconds must be a whole number of seconds
+    asserts: *invalidWatchIntervalAssert
 
   - it: runs the image of the chart version when no tag is set
     chart:
@@ -95,3 +89,494 @@ tests:
       - equal:
           path: spec.template.spec.containers[0].image
           value: ghcr.io/steadforce/harbor-day2-operator:1.2.3
+
+  # ---- replicas and image
+  - it: runs one replica by default
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 1
+
+  - it: runs the configured number of replicas
+    set:
+      replicaCount: 3
+    asserts:
+      - equal:
+          path: spec.replicas
+          value: 3
+
+  - it: pulls the image only if it is not present by default
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].imagePullPolicy
+          value: IfNotPresent
+
+  - it: uses the configured image repository and pull policy
+    set:
+      image.repository: registry.example.com/team/operator
+      image.tag: 2.0.1
+      image.pullPolicy: Always
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].image
+          value: registry.example.com/team/operator:2.0.1
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].imagePullPolicy
+          value: Always
+
+  - it: keeps the history of ten revisions by default
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 10
+
+  - it: keeps the history of the configured number of revisions
+    set:
+      revisionHistoryLimit: 3
+    asserts:
+      - equal:
+          path: spec.revisionHistoryLimit
+          value: 3
+
+  # ---- resources
+  - it: sets cpu and memory requests and limits by default
+    asserts:
+      - exists:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].resources.requests.cpu
+      - exists:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].resources.requests.memory
+      - exists:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].resources.limits.cpu
+      - exists:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].resources.limits.memory
+
+  - it: uses the configured resources
+    set:
+      resources:
+        requests:
+          cpu: 123m
+          memory: 45Mi
+        limits:
+          cpu: 456m
+          memory: 78Mi
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].resources
+          value:
+            requests:
+              cpu: 123m
+              memory: 45Mi
+            limits:
+              cpu: 456m
+              memory: 78Mi
+
+  # ---- scheduling
+  - it: adds no scheduling constraints by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.nodeSelector
+      - notExists:
+          path: spec.template.spec.tolerations
+      - notExists:
+          path: spec.template.spec.affinity
+
+  - it: schedules the pod with the configured node selector, tolerations and affinity
+    set:
+      nodeSelector:
+        kubernetes.io/os: linux
+      tolerations:
+        - key: dedicated
+          operator: Equal
+          value: platform
+          effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node.kubernetes.io/worker
+                    operator: Exists
+    asserts:
+      - equal:
+          path: spec.template.spec.nodeSelector
+          value:
+            kubernetes.io/os: linux
+      - equal:
+          path: spec.template.spec.tolerations
+          value:
+            - key: dedicated
+              operator: Equal
+              value: platform
+              effect: NoSchedule
+      - exists:
+          path: spec.template.spec.affinity.nodeAffinity.requiredDuringSchedulingIgnoredDuringExecution.nodeSelectorTerms[*].matchExpressions[?(@.key == "node.kubernetes.io/worker")]
+
+  # ---- annotations and labels
+  - it: adds no pod annotations by default
+    asserts:
+      - notExists:
+          path: spec.template.metadata.annotations
+
+  - it: adds the configured pod annotations
+    set:
+      podAnnotations:
+        example.com/note: hello
+    asserts:
+      - equal:
+          path: spec.template.metadata.annotations["example.com/note"]
+          value: hello
+
+  - it: selects and labels the pods with the name and the instance of the release
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels
+          value:
+            app.kubernetes.io/name: harbor-day2-operator
+            app.kubernetes.io/instance: operator
+      - equal:
+          path: spec.template.metadata.labels
+          value:
+            app.kubernetes.io/name: harbor-day2-operator
+            app.kubernetes.io/instance: operator
+
+  - it: adds the configured deployment labels to the deployment only
+    set:
+      deployment.labels:
+        team: platform
+    asserts:
+      - equal:
+          path: metadata.labels.team
+          value: platform
+      - notExists:
+          path: spec.template.metadata.labels.team
+
+  - it: adds the configured pod labels to the pods but not to the selector
+    set:
+      deployment.podLabels:
+        tier: backend
+    asserts:
+      - equal:
+          path: spec.template.metadata.labels.tier
+          value: backend
+      - notExists:
+          path: spec.selector.matchLabels.tier
+
+  - it: adds the configured selector labels to the selector and to the pods
+    set:
+      deployment.selectorLabels:
+        component: sync
+    asserts:
+      - equal:
+          path: spec.selector.matchLabels.component
+          value: sync
+      - equal:
+          path: spec.template.metadata.labels.component
+          value: sync
+
+  # ---- service account
+  # The chart creates the ServiceAccount (see the service account tests); the pod runs as that service account.
+  - it: runs the pod as the service account of the chart
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: operator-harbor-day2-operator
+
+  # The operator does not call the Kubernetes API, so the pod gets no token.
+  - it: mounts no API token into the pod
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
+
+  - it: runs the pod as the service account that the full name override names
+    set:
+      fullnameOverride: custom-operator
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: custom-operator
+
+  # ---- names
+  - it: names the deployment after the release and the chart
+    asserts:
+      - equal:
+          path: metadata.name
+          value: operator-harbor-day2-operator
+
+  - it: uses the release name as the full name when it contains the chart name
+    release:
+      name: harbor-day2-operator-prod
+    asserts:
+      - equal:
+          path: metadata.name
+          value: harbor-day2-operator-prod
+
+  - it: puts the name override into the name and the labels
+    set:
+      nameOverride: syncer
+    asserts:
+      - equal:
+          path: metadata.name
+          value: operator-syncer
+      - equal:
+          path: spec.selector.matchLabels["app.kubernetes.io/name"]
+          value: syncer
+
+  - it: uses the full name override as the name of the deployment
+    set:
+      fullnameOverride: custom-operator
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-operator
+
+  # ---- Harbor and the admin credentials
+  - it: reads the admin passwords from the default secrets
+    asserts:
+      - contains:
+          path: &containerEnvPath spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          content:
+            name: ADMIN_PASSWORD_NEW
+            valueFrom:
+              secretKeyRef:
+                name: harbor-secrets
+                key: ADMIN_PASSWORD
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: ADMIN_PASSWORD_OLD
+            valueFrom:
+              secretKeyRef:
+                name: harbor-core
+                key: HARBOR_ADMIN_PASSWORD
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: ADMIN_USERNAME
+            value: admin
+
+  - it: reads the admin passwords from the configured secrets
+    set:
+      harbor.newAdminSecretName: new-admin
+      harbor.oldAdminSecretName: old-admin
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env[?(@.name == "ADMIN_PASSWORD_NEW")].valueFrom.secretKeyRef.name
+          value: new-admin
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env[?(@.name == "ADMIN_PASSWORD_OLD")].valueFrom.secretKeyRef.name
+          value: old-admin
+
+  - it: passes the Harbor settings to the operator
+    set:
+      harbor.apiUrl: https://harbor.example.com/api/v2.0/
+      harbor.adminUsername: operator-admin
+      harbor.robotNamePrefix: robot-
+    asserts:
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: HARBOR_API_URL
+            value: https://harbor.example.com/api/v2.0/
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: ADMIN_USERNAME
+            value: operator-admin
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: ROBOT_NAME_PREFIX
+            value: robot-
+
+  # ---- OIDC
+  - it: passes the OIDC endpoint to the operator
+    set:
+      oidc.endpoint: https://oidc.example.com/api
+    asserts:
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: OIDC_ENDPOINT
+            value: https://oidc.example.com/api
+
+  - it: reads the OIDC client token from the configured secret when OIDC is enabled
+    set:
+      oidc.enabled: true
+      oidc.secretName: oidc-client
+    asserts:
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: OIDC_STATIC_CLIENT_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: oidc-client
+                key: OIDC_STATIC_CLIENT_TOKEN
+
+  - it: reads the OIDC client token from the configured key
+    set:
+      oidc.enabled: true
+      oidc.secretName: oidc-client
+      oidc.secretKey: client-secret
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env[?(@.name == "OIDC_STATIC_CLIENT_TOKEN")].valueFrom.secretKeyRef.key
+          value: client-secret
+
+  - it: omits the OIDC client token while OIDC is disabled
+    set:
+      oidc.enabled: false
+      oidc.secretName: oidc-client
+    asserts:
+      - notContains:
+          path: *containerEnvPath
+          content:
+            name: OIDC_STATIC_CLIENT_TOKEN
+          any: true
+
+  - it: omits the OIDC client token without a secret name
+    set:
+      oidc.enabled: true
+    asserts:
+      - notContains:
+          path: *containerEnvPath
+          content:
+            name: OIDC_STATIC_CLIENT_TOKEN
+          any: true
+
+  # ---- additional environment
+  # The template renders an empty `envFrom:` key without sources, which is null.
+  - it: adds no environment from sources by default
+    asserts:
+      - isNullOrEmpty:
+          path: &containerEnvFromPath spec.template.spec.containers[?(@.name == "harbor-day2-operator")].envFrom
+
+  - it: reads the robot account tokens from the configured secret
+    set:
+      harbor.robotSecretName: robot-tokens
+    asserts:
+      - equal:
+          path: *containerEnvFromPath
+          value:
+            - secretRef:
+                name: robot-tokens
+
+  - it: adds the configured environment sources after the robot account tokens
+    set:
+      harbor.robotSecretName: robot-tokens
+      envFrom:
+        - configMapRef:
+            name: extra-settings
+    asserts:
+      - equal:
+          path: *containerEnvFromPath
+          value:
+            - secretRef:
+                name: robot-tokens
+            - configMapRef:
+                name: extra-settings
+
+  # The template ranges over a map: an entry is `{value: ...}` or `{valueFrom: ...}`.
+  - it: adds the configured environment variables with a value or from a source
+    set:
+      env:
+        FIRST:
+          value: one
+        SECOND:
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: my-key
+    asserts:
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: FIRST
+            value: one
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: SECOND
+            valueFrom:
+              secretKeyRef:
+                name: my-secret
+                key: my-key
+
+  - it: adds plain values of any type as environment variables
+    set:
+      env:
+        TEXT: hello
+        COUNT: 3
+        FLAG: true
+    asserts:
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: TEXT
+            value: hello
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: COUNT
+            value: "3"
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: FLAG
+            value: "true"
+
+  - it: adds no extra environment variables by default
+    asserts:
+      - notContains:
+          path: *containerEnvPath
+          content:
+            name: TEXT
+          any: true
+
+  # ---- configuration folder
+  # The ConfigMap with the configuration files only exists when configFiles are enabled, so the pod only mounts it then.
+  - it: mounts no configuration files by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.volumes
+      - notExists:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].volumeMounts
+
+  - it: tells the operator the default configuration folder
+    asserts:
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: CONFIG_FOLDER_PATH
+            value: /usr/local/scripts
+
+  - it: mounts the configuration files into the default configuration folder when they are enabled
+    set:
+      configFiles.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].volumeMounts[?(@.name == "config-volume")].mountPath
+          value: /usr/local/scripts
+
+  - it: mounts the configuration files into the configured folder and tells the operator
+    set:
+      configFiles.enabled: true
+      configFolder: /etc/harbor-config
+    asserts:
+      - contains:
+          path: *containerEnvPath
+          content:
+            name: CONFIG_FOLDER_PATH
+            value: /etc/harbor-config
+      - equal:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].volumeMounts[?(@.name == "config-volume")].mountPath
+          value: /etc/harbor-config
+
+  - it: mounts the configmap that is named after the full name when the files are enabled
+    set:
+      configFiles.enabled: true
+    asserts:
+      - equal:
+          path: spec.template.spec.volumes[?(@.name == "config-volume")].configMap.name
+          value: operator-harbor-day2-operator-config

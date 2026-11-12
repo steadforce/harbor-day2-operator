@@ -84,7 +84,7 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | deployment.labels | object | `{}` | Labels to add to the deployment |
 | deployment.podLabels | object | `{}` | Labels to add to the pods |
 | deployment.selectorLabels | object | `{}` | Labels to add to the selector |
-| env | object | `{}` | Environment variables for the operator |
+| env | object | `{}` | Environment variables for the operator, a map of the variable name to a value, `{value: ...}` or `{valueFrom: ...}` |
 | envFrom | list | `[]` | Environment variables from sources for the operator |
 | harbor | object | `{"adminUsername":"admin","apiUrl":"","newAdminSecretName":"harbor-secrets","oldAdminSecretName":"harbor-core","robotNamePrefix":"","robotSecretName":""}` | Harbor configuration |
 | harbor.adminUsername | string | `"admin"` | Username for Harbor admin account |
@@ -104,7 +104,6 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | oidc.secretKey | string | `"OIDC_STATIC_CLIENT_TOKEN"` | Key in the secret for the OIDC client token |
 | oidc.secretName | string | `""` | Name of the Kubernetes secret containing the OIDC client token |
 | podAnnotations | object | `{}` | Pod annotations for the operator |
-| podLabels | object | `{}` | Pod labels for the operator |
 | replicaCount | int | `1` | Number of replicas for the operator deployment |
 | resources | object | `{"limits":{"cpu":"600m","memory":"256Mi"},"requests":{"cpu":"200m","memory":"80Mi"}}` | Resources configuration for the operator |
 | resources.limits | object | `{"cpu":"600m","memory":"256Mi"}` | Resource limits for the operator |
@@ -113,6 +112,7 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | resources.requests | object | `{"cpu":"200m","memory":"80Mi"}` | Resource requests for the operator |
 | resources.requests.cpu | string | `"200m"` | CPU request for the operator |
 | resources.requests.memory | string | `"80Mi"` | Memory request for the operator |
+| revisionHistoryLimit | int | `10` | Number of old ReplicaSets to keep for rollbacks (the Kubernetes default) |
 | tolerations | list | `[]` | Tolerations configuration for the operator |
 | watchIntervalSeconds | int | `60` | Seconds between two synchronizations; the operator runs with `--watch <seconds>` |
 
@@ -190,12 +190,13 @@ deployment:
     tier: backend
 ```
 
-## RBAC
+## Service account and permissions
 
-The chart creates the following RBAC resources:
-- ServiceAccount: For the Harbor Day 2 Operator
-- Role: With permissions to get, list, and watch secrets and configmaps, and to create and patch events
-- RoleBinding: Binding the Role to the ServiceAccount
+The operator needs no permissions in the Kubernetes API. Its secrets and configuration files reach it as environment variables
+and mounted files, which the kubelet provides, and it only talks to Harbor and to the OIDC provider.
+
+The chart therefore creates a dedicated ServiceAccount without a Role or a RoleBinding, and the pod does not mount a token for it
+(`automountServiceAccountToken: false`).
 
 ## Security
 

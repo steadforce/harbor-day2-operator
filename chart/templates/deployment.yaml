@@ -35,6 +35,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
     spec:
+      serviceAccountName: {{ include "harbor-day2-operator.fullname" . }}
+      automountServiceAccountToken: false
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -69,11 +71,15 @@ spec:
             {{- end }}
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}
+              {{- if kindIs "map" $value }}
               {{- if $value.valueFrom }}
               valueFrom:
                 {{- toYaml $value.valueFrom | nindent 16 }}
               {{- else }}
-              value: {{ $value.value | default $value | quote }}
+              value: {{ $value.value | quote }}
+              {{- end }}
+              {{- else }}
+              value: {{ $value | quote }}
               {{- end }}
             {{- end }}
           envFrom:
@@ -86,15 +92,19 @@ spec:
             {{- end }}
           # The operator repeats the synchronization itself, no shell or `watch` needed
           args: ["--watch", {{ $interval | quote }}]
+          {{- if .Values.configFiles.enabled }}
           volumeMounts:
             - name: config-volume
               mountPath: {{ .Values.configFolder }}
+          {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.configFiles.enabled }}
       volumes:
         - name: config-volume
           configMap:
             name: {{ include "harbor-day2-operator.fullname" . }}-config
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

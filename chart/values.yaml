@@ -5,6 +5,9 @@
 # -- Number of replicas for the operator deployment
 replicaCount: 1
 
+# -- Number of old ReplicaSets to keep for rollbacks (the Kubernetes default)
+revisionHistoryLimit: 10
+
 # -- Image configuration for the operator
 image:
   # -- Docker image repository for the operator
@@ -44,9 +47,6 @@ affinity: {}
 # -- Pod annotations for the operator
 podAnnotations: {}
 
-# -- Pod labels for the operator
-podLabels: {}
-
 # -- Deployment labels for the operator
 deployment:
   # -- Labels to add to the deployment
@@ -56,13 +56,14 @@ deployment:
   # -- Labels to add to the selector
   selectorLabels: {}
 
-# -- Environment variables for the operator
+# -- Environment variables for the operator, a map of the variable name to a value, `{value: ...}` or `{valueFrom: ...}`
 env: {}
 # -- Example:
 # -- env:
-# --   - name: CUSTOM_VAR
+# --   PLAIN_VAR: "plain-value"
+# --   CUSTOM_VAR:
 # --     value: "custom-value"
-# --   - name: SECRET_VAR
+# --   SECRET_VAR:
 # --     valueFrom:
 # --       secretKeyRef:
 # --         name: my-secret
