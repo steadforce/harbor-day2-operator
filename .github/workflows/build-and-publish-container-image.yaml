@@ -64,8 +64,12 @@ jobs:
       with:
         ref: ${{ inputs.ref }}
 
+    # The image runs as user 1000 and HOME is /github/home, which that user cannot write: without a cache directory the plugin does not load
+    # ("unknown command unittest for helm").
     - name: Run the unit tests of the chart
       uses: docker://helmunittest/helm-unittest:4.3.0-1.2.1
+      env:
+        HELM_CACHE_HOME: /tmp/helm/.config
       with:
         args: --strict chart
 
