@@ -14,6 +14,8 @@ image:
   # -- Docker image pull policy (IfNotPresent, Always, or Never)
   pullPolicy: IfNotPresent
 
+# -- Seconds between two synchronizations; the operator runs with `--watch <seconds>`
+watchIntervalSeconds: 60
 
 # -- Resources configuration for the operator
 resources:

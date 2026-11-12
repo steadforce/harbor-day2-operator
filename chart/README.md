@@ -114,6 +114,7 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | resources.requests.cpu | string | `"200m"` | CPU request for the operator |
 | resources.requests.memory | string | `"80Mi"` | Memory request for the operator |
 | tolerations | list | `[]` | Tolerations configuration for the operator |
+| watchIntervalSeconds | int | `60` | Seconds between two synchronizations; the operator runs with `--watch <seconds>` |
 
 ## Environment Variables
 

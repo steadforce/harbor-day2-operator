@@ -94,7 +94,7 @@ The secrets are read from files in every cycle, below the directory `SECRETS_DIR
 |`oidc-static-client-token/<NAME>`|`<NAME>` (every file whose name is a valid variable name)|
 
 Trailing newlines are removed. A variable that no file provides keeps its value from the environment, so the operator also works with
-`env`/`envFrom` secrets as before (the Helm chart of this repository does that).
+`env`/`envFrom` secrets as before (the Helm chart of this repository does that). The chart starts the watch mode and takes the interval from the value `watchIntervalSeconds` (default 60); a value below 1 or a non-number fails when the chart is rendered.
 
 
 ## Configuration Files
