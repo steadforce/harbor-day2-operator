@@ -26,9 +26,15 @@ from src.replications import sync_replications
 from src.retention_policies import sync_retention_policies
 from src.robot_accounts import sync_robot_accounts
 from src.utils import wait_until_healthy
+from src.watch_mode import parse_watch_args, run_watch
 from src.webhooks import sync_webhooks
 
 __version__ = os.getenv("HARBOR_OPERATOR_VERSION", "0.0.0-dev")
+
+
+def json_logging_enabled() -> bool:
+    """Whether the environment asks for JSON log lines (JSON_LOGGING)."""
+    return os.environ.get("JSON_LOGGING", "").lower() in ["true", "1", "yes", "y"]
 
 
 @dataclass
@@ -66,8 +72,7 @@ class HarborConfig:
             admin_password=admin_password,
             api_url=api_url,
             config_folder=config_folder,
-            json_logging=os.environ.get("JSON_LOGGING", "").lower()
-            in ["true", "1", "yes", "y"],
+            json_logging=json_logging_enabled(),
         )
 
 
@@ -223,5 +228,33 @@ async def main() -> None:
         sys.exit(1)
 
 
+def run_watch_mode(interval: int) -> int:
+    """Run the synchronization every ``interval`` seconds, each cycle in a fresh process.
+
+    The secrets are read from the mounted files in every cycle, see src/watch_mode.py.
+
+    Args:
+        interval: Seconds between two cycles
+
+    Returns:
+        int: Exit code of the program
+    """
+    logger = set_up_logging(json_logging_enabled())
+    # A frozen executable (PyInstaller) starts itself, otherwise the interpreter runs this file again
+    child_argv = (
+        [sys.executable]
+        if getattr(sys, "frozen", False)
+        else [sys.executable, os.path.abspath(__file__)]
+    )
+    return run_watch(interval, child_argv, logger)
+
+
 if __name__ == "__main__":
+    try:
+        watch_interval = parse_watch_args(sys.argv[1:], os.environ)
+    except ValueError as error:
+        print(f"Fatal error: {error}", file=sys.stderr)
+        sys.exit(2)
+    if watch_interval is not None:
+        sys.exit(run_watch_mode(watch_interval))
     asyncio.run(main())
