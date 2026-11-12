@@ -19,6 +19,23 @@ on:
         type: string
         required: false
         default: ""
+      tag:
+        description: "Git tag of the release (with the prefix style of the repository), only used to serialize runs of the same release"
+        type: string
+        required: false
+        default: ""
+      previous_tag:
+        description: "Newest release tag at planning time; the run is refused when a newer release exists by now"
+        type: string
+        required: false
+        default: ""
+
+# Runs that publish the same release share a group, so a manual release and a nightly release of the same version cannot
+# publish at the same time: the later one starts after the first has created the tag and its stale-plan guard refuses it.
+# All other runs (branches, pull requests) get a group of their own and are not serialized.
+concurrency:
+  group: ${{ inputs.version != '' && format('release-chart-{0}', inputs.tag) || github.event_name == 'release' && format('release-chart-{0}', github.event.release.tag_name) || format('build-{0}', github.run_id) }}
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
@@ -39,6 +56,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ inputs.version }}
+          PREVIOUS_TAG: ${{ inputs.previous_tag }}
           REF: ${{ inputs.ref || github.sha }}
         run: |
           # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
@@ -51,6 +69,15 @@ jobs:
           if [[ "$existing" != "0" ]]; then
             echo "Tag ${VERSION} (or v${VERSION}) already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
             exit 1
+          fi
+          # A release that was published after the plan was made (for example a manual minor release) makes the plan obsolete as well
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            newest=$(printf '%s\n' "$refs" | sed 's#^refs/tags/##' | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' \
+              | while read -r t; do echo "${t#v} $t"; done | sort -V -k1,1 | tail -1 | cut -d' ' -f2 || true)
+            if [[ "$newest" != "$PREVIOUS_TAG" ]]; then
+              echo "The newest release is ${newest:-none}, but the plan was made from ${PREVIOUS_TAG}. Start a new run of the nightly workflow." >&2
+              exit 1
+            fi
           fi
           main=$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)
           if [[ "$main" != "$REF" ]]; then
@@ -113,6 +140,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ inputs.version }}
+          PREVIOUS_TAG: ${{ inputs.previous_tag }}
           REF: ${{ inputs.ref || github.sha }}
         run: |
           # A re-run of an older nightly run reuses its plan; it must not overwrite a version that a later run released
@@ -125,6 +153,15 @@ jobs:
           if [[ "$existing" != "0" ]]; then
             echo "Tag ${VERSION} (or v${VERSION}) already exists, so this plan is outdated. Start a new run of the nightly workflow." >&2
             exit 1
+          fi
+          # A release that was published after the plan was made (for example a manual minor release) makes the plan obsolete as well
+          if [[ -n "$PREVIOUS_TAG" ]]; then
+            newest=$(printf '%s\n' "$refs" | sed 's#^refs/tags/##' | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' \
+              | while read -r t; do echo "${t#v} $t"; done | sort -V -k1,1 | tail -1 | cut -d' ' -f2 || true)
+            if [[ "$newest" != "$PREVIOUS_TAG" ]]; then
+              echo "The newest release is ${newest:-none}, but the plan was made from ${PREVIOUS_TAG}. Start a new run of the nightly workflow." >&2
+              exit 1
+            fi
           fi
 
       - name: Download chart artifact

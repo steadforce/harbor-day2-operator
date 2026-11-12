@@ -120,6 +120,8 @@ jobs:
     with:
       version: ${{ needs.plan.outputs.version }}
       ref: ${{ needs.plan.outputs.sha }}
+      tag: ${{ needs.plan.outputs.tag }}
+      previous_tag: ${{ needs.plan.outputs.last }}
 
   chart:
     name: Chart
@@ -132,6 +134,8 @@ jobs:
     with:
       version: ${{ needs.plan.outputs.version }}
       ref: ${{ needs.plan.outputs.sha }}
+      tag: ${{ needs.plan.outputs.tag }}
+      previous_tag: ${{ needs.plan.outputs.last }}
 
   release:
     name: Tag and GitHub release
@@ -156,8 +160,22 @@ jobs:
       run: |
         set -euo pipefail
         mv sbom.cdx.json "harbor-day2-operator-${VERSION}.cdx.json"
+        # `gh release create` reuses a tag that exists already, also one that points to another commit (for example a release
+        # that was published by hand while this run was building). Never release such a tag: the release would not match the
+        # image and chart that were built from SHA.
+        if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" > /dev/null 2>&1; then
+          echo "Tag ${TAG} exists already, so another release of this version was published while this run was building." >&2
+          echo "The image and chart of this run may have been overwritten; check them, then start a new nightly run." >&2
+          exit 1
+        fi
         gh release create "$TAG" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
           --title "$TAG" --generate-notes --notes-start-tag "$LAST"
+        # The tag was created by the command above; it has to point to the commit that was built.
+        tagged=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq .object.sha)
+        if [[ "$tagged" != "$SHA" ]]; then
+          echo "Tag ${TAG} points to ${tagged}, not to the built commit ${SHA}" >&2
+          exit 1
+        fi
 
   # Announces published and failed releases in the Teams release channel (nothing is sent when no release is due).
   # The steps skip themselves while the secret is empty.

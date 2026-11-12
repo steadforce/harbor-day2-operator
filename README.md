@@ -486,6 +486,11 @@ by hand, the next nightly run continues from its tag. The result (published or f
 A manually published GitHub release (for example a minor release `1.3.0` or `v1.3.0`, target `main`) builds the image and the chart
 in the same way and posts one card per result, "Image <tag> published/failed" and "Chart <tag> published/failed", to the same channel.
 
+Safeguards against two releases of the same version: runs that publish the same tag are serialized (a manual release and a nightly
+release cannot publish at the same time), the image and chart builds of a nightly release refuse to publish when a tag of that version
+exists or when a newer stable release appeared after the plan was made, the release is only created when its tag does not exist yet and
+afterwards has to point to the built commit, and a nightly release does not move the `main` image tag.
+
 ### Image scanning and signing
 
 Every image that is pushed (releases, `main` and branch builds) is scanned and signed; pull request images are not pushed.
