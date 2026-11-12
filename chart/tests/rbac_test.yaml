@@ -1,0 +1,77 @@
+suite: operator service account and role binding
+templates:
+  - templates/rbac.yaml
+release:
+  name: operator
+  namespace: harbor
+tests:
+  - it: names the service account, the role and the role binding after the full name
+    asserts:
+      - isKind:
+          of: ServiceAccount
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: operator-harbor-day2-operator
+        documentIndex: 0
+      - isKind:
+          of: Role
+        documentIndex: 1
+      - equal:
+          path: metadata.name
+          value: operator-harbor-day2-operator
+        documentIndex: 1
+      - isKind:
+          of: RoleBinding
+        documentIndex: 2
+      - equal:
+          path: metadata.name
+          value: operator-harbor-day2-operator
+        documentIndex: 2
+
+  - it: binds the role to the service account in the namespace of the release
+    asserts:
+      - equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: operator-harbor-day2-operator
+        documentIndex: 2
+      - equal:
+          path: subjects
+          value:
+            - kind: ServiceAccount
+              name: operator-harbor-day2-operator
+              namespace: harbor
+        documentIndex: 2
+
+  - it: binds the service account of another namespace
+    release:
+      namespace: platform
+    asserts:
+      - equal:
+          path: subjects[0].namespace
+          value: platform
+        documentIndex: 2
+
+  - it: follows the full name override in all three resources and in the binding
+    set:
+      fullnameOverride: custom-operator
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-operator
+        documentIndex: 0
+      - equal:
+          path: metadata.name
+          value: custom-operator
+        documentIndex: 1
+      - equal:
+          path: roleRef.name
+          value: custom-operator
+        documentIndex: 2
+      - equal:
+          path: subjects[0].name
+          value: custom-operator
+        documentIndex: 2

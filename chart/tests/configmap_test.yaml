@@ -1,0 +1,56 @@
+suite: configuration files configmap
+templates:
+  - templates/configmap.yaml
+release:
+  name: operator
+  namespace: harbor
+tests:
+  - it: is omitted while the configuration files are disabled
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: is omitted when only files are given but not enabled
+    set:
+      configFiles:
+        projects.json: "[]"
+    asserts:
+      - hasDocuments:
+          count: 0
+
+  - it: renders every configured file and not the enabled flag
+    set:
+      configFiles:
+        enabled: true
+        projects.json: '{"project_name": "steadops"}'
+        robots.json: "[]"
+    asserts:
+      - isKind:
+          of: ConfigMap
+      - matchRegex:
+          path: data["projects.json"]
+          pattern: '"project_name": "steadops"'
+      - exists:
+          path: data["robots.json"]
+      - notExists:
+          path: data.enabled
+
+  # The deployment mounts the configmap `<full name>-config`.
+  - it: is named after the full name of the release
+    set:
+      configFiles:
+        enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: operator-harbor-day2-operator-config
+
+  - it: follows the full name override
+    set:
+      fullnameOverride: custom-operator
+      configFiles:
+        enabled: true
+    asserts:
+      - equal:
+          path: metadata.name
+          value: custom-operator-config
