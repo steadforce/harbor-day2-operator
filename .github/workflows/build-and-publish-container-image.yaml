@@ -306,7 +306,7 @@ jobs:
     # Re-running only the failed jobs of an older release run keeps the result of the first step. Checked again right before the push,
     # so that an older stable release never overwrites the shared image tags `X.Y`, `X` and `latest` of a newer one.
     - name: Refuse to push an older stable release
-      if: ${{ github.event_name == 'release' && !github.event.act && !github.event.release.prerelease }}
+      if: ${{ github.event_name == 'release' && !github.event.act && !contains(github.event.release.tag_name, '-') }}
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         TAG: ${{ github.event.release.tag_name }}
