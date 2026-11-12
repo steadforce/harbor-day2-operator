@@ -461,7 +461,8 @@ When testing with Act, some GitHub Actions features are not fully supported:
 A release is created by publishing a GitHub release whose tag is a semantic version with a `v` prefix (for example `v1.2.3`; prereleases
 such as `v1.2.3-rc.1` are possible). Publishing the release builds the image (`1.2.3`, `1.2`, `1`) and publishes the Helm chart. Pushing a tag
 alone does not start a build, so a release builds exactly once. A release whose tag does not have the form `vX.Y.Z` (for example `1.2.3`)
-fails right at the start and publishes nothing.
+fails right at the start and publishes nothing; so do tags that are not valid SemVer (such as `v1.2.3-rc..1` or `v01.2.3`) and a stable release that is older
+than the newest one (it would overwrite the shared image tags `1.2`, `1` and `latest`).
 
 The `v` prefix belongs to the Git tag and the GitHub release only. Image tags, chart version, the version printed by the binary and the
 SBOM file name never have it: the release `v1.2.3` publishes the image `1.2.3` and the chart `1.2.3`. Tags without the prefix from before
@@ -486,9 +487,10 @@ by hand, the next nightly run continues from its tag. The result (published or f
 A manually published GitHub release (for example a minor release `v1.4.0`, target `main`) builds the image and the chart
 in the same way and posts one card per result, "Image <tag> published/failed" and "Chart <tag> published/failed", to the same channel.
 
-Safeguards against two releases of the same version or an older release overwriting a newer one: all release runs of the image workflow
-share one lock, and all release runs of the chart workflow share another (a manual and a nightly release never publish at the same time,
-whatever their version). The image and chart builds of a nightly release refuse to publish when a tag of that version
+Safeguards against two releases of the same version or an older release overwriting a newer one: a manually published release waits
+for a running nightly release (which holds one lock from the plan to the creation of its tag) and the other way round, so an older
+release cannot be published between the image push and the tag of a nightly release; the chart workflow serializes its release runs with
+a lock of its own. The image and chart builds of a nightly release refuse to publish when a tag of that version
 exists or when a newer stable release appeared after the plan was made, and the image workflow checks that again right before the push.
 The release is only created when no tag of that version exists and afterwards has to point to the built commit.
 A nightly release does not move the `main` image tag.
