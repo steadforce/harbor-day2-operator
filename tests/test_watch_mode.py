@@ -369,3 +369,24 @@ class TestProcessGroup:
         while not process_is_gone(worker_pid) and time.monotonic() < deadline:
             time.sleep(0.1)
         assert process_is_gone(worker_pid)
+
+    def test_a_worker_that_outlives_the_first_process_is_ended_with_the_cycle(
+        self, tmp_path
+    ):
+        pid_file = tmp_path / "worker.pid"
+        code = (
+            "import subprocess, sys\n"
+            "worker = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(60)'])\n"
+            f"open({str(pid_file)!r}, 'w').write(str(worker.pid))\n"
+        )
+
+        result = run_child(
+            [sys.executable, "-c", code], os.environ, 30, threading.Event()
+        )
+
+        assert result == 0
+        worker_pid = int(pid_file.read_text())
+        deadline = time.monotonic() + 5
+        while not process_is_gone(worker_pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        assert process_is_gone(worker_pid)

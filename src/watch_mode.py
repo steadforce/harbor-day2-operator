@@ -222,7 +222,10 @@ def run_child(
     waited = 0.0
     while True:
         try:
-            return process.wait(timeout=POLL_SECONDS)
+            exit_code = process.wait(timeout=POLL_SECONDS)
+            # Nothing of this cycle may outlive it, for example a worker below a bootloader that ended on its own
+            _signal_group(process, signal.SIGKILL)
+            return exit_code
         except subprocess.TimeoutExpired:
             waited += POLL_SECONDS
             if waited >= timeout or stop.is_set():
