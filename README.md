@@ -73,6 +73,30 @@ The following environment variables are expected:
 |`OIDC_ENDPOINT`|required|https://oidc.domain.com/api|The endpoint of the OIDC provider.|
 
 
+## Running continuously (watch mode)
+
+Without arguments the operator runs the synchronization once and exits. `harbor --watch [SECONDS]` runs it every `SECONDS` seconds
+(default: `WATCH_INTERVAL` or 60) until it receives SIGTERM or SIGINT. This replaces `watch -n 60 /bin/ash <script>`, so the image
+needs no shell:
+
+* every cycle runs in a **fresh child process** with a freshly built environment, so a refreshed secret is used in the next cycle
+  without restarting the pod, and a failed or hanging cycle cannot affect the next one;
+* a failed cycle is logged (`Synchronization cycle failed`, with the exit code) and the loop continues, like `watch` did;
+* a cycle that runs longer than `CYCLE_TIMEOUT` seconds (default 900) is terminated (SIGTERM, SIGKILL after 10 s) and logged.
+
+The secrets are read from files in every cycle, below the directory `SECRETS_DIR` (default `/run/secrets`):
+
+|File|Becomes the environment variable|
+|-------|-------|
+|`harbor-admin-credentials/harbor-admin-password-new`|`ADMIN_PASSWORD_NEW`|
+|`harbor-admin-credentials/harbor-admin-password-old`|`ADMIN_PASSWORD_OLD`|
+|`harbor-robot-tokens/<NAME>`|`<NAME>` (every file whose name is a valid variable name)|
+|`oidc-static-client-token/<NAME>`|`<NAME>` (every file whose name is a valid variable name)|
+
+Trailing newlines are removed. A variable that no file provides keeps its value from the environment, so the operator also works with
+`env`/`envFrom` secrets as before (the Helm chart of this repository does that). The chart starts the watch mode and takes the interval from the value `watchIntervalSeconds` (default 60); a value below 1 or a non-number fails when the chart is rendered.
+
+
 ## Configuration Files
 
 The configuration files are added externally and referenced by the harbor-day2-operator.

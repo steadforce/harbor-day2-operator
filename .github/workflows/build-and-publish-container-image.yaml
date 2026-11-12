@@ -50,6 +50,34 @@ env:
   SCANNER_TRIVY_VERSION: v0.76.2
 
 jobs:
+  # Unit tests of the Helm chart (helm-unittest), on every run of this workflow. The job is independent of the image job on purpose:
+  # a job that is skipped because a job it needs failed counts as passed for a required check, so a failing chart test could not
+  # block a merge through the image job. Without a `name`, the check is called `chart-tests`.
+  chart-tests:
+    if: ${{ !github.event.act }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v7
+      with:
+        ref: ${{ inputs.ref }}
+
+    # The image runs as user 1000, the checkout belongs to the runner user, and helm-unittest creates a snapshot directory next to the
+    # tests ("mkdir chart/tests/__snapshot__: permission denied" otherwise).
+    - name: Let the unit test container write next to the tests
+      run: chmod -R a+rwX chart/tests
+
+    # HOME is /github/home, which user 1000 cannot write either: without a cache directory the plugin does not load
+    # ("unknown command unittest for helm").
+    - name: Run the unit tests of the chart
+      uses: docker://helmunittest/helm-unittest:4.3.0-1.2.1
+      env:
+        HELM_CACHE_HOME: /tmp/helm/.config
+      with:
+        args: --strict chart
+
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:

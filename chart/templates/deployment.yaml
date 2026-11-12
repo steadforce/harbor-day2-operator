@@ -1,3 +1,7 @@
+{{- $interval := .Values.watchIntervalSeconds | int }}
+{{- if or (kindIs "bool" .Values.watchIntervalSeconds) (lt $interval 1) (ne ($interval | float64) (.Values.watchIntervalSeconds | float64)) }}
+{{- fail (printf "watchIntervalSeconds must be a whole number of seconds, 1 or more (got %v)" .Values.watchIntervalSeconds) }}
+{{- end }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -80,7 +84,8 @@ spec:
             {{- with .Values.envFrom }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          command: ["watch", "-n", "60", "/bin/ash", "-ec", "/usr/local/bin/harbor"]
+          # The operator repeats the synchronization itself, no shell or `watch` needed
+          args: ["--watch", {{ $interval | quote }}]
           volumeMounts:
             - name: config-volume
               mountPath: {{ .Values.configFolder }}
