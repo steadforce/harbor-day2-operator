@@ -1,4 +1,4 @@
-name: Create and publish k8s workbench container image
+name: Build, test and publish container image and chart
 
 on:
   push:
