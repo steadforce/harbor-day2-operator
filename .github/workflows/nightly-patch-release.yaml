@@ -120,7 +120,6 @@ jobs:
     with:
       version: ${{ needs.plan.outputs.version }}
       ref: ${{ needs.plan.outputs.sha }}
-      tag: ${{ needs.plan.outputs.tag }}
       previous_tag: ${{ needs.plan.outputs.last }}
 
   chart:
@@ -134,7 +133,6 @@ jobs:
     with:
       version: ${{ needs.plan.outputs.version }}
       ref: ${{ needs.plan.outputs.sha }}
-      tag: ${{ needs.plan.outputs.tag }}
       previous_tag: ${{ needs.plan.outputs.last }}
 
   release:
@@ -163,8 +161,11 @@ jobs:
         # `gh release create` reuses a tag that exists already, also one that points to another commit (for example a release
         # that was published by hand while this run was building). Never release such a tag: the release would not match the
         # image and chart that were built from SHA.
-        if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" > /dev/null 2>&1; then
-          echo "Tag ${TAG} exists already, so another release of this version was published while this run was building." >&2
+        # The tag list is fetched on its own, so that a failing API call aborts the step; the version counts with and without `v`.
+        refs=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags/" --jq ".[].ref")
+        existing=$(printf '%s\n' "$refs" | grep -cxE "refs/tags/v?${VERSION//./\\.}" || true)
+        if [[ "$existing" != "0" ]]; then
+          echo "Tag ${VERSION} (or v${VERSION}) exists already, so another release of this version was published while this run was building." >&2
           echo "The image and chart of this run may have been overwritten; check them, then start a new nightly run." >&2
           exit 1
         fi

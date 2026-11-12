@@ -19,22 +19,19 @@ on:
         type: string
         required: false
         default: ""
-      tag:
-        description: "Git tag of the release (with the prefix style of the repository), only used to serialize runs of the same release"
-        type: string
-        required: false
-        default: ""
       previous_tag:
         description: "Newest release tag at planning time; the run is refused when a newer release exists by now"
         type: string
         required: false
         default: ""
 
-# Runs that publish the same release share a group, so a manual release and a nightly release of the same version cannot
-# publish at the same time: the later one starts after the first has created the tag and its stale-plan guard refuses it.
-# All other runs (branches, pull requests) get a group of their own and are not serialized.
+# All release runs of this workflow (nightly calls and published releases) share one lock, whatever their version or tag
+# spelling: a manual release and a nightly release cannot publish at the same time, and the later one starts after the first
+# has finished, when its stale-plan guard sees the new tag. A pending run is replaced by a newer pending one, which is only
+# possible when three releases are started within one release time. All other runs (branches, pull requests) get a group of
+# their own and are not serialized.
 concurrency:
-  group: ${{ inputs.version != '' && format('release-chart-{0}', inputs.tag) || github.event_name == 'release' && format('release-chart-{0}', github.event.release.tag_name) || format('build-{0}', github.run_id) }}
+  group: ${{ (inputs.version != '' || github.event_name == 'release') && 'release-chart' || format('build-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:
