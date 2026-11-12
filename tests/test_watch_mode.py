@@ -59,6 +59,13 @@ class TestLoadSecretEnv:
 
         assert env == {"ADMIN_PASSWORD_NEW": "new-pw", "ADMIN_PASSWORD_OLD": "old-pw"}
 
+    def test_keeps_carriage_returns_inside_and_at_the_end_of_a_secret(self, tmp_path):
+        path = tmp_path / "harbor-admin-credentials" / "harbor-admin-password-new"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"pass\rword\r\n")
+
+        assert load_secret_env(tmp_path)["ADMIN_PASSWORD_NEW"] == "pass\rword\r"
+
     def test_every_key_of_the_token_secrets_becomes_a_variable(self, tmp_path):
         write(tmp_path / "harbor-robot-tokens" / "ROBOT_TOKEN_A", "token-a")
         write(tmp_path / "harbor-robot-tokens" / "ROBOT_TOKEN_B", "token-b\n")

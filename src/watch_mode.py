@@ -62,8 +62,11 @@ class StopLike:
 
 
 def _read_secret(path: Path) -> str:
-    """Read a secret file like ``$(cat file)`` in a shell: trailing newlines are removed."""
-    return path.read_text(encoding="utf-8").rstrip("\n")
+    """Read a secret file like ``$(cat file)`` in a shell: trailing newlines are removed, everything else is kept.
+
+    The bytes are decoded as they are; reading in text mode would turn a carriage return into a newline and change the secret.
+    """
+    return path.read_bytes().decode("utf-8").rstrip("\n")
 
 
 def load_secret_env(secrets_dir: str | Path) -> dict[str, str]:
