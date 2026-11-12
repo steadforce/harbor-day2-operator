@@ -190,12 +190,13 @@ deployment:
     tier: backend
 ```
 
-## RBAC
+## Service account and permissions
 
-The chart creates the following RBAC resources:
-- ServiceAccount: For the Harbor Day 2 Operator
-- Role: With permissions to get, list, and watch secrets and configmaps, and to create and patch events
-- RoleBinding: Binding the Role to the ServiceAccount
+The operator needs no permissions in the Kubernetes API. Its secrets and configuration files reach it as environment variables
+and mounted files, which the kubelet provides, and it only talks to Harbor and to the OIDC provider.
+
+The chart therefore creates a dedicated ServiceAccount without a Role or a RoleBinding, and the pod does not mount a token for it
+(`automountServiceAccountToken: false`).
 
 ## Security
 

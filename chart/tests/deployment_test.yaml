@@ -284,12 +284,19 @@ tests:
           value: sync
 
   # ---- service account
-  # The chart creates the ServiceAccount, the Role and the RoleBinding (see the RBAC tests); the pod runs as that service account.
+  # The chart creates the ServiceAccount (see the service account tests); the pod runs as that service account.
   - it: runs the pod as the service account of the chart
     asserts:
       - equal:
           path: spec.template.spec.serviceAccountName
           value: operator-harbor-day2-operator
+
+  # The operator does not call the Kubernetes API, so the pod gets no token.
+  - it: mounts no API token into the pod
+    asserts:
+      - equal:
+          path: spec.template.spec.automountServiceAccountToken
+          value: false
 
   - it: runs the pod as the service account that the full name override names
     set:
