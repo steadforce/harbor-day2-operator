@@ -215,6 +215,15 @@ class TestWatchLoop:
         assert not caplog.records
 
 
+def process_is_gone(pid):
+    """True when the process does not exist or is only a zombie that nobody has collected yet."""
+    try:
+        with open(f"/proc/{pid}/stat") as stat:
+            return stat.read().rsplit(")", 1)[1].split()[0] == "Z"
+    except FileNotFoundError:
+        return True
+
+
 class TestRunChild:
     def test_returns_the_exit_code(self):
         stop = threading.Event()
@@ -330,3 +339,33 @@ class TestParseCycleTimeout:
     def test_rejects_a_value_that_would_disable_or_break_the_timeout(self, value):
         with pytest.raises(ValueError):
             parse_cycle_timeout({"CYCLE_TIMEOUT": value})
+
+
+class TestProcessGroup:
+    def test_a_timeout_also_ends_the_processes_that_the_child_started(
+        self, tmp_path, monkeypatch
+    ):
+        """A frozen onefile executable is a bootloader with a worker below it: both have to end."""
+        monkeypatch.setattr(watch_mode, "POLL_SECONDS", 0.1)
+        monkeypatch.setattr(watch_mode, "TERMINATE_GRACE_SECONDS", 1)
+        pid_file = tmp_path / "worker.pid"
+        # the "worker" ignores SIGTERM, only SIGKILL of its group ends it; the parent writes its pid and waits
+        code = (
+            "import signal, subprocess, sys, time\n"
+            "worker = subprocess.Popen([sys.executable, '-c', "
+            "'import signal, time; signal.signal(signal.SIGTERM, signal.SIG_IGN); time.sleep(60)'])\n"
+            f"open({str(pid_file)!r}, 'w').write(str(worker.pid))\n"
+            "signal.signal(signal.SIGTERM, signal.SIG_IGN)\n"
+            "time.sleep(60)\n"
+        )
+
+        result = run_child(
+            [sys.executable, "-c", code], os.environ, 2, threading.Event()
+        )
+
+        assert result == TIMEOUT_EXIT_CODE
+        worker_pid = int(pid_file.read_text())
+        deadline = time.monotonic() + 5
+        while not process_is_gone(worker_pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        assert process_is_gone(worker_pid)

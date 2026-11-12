@@ -188,6 +188,14 @@ def build_child_argv(
     return [executable, script_path]
 
 
+def _signal_group(process: subprocess.Popen, signum: int) -> None:
+    """Send a signal to the process group of the child; a group that is gone already is fine."""
+    try:
+        os.killpg(process.pid, signum)
+    except ProcessLookupError:
+        pass
+
+
 def run_child(
     argv: Sequence[str],
     env: Mapping[str, str],
@@ -208,7 +216,9 @@ def run_child(
     Returns:
         int: Exit code of the child, TIMEOUT_EXIT_CODE if it had to be terminated
     """
-    process = subprocess.Popen(list(argv), env=dict(env))
+    # Own process group: a frozen onefile executable consists of a bootloader and the worker below it, and a SIGKILL of the bootloader
+    # alone would leave the worker running into the next cycle. The signals go to the whole group.
+    process = subprocess.Popen(list(argv), env=dict(env), start_new_session=True)
     waited = 0.0
     while True:
         try:
@@ -217,12 +227,14 @@ def run_child(
             waited += POLL_SECONDS
             if waited >= timeout or stop.is_set():
                 break
-    process.terminate()
+    _signal_group(process, signal.SIGTERM)
     try:
         process.wait(timeout=TERMINATE_GRACE_SECONDS)
     except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait()
+        pass
+    # Also after a clean exit of the first process: kill whatever of the group is left
+    _signal_group(process, signal.SIGKILL)
+    process.wait()
     return TIMEOUT_EXIT_CODE
 
 
