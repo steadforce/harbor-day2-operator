@@ -484,6 +484,37 @@ tests:
                 name: my-secret
                 key: my-key
 
+  - it: adds plain values of any type as environment variables
+    set:
+      env:
+        TEXT: hello
+        COUNT: 3
+        FLAG: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          content:
+            name: TEXT
+            value: hello
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          content:
+            name: COUNT
+            value: "3"
+      - contains:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          content:
+            name: FLAG
+            value: "true"
+
+  - it: adds no extra environment variables by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[?(@.name == "harbor-day2-operator")].env
+          content:
+            name: TEXT
+          any: true
+
   # ---- configuration folder
   # The ConfigMap with the configuration files only exists when configFiles are enabled, so the pod only mounts it then.
   - it: mounts no configuration files by default

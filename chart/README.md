@@ -84,7 +84,7 @@ The following table lists the configurable parameters of the Harbor Day 2 Operat
 | deployment.labels | object | `{}` | Labels to add to the deployment |
 | deployment.podLabels | object | `{}` | Labels to add to the pods |
 | deployment.selectorLabels | object | `{}` | Labels to add to the selector |
-| env | object | `{}` | Environment variables for the operator |
+| env | object | `{}` | Environment variables for the operator, a map of the variable name to a value, `{value: ...}` or `{valueFrom: ...}` |
 | envFrom | list | `[]` | Environment variables from sources for the operator |
 | harbor | object | `{"adminUsername":"admin","apiUrl":"","newAdminSecretName":"harbor-secrets","oldAdminSecretName":"harbor-core","robotNamePrefix":"","robotSecretName":""}` | Harbor configuration |
 | harbor.adminUsername | string | `"admin"` | Username for Harbor admin account |

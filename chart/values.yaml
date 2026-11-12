@@ -56,13 +56,14 @@ deployment:
   # -- Labels to add to the selector
   selectorLabels: {}
 
-# -- Environment variables for the operator
+# -- Environment variables for the operator, a map of the variable name to a value, `{value: ...}` or `{valueFrom: ...}`
 env: {}
 # -- Example:
 # -- env:
-# --   - name: CUSTOM_VAR
+# --   PLAIN_VAR: "plain-value"
+# --   CUSTOM_VAR:
 # --     value: "custom-value"
-# --   - name: SECRET_VAR
+# --   SECRET_VAR:
 # --     valueFrom:
 # --       secretKeyRef:
 # --         name: my-secret
