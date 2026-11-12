@@ -31,13 +31,15 @@ on:
         default: ""
 
 
-# All release runs of this workflow (nightly calls and published releases) share one lock, whatever their version or tag
-# spelling: a manual release and a nightly release cannot publish at the same time, and the later one starts after the first
-# has finished, when its stale-plan guard sees the new tag. A pending run is replaced by a newer pending one, which is only
-# possible when three releases are started within one release time. All other runs (branches, pull requests) get a group of
-# their own and are not serialized.
+# Published releases (manual) wait for a running nightly release and the other way round: they use the group of the nightly
+# workflow, `nightly-patch-release`, which spans its whole run (plan, image, chart, creation of the tag). So an older release
+# cannot be published in the gap between the image push and the creation of the tag of a nightly release, and a nightly
+# release starts after a manual one has finished and plans from the new tag.
+# The image run that is called by the nightly workflow does not use the group: it is already inside the lock of its caller, and
+# the same group would make it wait for its own caller. Branch and pull request runs get a group of their own.
+# A pending run is replaced by a newer pending one, which only happens when more than two releases are started within one run.
 concurrency:
-  group: ${{ (inputs.version != '' || github.event_name == 'release') && 'release-image' || format('build-{0}', github.run_id) }}
+  group: ${{ github.event_name == 'release' && 'nightly-patch-release' || format('build-{0}', github.run_id) }}
   cancel-in-progress: false
 
 env:

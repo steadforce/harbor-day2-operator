@@ -487,9 +487,10 @@ by hand, the next nightly run continues from its tag. The result (published or f
 A manually published GitHub release (for example a minor release `v1.4.0`, target `main`) builds the image and the chart
 in the same way and posts one card per result, "Image <tag> published/failed" and "Chart <tag> published/failed", to the same channel.
 
-Safeguards against two releases of the same version or an older release overwriting a newer one: all release runs of the image workflow
-share one lock, and all release runs of the chart workflow share another (a manual and a nightly release never publish at the same time,
-whatever their version). The image and chart builds of a nightly release refuse to publish when a tag of that version
+Safeguards against two releases of the same version or an older release overwriting a newer one: a manually published release waits
+for a running nightly release (which holds one lock from the plan to the creation of its tag) and the other way round, so an older
+release cannot be published between the image push and the tag of a nightly release; the chart workflow serializes its release runs with
+a lock of its own. The image and chart builds of a nightly release refuse to publish when a tag of that version
 exists or when a newer stable release appeared after the plan was made, and the image workflow checks that again right before the push.
 The release is only created when no tag of that version exists and afterwards has to point to the built commit.
 A nightly release does not move the `main` image tag.
