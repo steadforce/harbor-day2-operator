@@ -277,6 +277,22 @@ tests:
           path: spec.template.metadata.labels.component
           value: sync
 
+  # ---- service account
+  # The chart creates the ServiceAccount, the Role and the RoleBinding (see the RBAC tests); the pod runs as that service account.
+  - it: runs the pod as the service account of the chart
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: operator-harbor-day2-operator
+
+  - it: runs the pod as the service account that the full name override names
+    set:
+      fullnameOverride: custom-operator
+    asserts:
+      - equal:
+          path: spec.template.spec.serviceAccountName
+          value: custom-operator
+
   # ---- names
   - it: names the deployment after the release and the chart
     asserts:
