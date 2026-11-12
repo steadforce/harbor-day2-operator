@@ -169,6 +169,14 @@ jobs:
           echo "The image and chart of this run may have been overwritten; check them, then start a new nightly run." >&2
           exit 1
         fi
+        # A newer stable release than the one the plan started from (for example a manual minor release) makes this release stale.
+        newest=$(printf '%s\n' "$refs" | sed 's#^refs/tags/##' | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' \
+          | while read -r t; do echo "${t#v} $t"; done | sort -V -k1,1 | tail -1 | cut -d' ' -f2 || true)
+        if [[ "$newest" != "$LAST" ]]; then
+          echo "The newest release is ${newest:-none}, but this release was planned from ${LAST}. No release was created." >&2
+          echo "The image and chart of this run may have been published; check them, then start a new nightly run." >&2
+          exit 1
+        fi
         gh release create "$TAG" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
           --title "$TAG" --generate-notes --notes-start-tag "$LAST"
         # The tag was created by the command above; it has to point to the commit that was built.
