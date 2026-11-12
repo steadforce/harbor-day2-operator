@@ -1,0 +1,97 @@
+suite: operator deployment
+templates:
+  - templates/deployment.yaml
+tests:
+  - it: starts the operator in watch mode every 60 seconds by default
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value: ["--watch", "60"]
+
+  # The image entrypoint is the operator itself; no `watch` and no shell are needed any more.
+  - it: does not override the entrypoint of the image
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].command
+
+  - it: takes the interval from watchIntervalSeconds
+    set:
+      watchIntervalSeconds: 15
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value: ["--watch", "15"]
+
+  - it: accepts the interval as a string
+    set:
+      watchIntervalSeconds: "30"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value: ["--watch", "30"]
+
+  - it: accepts a long interval
+    set:
+      watchIntervalSeconds: 3600
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].args
+          value: ["--watch", "3600"]
+
+  - it: refuses an interval of zero
+    set:
+      watchIntervalSeconds: 0
+    asserts:
+      - failedTemplate:
+          errorPattern: watchIntervalSeconds must be a whole number of seconds
+
+  - it: refuses a negative interval
+    set:
+      watchIntervalSeconds: -5
+    asserts:
+      - failedTemplate:
+          errorPattern: watchIntervalSeconds must be a whole number of seconds
+
+  - it: refuses a fractional interval
+    set:
+      watchIntervalSeconds: 1.5
+    asserts:
+      - failedTemplate:
+          errorPattern: watchIntervalSeconds must be a whole number of seconds
+
+  - it: refuses a fractional interval given as a string
+    set:
+      watchIntervalSeconds: "1.5"
+    asserts:
+      - failedTemplate:
+          errorPattern: watchIntervalSeconds must be a whole number of seconds
+
+  - it: refuses a boolean interval
+    set:
+      watchIntervalSeconds: true
+    asserts:
+      - failedTemplate:
+          errorPattern: watchIntervalSeconds must be a whole number of seconds
+
+  - it: refuses an interval that is not a number
+    set:
+      watchIntervalSeconds: abc
+    asserts:
+      - failedTemplate:
+          errorPattern: watchIntervalSeconds must be a whole number of seconds
+
+  - it: runs the image of the chart version when no tag is set
+    chart:
+      appVersion: 9.9.9
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/steadforce/harbor-day2-operator:9.9.9
+
+  - it: runs the configured image tag
+    set:
+      image.tag: 1.2.3
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: ghcr.io/steadforce/harbor-day2-operator:1.2.3
