@@ -2,6 +2,7 @@
 
 import logging
 import os
+import signal
 import subprocess
 import sys
 import threading
@@ -14,6 +15,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 import watch_mode
 from watch_mode import (
     TIMEOUT_EXIT_CODE,
+    StopFlag,
     become_subreaper,
     build_child_argv,
     load_secret_env,
@@ -485,3 +487,47 @@ class TestCycleTempDir:
 
         first, second = record.read_text().split()
         assert first != second
+
+
+class TestStopFlag:
+    def test_is_not_set_at_first_and_wait_returns_false_after_the_timeout(self):
+        stop = StopFlag()
+        started = time.monotonic()
+
+        assert not stop.is_set()
+        assert stop.wait(0.3) is False
+        assert 0.25 <= time.monotonic() - started < 3
+
+    def test_a_request_is_seen_by_wait_within_a_poll_interval(self):
+        stop = StopFlag()
+        threading.Timer(0.3, stop.request, args=(15,)).start()
+        started = time.monotonic()
+
+        assert stop.wait(30) is True
+        assert time.monotonic() - started < 3
+        assert stop.is_set()
+        assert stop.signum == 15
+
+    def test_wait_returns_at_once_when_already_requested(self):
+        stop = StopFlag()
+        stop.request(2)
+        started = time.monotonic()
+
+        assert stop.wait(30) is True
+        assert time.monotonic() - started < 1
+
+    def test_a_signal_handler_can_set_it_while_the_loop_waits(self):
+        """The handler only assigns attributes, so it cannot deadlock on a lock of the interrupted code."""
+        stop = StopFlag()
+        previous = signal.signal(
+            signal.SIGUSR1, lambda signum, _frame: stop.request(signum)
+        )
+        try:
+            threading.Timer(0.3, os.kill, args=(os.getpid(), signal.SIGUSR1)).start()
+            started = time.monotonic()
+
+            assert stop.wait(30) is True
+            assert time.monotonic() - started < 3
+            assert stop.signum == signal.SIGUSR1
+        finally:
+            signal.signal(signal.SIGUSR1, previous)

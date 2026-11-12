@@ -22,7 +22,7 @@ import signal
 import subprocess
 import sys
 import tempfile
-import threading
+import time
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 
@@ -52,6 +52,45 @@ PR_SET_CHILD_SUBREAPER = 36
 
 # Exit code reported for a cycle that was terminated because it ran too long
 TIMEOUT_EXIT_CODE = -1
+
+
+class StopFlag:
+    """Stop request that is safe to set from a signal handler.
+
+    A signal handler runs between two bytecodes of the main thread. Anything that takes a lock there (``threading.Event.set``, logging)
+    can deadlock when the interrupted code holds the same lock. This class only assigns plain attributes in ``request`` and polls them
+    in ``wait``.
+    """
+
+    POLL_SECONDS = 0.2
+
+    def __init__(self) -> None:
+        """Create a flag that is not set."""
+        self.signum: int | None = None
+        self._set = False
+
+    def request(self, signum: int | None = None) -> None:
+        """Ask the loop to stop; lock-free, usable in a signal handler."""
+        self.signum = signum
+        self._set = True
+
+    def is_set(self) -> bool:
+        """Whether the loop should stop."""
+        return self._set
+
+    def wait(self, timeout: float | None = None) -> bool:
+        """Wait up to ``timeout`` seconds, return True as soon as a stop was requested."""
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while not self._set:
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if remaining is not None and remaining <= 0:
+                break
+            time.sleep(
+                self.POLL_SECONDS
+                if remaining is None
+                else min(self.POLL_SECONDS, remaining)
+            )
+        return self._set
 
 
 class StopLike:
@@ -361,11 +400,11 @@ def run_watch(
     secrets_dir = environ.get("SECRETS_DIR", DEFAULT_SECRETS_DIR)
     timeout = parse_cycle_timeout(environ)
 
-    stop = threading.Event()
+    stop = StopFlag()
 
     def request_stop(signum: int, _frame: object) -> None:
-        logger.info("Stopping after signal %s", signum)
-        stop.set()
+        # Only set the flag: logging and locks are not safe in a signal handler, the loop logs after it has stopped
+        stop.request(signum)
 
     become_subreaper()
     signal.signal(signal.SIGTERM, request_stop)
@@ -380,4 +419,5 @@ def run_watch(
 
     logger.info("Watch mode: one synchronization every %s seconds", interval)
     watch_loop(run_cycle, interval, stop, logger)
+    logger.info("Stopped after signal %s", stop.signum)
     return 0
