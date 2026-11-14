@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.21-labs 
+# syntax=docker/dockerfile:1.29-labs 
 FROM cgr.dev/chainguard/wolfi-base:latest@sha256:1f6b749929164c3d9e7cad0289254f39b2ba51e1dddaeb0fa57532ea03f2db31 AS base
 ENV PYTHONUNBUFFERED=1
 RUN apk update --no-cache && apk upgrade --no-cache
