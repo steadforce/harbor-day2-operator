@@ -4,7 +4,7 @@ from typing import Any
 
 from harborapi.models import QuotaUpdateReq, ResourceList
 
-from utils import fill_template
+from .utils import fill_template
 
 
 async def load_target_projects(

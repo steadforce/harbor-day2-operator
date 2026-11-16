@@ -2,7 +2,7 @@ import json
 from logging import Logger
 from typing import Any
 
-from utils import load_json
+from .utils import load_json
 
 
 def load_webhook_configs(path: str, logger: Logger) -> list[dict[str, Any]]:

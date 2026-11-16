@@ -4,7 +4,7 @@ from typing import Any
 
 from harborapi.exceptions import NotFound
 
-from utils import load_json
+from .utils import load_json
 
 
 async def sync_purge_job_schedule(client: Any, path: str, logger: Logger) -> None:

@@ -2,7 +2,7 @@ import json
 from logging import Logger
 from typing import Any
 
-from utils import fill_template
+from .utils import fill_template
 
 
 async def load_replication_configs(

@@ -1,16 +1,12 @@
-"""Tests for the storage quota sync of existing projects (src/projects.py)."""
+"""Tests for the storage quota sync of existing projects (harbor_day2_operator/projects.py)."""
 
 import asyncio
 import logging
-import os
-import sys
 from types import SimpleNamespace
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
 from harborapi.models import Quota, ResourceList
 
-from projects import sync_project_quota, update_or_create_projects
+from harbor_day2_operator.projects import sync_project_quota, update_or_create_projects
 
 GIB = 1024**3
 LOGGER = logging.getLogger("test")

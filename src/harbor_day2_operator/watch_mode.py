@@ -208,26 +208,22 @@ def parse_cycle_timeout(environ: Mapping[str, str]) -> float:
 
 
 def build_child_argv(
-    frozen: bool, module_name: str | None, script_path: str, executable: str
+    module_name: str | None, script_path: str, executable: str
 ) -> list[str]:
     """Return the command that runs a single synchronization.
 
-    * A frozen executable (PyInstaller) starts itself.
-    * Started as a module (``python -m src.harbor``) the child is started as the same module. Running the file instead would put
-      its directory first on the module search path, and the ``from src...`` imports would fail.
+    * Started as a module (``python -m harbor_day2_operator.harbor``) the child is started as the same module. Running the file instead
+      would put its directory first on the module search path, and the package imports (``from harbor_day2_operator...``) would fail.
     * Otherwise the file is run again (the module search path is inherited through PYTHONPATH).
 
     Args:
-        frozen: Whether the program is a frozen executable
         module_name: Name of the running module (``__spec__.name``), None when run as a file
         script_path: Path of the running file
-        executable: The Python interpreter or the frozen executable
+        executable: The Python interpreter
 
     Returns:
         list[str]: Command of the child
     """
-    if frozen:
-        return [executable]
     if module_name:
         return [executable, "-m", module_name]
     return [executable, script_path]
@@ -236,8 +232,8 @@ def build_child_argv(
 def become_subreaper() -> bool:
     """Make this process the parent of orphaned descendants (Linux).
 
-    A worker that is killed while its parent is gone would be re-parented to PID 1 of the container. In the PyInstaller image that is
-    the bootloader, which does not collect it, and the zombies would pile up. As a subreaper this process collects them itself.
+    A worker that is killed while its parent is gone would be re-parented to PID 1 of the container. Where PID 1 is an init or a wrapper that
+    does not collect it, the zombies would pile up. As a subreaper this process collects them itself.
 
     Returns:
         bool: Whether the setting was applied
@@ -295,14 +291,14 @@ def run_child(
         int: Exit code of the child, TIMEOUT_EXIT_CODE if it had to be terminated
     """
     reap_orphans()  # leftovers of the previous cycle that were still dying when it ended
-    # Own process group: a frozen onefile executable consists of a bootloader and the worker below it, and a SIGKILL of the bootloader
-    # alone would leave the worker running into the next cycle. The signals go to the whole group.
+    # Own process group: the child may start processes of its own, and a SIGKILL of the child alone would leave them running into the
+    # next cycle. The signals go to the whole group.
     process = subprocess.Popen(list(argv), env=dict(env), start_new_session=True)
     waited = 0.0
     while True:
         try:
             exit_code = process.wait(timeout=POLL_SECONDS)
-            # Nothing of this cycle may outlive it, for example a worker below a bootloader that ended on its own
+            # Nothing of this cycle may outlive it, for example a helper process that outlived the child
             _signal_group(process, signal.SIGKILL)
             return exit_code
         except subprocess.TimeoutExpired:
@@ -329,8 +325,8 @@ def run_cycle_in_temp_dir(
 ) -> int:
     """Run one cycle with a temporary directory of its own, which is removed afterwards in any case.
 
-    A frozen onefile executable unpacks itself below TMPDIR and removes the files when it ends. A cycle that has to be killed cannot do
-    that, and repeated hangs would fill the temporary directory. The directory belongs to this cycle alone, so removing it is safe.
+    The child and the libraries it uses write temporary files below TMPDIR. A cycle that has to be killed cannot clean them up, and repeated
+    hangs would fill the temporary directory. The directory belongs to this cycle alone, so removing it is safe.
 
     Args:
         argv: Command of the child
@@ -412,9 +408,6 @@ def run_watch(
 
     def run_cycle() -> int:
         child_env = {**environ, **load_secret_env(secrets_dir)}
-        if getattr(sys, "frozen", False):
-            # A onefile executable that starts itself would otherwise share the unpack directory of the parent
-            child_env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
         return run_cycle_in_temp_dir(child_argv, child_env, timeout, stop)
 
     logger.info("Watch mode: one synchronization every %s seconds", interval)

@@ -6,7 +6,7 @@ from typing import Any
 from harborapi.exceptions import BadRequest, Conflict
 from harborapi.models import Robot
 
-from utils import load_json
+from .utils import load_json
 
 ROBOT_NAME_PREFIX = os.environ.get("ROBOT_NAME_PREFIX", "")
 HARBOR_BUILD_PREFIX = "build."
