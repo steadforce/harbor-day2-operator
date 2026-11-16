@@ -6,35 +6,42 @@ Instead of making changes by hand (clickops), this operator enables the automati
 
 The Harbor API of your instance can be found at: `your-harbor-origin/devcenter-api-2.0`
 
-## Requirements
+## Requirements and dependencies
 
-The project uses these requirements files:
-- `requirements.txt`: Contains the production dependencies with pinned versions
-- `dev_requirements.txt`: Contains development dependencies and base package names
+The project is managed with [uv](https://docs.astral.sh/uv/) (Python 3.13, see `.python-version`):
 
-`build_requirements.txt` pins the build tools of the image (pip, setuptools, wheel, pyinstaller); Renovate proposes updates for it like for the other requirements files.
+- `pyproject.toml` lists the direct dependencies (`chevron`, `harborapi`, `python-json-logger`) and the `dev` group (`pytest`, `ruff`).
+- `uv.lock` pins **all** packages, also the transitive ones, with hashes. The image is built from it, so the tests, the scan and the image use the same versions.
+- The code is the package `harbor_day2_operator` in `src/`. The program starts as `python -m harbor_day2_operator.harbor`.
 
-`test_requirements.txt` holds the test tools (pytest) and is not part of the image: the script below generates
-`requirements.txt` from `dev_requirements.txt`, so test tools do not belong there. The unit tests run in CI before the image build and locally with:
-
-```bash
-pip install -r requirements.txt -r test_requirements.txt
-python -m pytest tests
-```
-
-To update the `requirements.txt` file with proper version pinning, use the `create_requirements_in_container.sh` script:
+Run the unit tests (they also run in CI before the image build):
 
 ```bash
-./create_requirements_in_container.sh
+uv sync --locked
+uv run pytest
 ```
 
-This script will:
-1. Build a temporary Docker image with the base system dependencies
-2. Install all packages from `dev_requirements.txt`
-3. Generate a clean `requirements.txt` with exact versions, excluding system packages
-4. Preserve any extra index URLs or trusted hosts from `dev_requirements.txt`
+Change a dependency:
 
-Run this script whenever you update dependencies in `dev_requirements.txt` to ensure the `requirements.txt` file stays in sync with proper version pinning.
+```bash
+uv add <package>                     # a new dependency, updates pyproject.toml and uv.lock
+uv lock --upgrade-package <package>  # a newer version within the bounds of pyproject.toml
+uv lock --check                      # fails when uv.lock does not match pyproject.toml
+```
+
+Renovate proposes updates of `pyproject.toml`, `uv.lock` and the `Dockerfile` (base image digests, uv image); patch, digest and pin updates merge three days after
+their release once the checks pass.
+
+### The image
+
+The `Dockerfile` has three stages: the uv binary, a build stage on `python:3.13-slim-trixie` and the runtime image `gcr.io/distroless/python3-debian13:nonroot`.
+The build stage exports `uv.lock` and installs every package from it into `/app` with `--require-hashes --only-binary :all:` for the platform of the target (amd64 and
+arm64 are possible, nothing is compiled or emulated), compiles the bytecode and copies the package. The runtime image has the Python interpreter, the libraries and the
+program, **no shell and no package manager** (also no pip or setuptools). It runs as user 65532 and starts `python3 -m harbor_day2_operator.harbor`, so the arguments of the
+Deployment (`--watch 59`, `--version`) work as they did with the former binary. The version is a build argument: `docker build --build-arg HARBOR_OPERATOR_VERSION=1.2.3 .`.
+
+Without a shell, debug a pod with an ephemeral container that shares the process namespace, for example
+`kubectl debug -it <pod> --image=busybox --target=<container>`; `kubectl logs` shows the JSON log of the operator.
 
 ## Linting
 
@@ -500,7 +507,7 @@ updates", everything else under "Other changes". Label a pull request `skip-chan
 
 [`nightly-patch-release.yaml`](.github/workflows/nightly-patch-release.yaml) runs every night (02:17 UTC) and can be started by hand
 (`workflow_dispatch`, with `dry_run` on by default: it only reports in the run summary what it would release).
-If one of `requirements.txt`, `dev_requirements.txt`, `build_requirements.txt` or `Dockerfile` changed since the newest stable tag
+If one of `uv.lock`, `.python-version` or `Dockerfile` changed since the newest stable tag
 (`vX.Y.Z`, prereleases such as `v1.1.1-test4` and the older tags without `v` are ignored), it releases the next patch version from the head of `main`:
 it builds and pushes the image and the Helm chart (the two workflows are called with the version), then creates the tag and the
 GitHub release with generated notes. Changes of `src/`, `tests/`, `chart/` and `.github/` do not trigger a release, but a dependency
@@ -526,15 +533,12 @@ Every image that is pushed (releases, `main` and branch builds) is scanned and s
 - **Trivy scan before the push:** the image is built once, scanned, and only pushed when the scan passes. The build fails on `HIGH` and `CRITICAL`
   vulnerabilities that already have a fixed version (`ignore-unfixed`). Pull requests are only reported, so the update that fixes a finding
   can still be merged. A finding that has to be accepted goes into `.trivyignore` with a comment and an expiry date (`CVE-... exp:2026-12-31`).
-  The Python libraries are bundled inside the PyInstaller binary, which Trivy cannot look into, so a second scan covers the builder stage, where they are
-  installed with all their dependencies (the build tools pip, setuptools, wheel and pyinstaller are skipped because they are not shipped). The same gate applies.
-  Only libraries are scanned there (the build-only OS packages are not shipped; the OS packages of the published image are scanned by the first scan).
-  Limit: the builder stage contains every installed library, also ones that PyInstaller may not bundle.
+  The operating system packages and the Python libraries are both in the final image (there is no binary that hides them), so this one scan covers all of it.
 - **Cosign keyless signature:** after the push the image digest is signed with the identity of the workflow (GitHub OIDC, recorded in the
   public Rekor log) and the signature is verified in the same run. There is no key or secret to manage.
 - **Pinned scan tools:** `trivy-action` and `cosign-installer` are pinned to commit SHAs (most `trivy-action` tags were rewritten to
   malicious commits in March 2026); Renovate keeps the SHAs and the version comments up to date.
-  The Trivy version itself is set once in `SCANNER_TRIVY_VERSION` at the top of the build workflow and used by all four Trivy steps; Renovate
+  The Trivy version itself is set once in `SCANNER_TRIVY_VERSION` at the top of the build workflow and used by both Trivy steps (scan and SBOM); Renovate
   updates it (a custom regex manager in `renovate.json`) three days after release and merges it when the checks pass (a malicious Trivy
   release was published in March 2026, hence the wait).
 
@@ -549,9 +553,7 @@ cosign verify \
 
 ### SBOM
 
-Every pushed image gets a CycloneDX SBOM (JSON). It lists the operating system packages of the image and the Python libraries, which are
-bundled inside the PyInstaller binary (taken from the builder stage, build tools excluded; merged by
-[`.github/sbom/merge_sbom.py`](.github/sbom/merge_sbom.py)).
+Every pushed image gets a CycloneDX SBOM (JSON). It lists the operating system packages and the Python libraries of the image, from one Trivy scan of the pushed image.
 
 - **Signed attestation on the image:** attached to the image digest with `cosign attest` (keyless, same identity as the image signature) and
   verified in the same run. Download and verify it:
