@@ -162,16 +162,17 @@ jobs:
         src: "./src"
         args: format
 
-    - name: Set up Python
-      uses: actions/setup-python@v7
+    # The dependencies come from uv.lock, the same file the image is built from. The Python version is the one of .python-version.
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v10.2.0
       with:
-        python-version: "3.15"
+        version: 0.13.4
 
-    - name: Install dependencies for the tests
-      run: pip install -r requirements.txt -r test_requirements.txt
+    - name: Install the locked dependencies
+      run: uv sync --locked
 
     - name: Run tests
-      run: python -m pytest tests
+      run: uv run pytest
 
     - name: Lint Dockerfile
       uses: hadolint/hadolint-action@v3.5.0
@@ -225,7 +226,7 @@ jobs:
         tags: ${{ env.IMAGE_NAME }}:test
         build-args: HARBOR_OPERATOR_VERSION=${{ env.VERSION }}
 
-    - name: Test harbor binary
+    - name: Test the program in the image
       run: |
         docker run --rm \
           -e ADMIN_PASSWORD_NEW=test \
@@ -257,6 +258,7 @@ jobs:
 
     # Fails the build for HIGH and CRITICAL vulnerabilities that have a fixed version, so such an image is never pushed.
     # Pull requests are only reported (exit code 0), otherwise the update that fixes the finding could not be merged.
+    # The operating system packages and the Python libraries are both in the final image, so this one scan covers all of it.
     # Accepted findings go into .trivyignore (with a comment and an expiry date), which Trivy reads by itself.
     # Pinned to commit SHAs: in March 2026 most version tags of trivy-action were rewritten to malicious commits.
     - name: Scan the image with Trivy
@@ -270,37 +272,6 @@ jobs:
         ignore-unfixed: true
         format: table
         exit-code: ${{ github.event_name == 'pull_request' && '0' || '1' }}
-
-    # The Python libraries are bundled inside the PyInstaller binary, so the scan of the final image only sees the operating
-    # system packages. The builder stage still has them installed in site-packages (with their dependencies); it is scanned
-    # with the same gate. The build tools (pip with its vendored copies, setuptools, wheel, pyinstaller) are not shipped and are skipped.
-    - name: Build the builder stage to scan the Python libraries
-      if: ${{ !github.event.act }}
-      uses: docker/build-push-action@64c9b141502b80dbbd71e008a0130ad330f480f8
-      with:
-        context: .
-        target: builder
-        load: true
-        push: false
-        tags: ${{ env.IMAGE_NAME }}:builder-scan
-
-    - name: Scan the Python libraries with Trivy
-      if: ${{ !github.event.act }}
-      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-      env:
-        # Libraries only: the builder stage also has build-only OS packages (build-base, openssl-dev, glibc-dev) that are
-        # not in the published image; the OS packages of the published image are scanned above.
-        TRIVY_PKG_TYPES: library
-      with:
-        image-ref: ${{ env.IMAGE_NAME }}:builder-scan
-        version: ${{ env.SCANNER_TRIVY_VERSION }}
-        scanners: vuln
-        severity: CRITICAL,HIGH
-        ignore-unfixed: true
-        format: table
-        exit-code: ${{ github.event_name == 'pull_request' && '0' || '1' }}
-        skip-dirs: "**/site-packages/pip,**/site-packages/setuptools,**/site-packages/pkg_resources"
-        skip-files: "**/site-packages/pip-*.dist-info/METADATA,**/site-packages/setuptools-*.dist-info/METADATA,**/site-packages/pyinstaller*.dist-info/METADATA,**/site-packages/pyinstaller_hooks_contrib*.dist-info/METADATA,**/site-packages/altgraph*.dist-info/METADATA,**/site-packages/wheel*.dist-info/METADATA"
 
     # The checks of the first step ran before the tests, the build and the scans. Repeated right before the push, so that a release
     # that was published meanwhile (for example a manual minor release) is not overwritten, for example the shared tags `1` and `1.3`.
@@ -384,35 +355,17 @@ jobs:
           "$IMAGE" > /dev/null
         echo "Signed and verified \`$IMAGE\`" >> "$GITHUB_STEP_SUMMARY"
 
-    # SBOM (CycloneDX) of the pushed image: the operating system packages of the image plus the Python libraries, which are
-    # bundled inside the PyInstaller binary and therefore only visible in the builder stage. Same exclusions as the library scan.
-    - name: Generate the SBOM of the operating system packages
+    # SBOM (CycloneDX) of the pushed image: the operating system packages and the Python libraries are both in the final image, so one
+    # scan describes all of it.
+    - name: Generate the SBOM
       if: ${{ steps.push.outcome == 'success' }}
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
         image-ref: ${{ steps.image.outputs.ref }}
         version: ${{ env.SCANNER_TRIVY_VERSION }}
         format: cyclonedx
-        output: sbom-os.cdx.json
+        output: sbom.cdx.json
         exit-code: "0"
-
-    - name: Generate the SBOM of the Python libraries
-      if: ${{ steps.push.outcome == 'success' }}
-      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-      env:
-        TRIVY_PKG_TYPES: library
-      with:
-        image-ref: ${{ env.IMAGE_NAME }}:builder-scan
-        version: ${{ env.SCANNER_TRIVY_VERSION }}
-        format: cyclonedx
-        output: sbom-python.cdx.json
-        exit-code: "0"
-        skip-dirs: "**/site-packages/pip,**/site-packages/setuptools,**/site-packages/pkg_resources"
-        skip-files: "**/site-packages/pip-*.dist-info/METADATA,**/site-packages/setuptools-*.dist-info/METADATA,**/site-packages/pyinstaller*.dist-info/METADATA,**/site-packages/pyinstaller_hooks_contrib*.dist-info/METADATA,**/site-packages/altgraph*.dist-info/METADATA,**/site-packages/wheel*.dist-info/METADATA"
-
-    - name: Merge the SBOMs
-      if: ${{ steps.push.outcome == 'success' }}
-      run: python3 -I .github/sbom/merge_sbom.py sbom-os.cdx.json sbom-python.cdx.json sbom.cdx.json
 
     # Signed attestation on the image digest (keyless, like the image signature), verified in the same run.
     - name: Attest and verify the SBOM
