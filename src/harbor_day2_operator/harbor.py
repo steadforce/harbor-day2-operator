@@ -15,19 +15,19 @@ from pathlib import Path
 from harborapi import HarborAsyncClient
 from pythonjsonlogger import jsonlogger
 
-from src.configuration import sync_harbor_configuration
-from src.garbage_collection_schedule import sync_garbage_collection_schedule
-from src.password_utils import sync_admin_password
-from src.project_members import sync_project_members
-from src.projects import sync_projects
-from src.purge_job_schedule import sync_purge_job_schedule
-from src.registries import sync_registries
-from src.replications import sync_replications
-from src.retention_policies import sync_retention_policies
-from src.robot_accounts import sync_robot_accounts
-from src.utils import wait_until_healthy
-from src.watch_mode import build_child_argv, parse_watch_args, run_watch
-from src.webhooks import sync_webhooks
+from harbor_day2_operator.configuration import sync_harbor_configuration
+from harbor_day2_operator.garbage_collection_schedule import sync_garbage_collection_schedule
+from harbor_day2_operator.password_utils import sync_admin_password
+from harbor_day2_operator.project_members import sync_project_members
+from harbor_day2_operator.projects import sync_projects
+from harbor_day2_operator.purge_job_schedule import sync_purge_job_schedule
+from harbor_day2_operator.registries import sync_registries
+from harbor_day2_operator.replications import sync_replications
+from harbor_day2_operator.retention_policies import sync_retention_policies
+from harbor_day2_operator.robot_accounts import sync_robot_accounts
+from harbor_day2_operator.utils import wait_until_healthy
+from harbor_day2_operator.watch_mode import build_child_argv, parse_watch_args, run_watch
+from harbor_day2_operator.webhooks import sync_webhooks
 
 __version__ = os.getenv("HARBOR_OPERATOR_VERSION", "0.0.0-dev")
 
@@ -231,7 +231,7 @@ async def main() -> None:
 def run_watch_mode(interval: int) -> int:
     """Run the synchronization every ``interval`` seconds, each cycle in a fresh process.
 
-    The secrets are read from the mounted files in every cycle, see src/watch_mode.py.
+    The secrets are read from the mounted files in every cycle, see watch_mode.py.
 
     Args:
         interval: Seconds between two cycles
@@ -242,7 +242,6 @@ def run_watch_mode(interval: int) -> int:
     logger = set_up_logging(json_logging_enabled())
     spec = globals().get("__spec__")
     child_argv = build_child_argv(
-        frozen=getattr(sys, "frozen", False),
         module_name=spec.name if spec else None,
         script_path=os.path.abspath(__file__),
         executable=sys.executable,

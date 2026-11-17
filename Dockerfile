@@ -1,37 +1,36 @@
 # syntax=docker/dockerfile:1.21-labs 
-FROM cgr.dev/chainguard/wolfi-base:latest@sha256:2c12da5496e21e99003b3db3b9246f025e53d533c4df334205391260f1e8f85b AS base
-ENV PYTHONUNBUFFERED=1
-RUN apk update --no-cache && apk upgrade --no-cache
-# renovate: datasource=python-version depName=python versioning=python
-ARG version=3.13
-# hadolint ignore=DL3018
-RUN apk add --no-cache python-${version} py${version}-pip
-ENV PATH="${PATH}:/home/nonroot/.local/bin"
 
-FROM base AS builder_package
-# hadolint ignore=DL3018
-RUN apk add --no-cache build-base openssl-dev glibc-dev posix-libc-utils libffi-dev
-COPY build_requirements.txt /build_requirements.txt
-# hadolint ignore=DL3059
-RUN pip3 install --no-cache-dir -r /build_requirements.txt
+# uv for the build host. A plain `COPY --from=<image>` would take the target platform's
+# binary, which the build host cannot run without emulation.
+FROM --platform=$BUILDPLATFORM ghcr.io/astral-sh/uv:0.13.4@sha256:9f130421e930bfbdc563c00740466603f8723158e90297d07957c2294640262b AS uv
 
-FROM builder_package AS builder
-WORKDIR /build
-COPY requirements.txt requirements.txt
-RUN pip3 install --no-cache-dir --upgrade -r ./requirements.txt
-COPY src/ src/
-RUN pyinstaller --onefile --paths src src/harbor.py
+# Runs on the build host for every target platform: uv downloads the target's wheels
+# directly, so multi-arch builds need no emulation. Keep the Python minor version in
+# sync with the runtime image and with .python-version.
+FROM --platform=$BUILDPLATFORM python:3.13-slim-trixie@sha256:70729b46c69b4f1e97c4822c1af3df53a1476cf5ddc6c087c0c10bc3a5678c2f AS build
+COPY --from=uv /uv /usr/local/bin/uv
 
-FROM base AS package
-ARG NONROOT_UID=65532
-RUN test "$(id -u nonroot)" = "${NONROOT_UID}"
-USER ${NONROOT_UID}:${NONROOT_UID}
-WORKDIR /usr/local/bin/
-COPY --from=builder /build/dist/harbor ./harbor
+ARG TARGETARCH
+WORKDIR /src
+COPY pyproject.toml uv.lock ./
+# Every dependency, also the transitive ones, comes from uv.lock as a hash-pinned wheel: --require-hashes
+# refuses anything else and --only-binary refuses a source build (no compiler in this stage or in the image).
+RUN case "$TARGETARCH" in \
+      amd64) platform=x86_64-manylinux_2_28 ;; \
+      arm64) platform=aarch64-manylinux_2_28 ;; \
+      *) echo "unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+    esac \
+ && uv export --frozen --no-dev --no-emit-project --output-file requirements.txt \
+ && uv pip install --target /app --no-deps --require-hashes --only-binary :all: \
+      --python-version 3.13 --python-platform "$platform" -r requirements.txt
 
-FROM package
-WORKDIR /
-ENV JSON_LOGGING=True
+COPY src/harbor_day2_operator /app/harbor_day2_operator
+RUN python -m compileall -q --invalidation-mode unchecked-hash /app
+
+# No shell, no package manager: only the Python interpreter, its libraries and the program.
+FROM gcr.io/distroless/python3-debian13:nonroot@sha256:c3ed2b61f3c4e410685565ceb3c818197b552832521b39d53eca5d2d9d0dc1e1
+COPY --from=build /app /app
+ENV PYTHONPATH=/app PYTHONUNBUFFERED=1 JSON_LOGGING=True
 ARG HARBOR_OPERATOR_VERSION=0.0.0-dev
 ENV HARBOR_OPERATOR_VERSION=${HARBOR_OPERATOR_VERSION}
-ENTRYPOINT ["/usr/local/bin/harbor"]
+ENTRYPOINT ["python3", "-m", "harbor_day2_operator.harbor"]

@@ -30,7 +30,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DEPENDENCY_FILES: "requirements.txt dev_requirements.txt build_requirements.txt Dockerfile"
+  DEPENDENCY_FILES: "uv.lock .python-version Dockerfile"
 
 jobs:
   plan:

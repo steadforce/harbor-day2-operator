@@ -1,0 +1,25 @@
+[project]
+name = "harbor-day2-operator"
+version = "0.1.0"
+description = "Day-2 operator of a Harbor registry: keeps projects, members, registries, robot accounts, retention, webhooks and more as configured"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.13"
+dependencies = [
+    "chevron>=0.14.0",
+    "harborapi>=0.26.2",
+    "python-json-logger>=4.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ruff>=0.12",
+]
+
+[build-system]
+requires = ["uv_build>=0.8,<0.14"]
+build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

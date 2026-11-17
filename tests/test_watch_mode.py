@@ -1,4 +1,4 @@
-"""Tests for the watch mode (src/watch_mode.py)."""
+"""Tests for the watch mode (harbor_day2_operator/watch_mode.py)."""
 
 import logging
 import os
@@ -10,10 +10,8 @@ import time
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-
-import watch_mode
-from watch_mode import (
+from harbor_day2_operator import watch_mode
+from harbor_day2_operator.watch_mode import (
     TIMEOUT_EXIT_CODE,
     StopFlag,
     become_subreaper,
@@ -286,24 +284,17 @@ class TestRunChild:
 
 
 class TestBuildChildArgv:
-    def test_a_frozen_executable_starts_itself(self):
-        assert build_child_argv(
-            True, "src.harbor", "/app/harbor.py", "/usr/bin/harbor"
-        ) == ["/usr/bin/harbor"]
-
     def test_a_module_is_started_as_a_module(self):
         assert build_child_argv(
-            False, "src.harbor", "/repo/src/harbor.py", "/usr/bin/python3"
+            "harbor_day2_operator.harbor", "/repo/src/harbor.py", "/usr/bin/python3"
         ) == [
             "/usr/bin/python3",
             "-m",
-            "src.harbor",
+            "harbor_day2_operator.harbor",
         ]
 
     def test_a_file_is_run_again_as_a_file(self):
-        assert build_child_argv(
-            False, None, "/repo/src/harbor.py", "/usr/bin/python3"
-        ) == [
+        assert build_child_argv(None, "/repo/src/harbor.py", "/usr/bin/python3") == [
             "/usr/bin/python3",
             "/repo/src/harbor.py",
         ]
@@ -319,11 +310,9 @@ class TestBuildChildArgv:
         )
         env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
         as_module = build_child_argv(
-            False, "pkg.main", str(package / "main.py"), sys.executable
+            "pkg.main", str(package / "main.py"), sys.executable
         )
-        as_file = build_child_argv(
-            False, None, str(package / "main.py"), sys.executable
-        )
+        as_file = build_child_argv(None, str(package / "main.py"), sys.executable)
 
         by_module = subprocess.run(
             as_module, cwd=tmp_path, env=env, check=False, capture_output=True
@@ -355,7 +344,7 @@ class TestProcessGroup:
     def test_a_timeout_also_ends_the_processes_that_the_child_started(
         self, tmp_path, monkeypatch
     ):
-        """A frozen onefile executable is a bootloader with a worker below it: both have to end."""
+        """A child may have a process of its own below it: both have to end."""
         monkeypatch.setattr(watch_mode, "POLL_SECONDS", 0.1)
         monkeypatch.setattr(watch_mode, "TERMINATE_GRACE_SECONDS", 1)
         pid_file = tmp_path / "worker.pid"
