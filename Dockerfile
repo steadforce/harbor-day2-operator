@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.21-labs 
+# syntax=docker/dockerfile:1.29-labs 
 
 # uv for the build host. A plain `COPY --from=<image>` would take the target platform's
 # binary, which the build host cannot run without emulation.
