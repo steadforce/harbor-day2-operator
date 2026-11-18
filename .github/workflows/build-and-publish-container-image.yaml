@@ -164,7 +164,7 @@ jobs:
 
     # The dependencies come from uv.lock, the same file the image is built from. The Python version is the one of .python-version.
     - name: Set up uv
-      uses: astral-sh/setup-uv@v10.2.0
+      uses: astral-sh/setup-uv@v10.3.3
       with:
         version: 0.13.8
 
