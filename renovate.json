@@ -40,6 +40,12 @@
       "minimumReleaseAgeBehaviour": "timestamp-optional",
       "automerge": true,
       "platformAutomerge": true
+    },
+    {
+      "description": "No minor or major update of Python itself (.python-version, the python build image in the Dockerfile, requires-python in pyproject.toml). The runtime image gcr.io/distroless/python3-debian13 carries the Python of Debian 13 (3.13) and has no Python tag to bump, so the Python minor can only move together with the next distroless Debian release: change .python-version, the build stage, the `--python-version` in the Dockerfile and the runtime image in one pull request by hand. Patch and digest updates of the build image still arrive through the rule above.",
+      "matchDepNames": ["python"],
+      "matchUpdateTypes": ["major", "minor"],
+      "enabled": false
     }
   ]
 }
