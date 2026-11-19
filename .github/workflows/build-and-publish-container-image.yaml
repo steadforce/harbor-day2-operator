@@ -431,7 +431,7 @@ jobs:
     - name: Notify MS Teams about the published image
       if: ${{ needs.build-and-push-image.result == 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
-      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.4.0
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.5.0
       with:
         webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
         status: success
@@ -442,7 +442,7 @@ jobs:
     - name: Notify MS Teams about the failed image
       if: ${{ needs.build-and-push-image.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
-      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.4.0
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.5.0
       with:
         webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
         status: failure
