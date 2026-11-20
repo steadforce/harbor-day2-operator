@@ -220,7 +220,7 @@ jobs:
     - name: Notify MS Teams about the published chart
       if: ${{ needs.publish.result == 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
-      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.5.0
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.5.2
       with:
         webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
         status: success
@@ -231,7 +231,7 @@ jobs:
     - name: Notify MS Teams about the failed chart
       if: ${{ needs.publish.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
-      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.5.0
+      uses: steadforce/steadops-workflows/.github/actions/teams-notification@v4.5.2
       with:
         webhook-url: ${{ env.MS_TEAMS_RELEASE_WEBHOOK }}
         status: failure
