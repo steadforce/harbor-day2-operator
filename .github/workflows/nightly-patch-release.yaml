@@ -118,9 +118,10 @@ jobs:
       ref: ${{ needs.plan.outputs.sha }}
       previous_tag: ${{ needs.plan.outputs.last }}
 
+  # After the image: when the scan gate stops the image, no chart is published for a version whose image does not exist (the chart refers to the image tag).
   chart:
     name: Chart
-    needs: plan
+    needs: [plan, image]
     if: ${{ needs.plan.outputs.release == 'true' && !inputs.dry_run }}
     permissions:
       contents: read

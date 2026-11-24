@@ -256,22 +256,100 @@ jobs:
         echo "ref=${first}" >> "$GITHUB_OUTPUT"
         echo "repository=${first%:*}" >> "$GITHUB_OUTPUT"
 
-    # Fails the build for HIGH and CRITICAL vulnerabilities that have a fixed version, so such an image is never pushed.
-    # Pull requests are only reported (exit code 0), otherwise the update that fixes the finding could not be merged.
-    # The operating system packages and the Python libraries are both in the final image, so this one scan covers all of it.
-    # Accepted findings go into .trivyignore (with a comment and an expiry date), which Trivy reads by itself.
+    # The scan gate: the image is scanned before it is pushed, so an image that fails is never pushed. Pull requests are only reported (exit code 0),
+    # otherwise the update that fixes a finding could not be merged. Accepted findings go into .trivyignore (with a comment and an expiry date), which
+    # Trivy reads by itself. The gate has two parts, because only one of them can be fixed here:
+    #  1. The Python libraries (uv.lock) are ours: HIGH and CRITICAL findings that have a fixed version block.
+    #  2. The operating system packages come from the distroless base image. CRITICAL findings always block. HIGH findings block only while the
+    #     pinned base digest is NOT the newest one of its tag (then a digest bump fixes them, and Renovate opens it); while the pinned digest is the
+    #     newest there is nothing to fix here, so the findings are reported in the job summary and as a warning, and the release goes on.
     # Pinned to commit SHAs: in March 2026 most version tags of trivy-action were rewritten to malicious commits.
-    - name: Scan the image with Trivy
+    - name: Scan the Python libraries with Trivy
       if: ${{ !github.event.act }}
       uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
       with:
         image-ref: ${{ steps.image.outputs.ref }}
         version: ${{ env.SCANNER_TRIVY_VERSION }}
         scanners: vuln
+        vuln-type: library
         severity: CRITICAL,HIGH
         ignore-unfixed: true
         format: table
         exit-code: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+
+    - name: Check whether the pinned base image is the newest of its tag
+      id: base
+      if: ${{ !github.event.act }}
+      run: |
+        set -uo pipefail
+        line=$(grep -E '^FROM gcr\.io/distroless/[^ ]+@sha256:[0-9a-f]{64}' Dockerfile | tail -1 || true)
+        if [[ -z "$line" ]]; then
+          echo "The Dockerfile has no distroless base image pinned by digest, so the base image counts as not newest (HIGH findings block)." >&2
+          echo "newest=false" >> "$GITHUB_OUTPUT"; echo "detail=no pinned distroless base image found in the Dockerfile" >> "$GITHUB_OUTPUT"; exit 0
+        fi
+        image=${line#FROM }; image=${image%% *}; name=${image%@*}; pinned=${image##*@}
+        # A failing lookup counts as "not newest": the gate stays closed when it cannot tell.
+        current=$(docker buildx imagetools inspect "$name" --format '{{.Manifest.Digest}}' 2>/dev/null | tail -1 || true)
+        if [[ "$current" =~ ^sha256:[0-9a-f]{64}$ && "$current" == "$pinned" ]]; then
+          echo "newest=true" >> "$GITHUB_OUTPUT"
+          echo "detail=the pinned digest ${pinned:0:19} is the newest of ${name}" >> "$GITHUB_OUTPUT"
+        elif [[ "$current" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          echo "newest=false" >> "$GITHUB_OUTPUT"
+          echo "detail=${name} is at ${current:0:19} now, the Dockerfile pins ${pinned:0:19}: a digest bump is available" >> "$GITHUB_OUTPUT"
+        else
+          echo "newest=false" >> "$GITHUB_OUTPUT"
+          echo "detail=the current digest of ${name} could not be read" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Scan the operating system packages with Trivy
+      if: ${{ !github.event.act }}
+      uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+      with:
+        image-ref: ${{ steps.image.outputs.ref }}
+        version: ${{ env.SCANNER_TRIVY_VERSION }}
+        scanners: vuln
+        vuln-type: os
+        severity: CRITICAL,HIGH
+        ignore-unfixed: true
+        format: json
+        output: trivy-os.json
+        exit-code: '0'
+
+    - name: Decide on the operating system findings
+      if: ${{ !github.event.act }}
+      env:
+        BASE_NEWEST: ${{ steps.base.outputs.newest }}
+        BASE_DETAIL: ${{ steps.base.outputs.detail }}
+        PULL_REQUEST: ${{ github.event_name == 'pull_request' }}
+      run: |
+        set -euo pipefail
+        findings=$(jq -c '[.Results[]? | .Vulnerabilities[]?] | unique_by(.PkgName + .VulnerabilityID)' trivy-os.json)
+        critical=$(jq '[.[] | select(.Severity == "CRITICAL")] | length' <<< "$findings")
+        high=$(jq '[.[] | select(.Severity == "HIGH")] | length' <<< "$findings")
+        cves=$(jq '[.[].VulnerabilityID] | unique | length' <<< "$findings")
+        {
+          echo "### Operating system packages of the base image"
+          echo
+          echo "${high} HIGH and ${critical} CRITICAL findings with a fixed version (${cves} different CVEs). Base image: ${BASE_DETAIL}."
+          if [[ "$findings" != "[]" ]]; then
+            echo
+            echo "| Package | CVE | Severity | Installed | Fixed |"
+            echo "| --- | --- | --- | --- | --- |"
+            jq -r '.[] | "| \(.PkgName) | \(.VulnerabilityID) | \(.Severity) | \(.InstalledVersion) | \(.FixedVersion // "-") |"' <<< "$findings"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
+        if [[ "$critical" != "0" ]]; then
+          echo "::error::${critical} CRITICAL findings in the operating system packages of the image (${cves} CVEs in total). Accept them in .trivyignore (comment and expiry date) or update the base image."
+          [[ "$PULL_REQUEST" == "true" ]] || exit 1
+        fi
+        if [[ "$high" != "0" ]]; then
+          if [[ "$BASE_NEWEST" == "true" ]]; then
+            echo "::warning::${high} HIGH findings in the operating system packages (${cves} CVEs), released anyway: ${BASE_DETAIL}, so there is nothing to fix here. See the job summary."
+          else
+            echo "::error::${high} HIGH findings in the operating system packages (${cves} CVEs), and ${BASE_DETAIL}. Update the digest of the base image in the Dockerfile (the Renovate pull request) so that the findings go."
+            [[ "$PULL_REQUEST" == "true" ]] || exit 1
+          fi
+        fi
 
     # The checks of the first step ran before the tests, the build and the scans. Repeated right before the push, so that a release
     # that was published meanwhile (for example a manual minor release) is not overwritten, for example the shared tags `1` and `1.3`.
