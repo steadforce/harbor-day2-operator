@@ -359,8 +359,9 @@ jobs:
           fi
         fi
         # One line for the Teams card and the release notes of the nightly release: only when HIGH findings were accepted because the pinned digest is the newest one.
+        # Never for pull requests: their scans are report-only, nothing is "accepted" and no release follows.
         summary=""
-        if [[ "$critical" == "0" && "$high" != "0" && "$BASE_NEWEST" == "true" ]]; then
+        if [[ "$PULL_REQUEST" != "true" && "$critical" == "0" && "$high" != "0" && "$BASE_NEWEST" == "true" ]]; then
           summary="${cves} HIGH CVEs (${high} findings) in the operating system packages of the base image were accepted, because ${BASE_DETAIL}. Details: ${RUN_URL}"
         fi
         echo "summary=${summary}" >> "$GITHUB_OUTPUT"
