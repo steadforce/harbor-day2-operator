@@ -29,6 +29,10 @@ on:
         type: string
         required: false
         default: ""
+    outputs:
+      base_findings:
+        description: "One line about HIGH findings in the base image that were accepted because the pinned digest is the newest one (empty when there are none)"
+        value: ${{ jobs.build-and-push-image.outputs.base_findings }}
 
 
 # Published releases (manual) wait for a running nightly release and the other way round: they use the group of the nightly
@@ -79,6 +83,8 @@ jobs:
         args: --strict chart
 
   build-and-push-image:
+    outputs:
+      base_findings: ${{ steps.osgate.outputs.summary }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -316,8 +322,10 @@ jobs:
         exit-code: '0'
 
     - name: Decide on the operating system findings
+      id: osgate
       if: ${{ !github.event.act }}
       env:
+        RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         BASE_NEWEST: ${{ steps.base.outputs.newest }}
         BASE_DETAIL: ${{ steps.base.outputs.detail }}
         PULL_REQUEST: ${{ github.event_name == 'pull_request' }}
@@ -350,6 +358,13 @@ jobs:
             [[ "$PULL_REQUEST" == "true" ]] || exit 1
           fi
         fi
+        # One line for the Teams card and the release notes of the nightly release: only when HIGH findings were accepted because the pinned digest is the newest one.
+        # Never for pull requests: their scans are report-only, nothing is "accepted" and no release follows.
+        summary=""
+        if [[ "$PULL_REQUEST" != "true" && "$critical" == "0" && "$high" != "0" && "$BASE_NEWEST" == "true" ]]; then
+          summary="${cves} HIGH CVEs (${high} findings) in the operating system packages of the base image were accepted, because ${BASE_DETAIL}. Details: ${RUN_URL}"
+        fi
+        echo "summary=${summary}" >> "$GITHUB_OUTPUT"
 
     # The checks of the first step ran before the tests, the build and the scans. Repeated right before the push, so that a release
     # that was published meanwhile (for example a manual minor release) is not overwritten, for example the shared tags `1` and `1.3`.
@@ -517,6 +532,7 @@ jobs:
         facts: |
           Image=${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.RELEASE_VERSION }}
           Release=${{ github.event.release.html_url }}
+          ${{ needs.build-and-push-image.outputs.base_findings != '' && format('Base image findings={0}', needs.build-and-push-image.outputs.base_findings) || '' }}
     - name: Notify MS Teams about the failed image
       if: ${{ needs.build-and-push-image.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true

@@ -537,7 +537,8 @@ Every image that is pushed (releases, `main` and branch builds) is scanned and s
   - **Operating system packages** (they come from the distroless base image): `CRITICAL` findings always block. `HIGH` findings block only while the
     base image pinned in the `Dockerfile` is **not** the newest digest of its tag (step "Check whether the pinned base image is the newest of its tag"):
     then a digest bump fixes them, and the Renovate pull request for it is not held (digests have no release date). While the pinned digest is the
-    newest one there is nothing to fix here, so the findings are listed in the job summary and shown as a warning, and the release goes on. A lookup that
+    newest one there is nothing to fix here, so the findings are listed in the job summary and shown as a warning, and the release goes on. A release then does not look clean: one line about them (count, reason, link to the run) is added to the Teams card of the release (nightly and manual) and,
+    for nightly releases, to the end of the generated release notes ("Known findings in the base image"). A lookup that
     fails counts as "not newest": the gate stays closed when it cannot tell. Background: on 2026-11-23 and 24 fourteen `HIGH` CVEs in the Kerberos
     libraries stopped the nightly release, because Debian had a fix (`1.21.3-5+deb13u2`) that the distroless image did not have yet.
 - **Cosign keyless signature:** after the push the image digest is signed with the identity of the workflow (GitHub OIDC, recorded in the

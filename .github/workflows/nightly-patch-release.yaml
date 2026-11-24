@@ -182,6 +182,21 @@ jobs:
           exit 1
         fi
 
+    # HIGH findings of the base image that the scan gate accepted (the pinned digest is the newest one) are written into the notes, so that a release
+    # does not look clean when it is not. The release exists already: a failure here only warns, it must not turn the run (and the Teams card) red.
+    - name: Add the accepted base image findings to the release notes
+      if: ${{ needs.image.outputs.base_findings != '' }}
+      continue-on-error: true
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ needs.plan.outputs.tag }}
+        FINDINGS: ${{ needs.image.outputs.base_findings }}
+      run: |
+        set -euo pipefail
+        body=$(gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json body --jq .body)
+        printf '%s\n\n### Known findings in the base image\n\n%s\n' "$body" "$FINDINGS" > notes.md
+        gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --notes-file notes.md || { echo "::warning::The release notes of ${TAG} could not be extended with the base image findings."; exit 0; }
+
   # Announces published and failed releases in the Teams release channel (nothing is sent when no release is due).
   # The steps skip themselves while the secret is empty.
   notify:
@@ -205,6 +220,7 @@ jobs:
           Image=ghcr.io/${{ github.repository_owner }}/harbor-day2-operator:${{ needs.plan.outputs.version }}
           Chart=oci://ghcr.io/${{ github.repository_owner }}/chart/harbor-day2-operator:${{ needs.plan.outputs.version }}
           Release=${{ github.server_url }}/${{ github.repository }}/releases/tag/${{ needs.plan.outputs.tag }}
+          ${{ needs.image.outputs.base_findings != '' && format('Base image findings={0}', needs.image.outputs.base_findings) || '' }}
     - name: Notify MS Teams about the failed release
       if: ${{ needs.release.result != 'success' && env.MS_TEAMS_RELEASE_WEBHOOK != '' }}
       continue-on-error: true
