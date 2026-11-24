@@ -530,10 +530,16 @@ A nightly release does not move the `main` image tag.
 
 Every image that is pushed (releases, `main` and branch builds) is scanned and signed; pull request images are not pushed.
 
-- **Trivy scan before the push:** the image is built once, scanned, and only pushed when the scan passes. The build fails on `HIGH` and `CRITICAL`
-  vulnerabilities that already have a fixed version (`ignore-unfixed`). Pull requests are only reported, so the update that fixes a finding
-  can still be merged. A finding that has to be accepted goes into `.trivyignore` with a comment and an expiry date (`CVE-... exp:2026-12-31`).
-  The operating system packages and the Python libraries are both in the final image (there is no binary that hides them), so this one scan covers all of it.
+- **Trivy scan before the push:** the image is built once, scanned, and only pushed when the scan passes. Findings count when they already have a fixed
+  version (`ignore-unfixed`). Pull requests are only reported, so the update that fixes a finding can still be merged. A finding that has to be accepted
+  goes into `.trivyignore` with a comment and an expiry date (`CVE-... exp:2026-12-31`). The gate has two parts, because only one of them can be fixed here:
+  - **Python libraries** (`uv.lock`): `HIGH` and `CRITICAL` findings block. They are ours to fix.
+  - **Operating system packages** (they come from the distroless base image): `CRITICAL` findings always block. `HIGH` findings block only while the
+    base image pinned in the `Dockerfile` is **not** the newest digest of its tag (step "Check whether the pinned base image is the newest of its tag"):
+    then a digest bump fixes them, and the Renovate pull request for it is not held (digests have no release date). While the pinned digest is the
+    newest one there is nothing to fix here, so the findings are listed in the job summary and shown as a warning, and the release goes on. A lookup that
+    fails counts as "not newest": the gate stays closed when it cannot tell. Background: on 2026-11-23 and 24 fourteen `HIGH` CVEs in the Kerberos
+    libraries stopped the nightly release, because Debian had a fix (`1.21.3-5+deb13u2`) that the distroless image did not have yet.
 - **Cosign keyless signature:** after the push the image digest is signed with the identity of the workflow (GitHub OIDC, recorded in the
   public Rekor log) and the signature is verified in the same run. There is no key or secret to manage.
 - **Pinned scan tools:** `trivy-action` and `cosign-installer` are pinned to commit SHAs (most `trivy-action` tags were rewritten to
