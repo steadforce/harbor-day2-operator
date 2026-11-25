@@ -26,7 +26,7 @@ COPY src/harbor_day2_operator /app/harbor_day2_operator
 RUN python -m compileall -q --invalidation-mode unchecked-hash /app
 
 # No shell, no package manager: only the Python interpreter, its libraries and the program.
-FROM gcr.io/distroless/python3-debian13:nonroot@sha256:806765f9f0863a1f36ce5f796983fed4eced9ec367e67e2f62f57f3e325c60b6
+FROM gcr.io/distroless/python3-debian13:nonroot@sha256:72de1dda9d4c52c370e2ef2d93c28e3e1a8193c92058b7dfa42bace38a83d114
 COPY --from=build /app /app
 ENV PYTHONPATH=/app PYTHONUNBUFFERED=1 JSON_LOGGING=True
 ARG HARBOR_OPERATOR_VERSION=0.0.0-dev
