@@ -173,9 +173,53 @@ jobs:
           echo "The image and chart of this run may have been published; check them, then start a new nightly run." >&2
           exit 1
         fi
-        gh release create "$TAG" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --target "$SHA" \
-          --title "$TAG" --generate-notes --notes-start-tag "$LAST"
-        # The tag was created by the command above; it has to point to the commit that was built.
+        # The tag is created atomically at the commit that was built: the API refuses (422) when the ref exists already, which closes the gap between the checks above and the
+        # release (a tag pushed or a release published by hand with the same name at another commit). `gh release create` alone would reuse such a tag, whatever --target says.
+        err=$(mktemp)
+        if ! gh api -X POST "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/${TAG}" -f "sha=${SHA}" > /dev/null 2> "$err"; then
+          cat "$err" >&2
+          # A failed call does not prove that no tag was created: the server may have created it and the response may have been lost. A new nightly run would then use the tag as its
+          # baseline, see no dependency change and skip the release. So the state is looked up and named.
+          ref_json=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" 2> /dev/null || true)
+          existing_sha=$(jq -r '.object.sha // empty' <<< "$ref_json" 2> /dev/null || true)
+          if [[ -z "$existing_sha" ]]; then
+            echo "::error::The tag ${TAG} could not be created at ${SHA} and the tag state could not be confirmed (it may exist if the response was lost). No release was created. Check the tag ${TAG}: delete it if it exists without a release, then start a new nightly run." >&2
+          elif [[ "$existing_sha" == "$SHA" ]]; then
+            echo "::error::The tag ${TAG} exists at the built commit ${SHA}, but this run did not create the release. Check whether a release of ${TAG} exists: create it by hand, or delete the tag, before the next nightly run (a retained tag makes the planner skip this version)." >&2
+          else
+            echo "::error::The tag ${TAG} exists at ${existing_sha}, not at the built commit ${SHA}. No release was created. The image and chart of this run may have been published; check them, then start a new nightly run." >&2
+          fi
+          exit 1
+        fi
+        # The release is created from the existing tag only: --verify-tag aborts instead of creating a tag somewhere else.
+        if ! gh release create "$TAG" "harbor-day2-operator-${VERSION}.cdx.json" --repo "$GITHUB_REPOSITORY" --verify-tag \
+          --title "$TAG" --generate-notes --notes-start-tag "$LAST"; then
+          # Remove the tag that this step created, so that the next night plans the same version again. Only an explicit 404 of the release lookup proves that the release is absent:
+          # a network error or a 5xx answer says nothing (the release may exist although the response was lost), and then the tag stays.
+          status=$(gh api -i "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" 2> /dev/null | sed -n '1s/^HTTP[^ ]* \([0-9][0-9]*\).*/\1/p' || true)
+          if [[ "$status" == "404" ]]; then
+            # The lookup by tag finds published releases only. `gh release create` with an asset creates a draft first, so a failure during the upload or the
+            # publication can leave a draft that blocks the next attempt. The tag is deleted only when the authenticated list of all releases (drafts included)
+            # was read completely and does not hold the tag.
+            if all=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/releases" --jq '.[].tag_name' 2> /dev/null); then
+              if grep -qxF "$TAG" <<< "$all"; then
+                echo "::error::A draft release of ${TAG} exists: the tag stays. Publish or delete the draft (and the tag), then start a new nightly run." >&2
+              elif gh api -X DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/${TAG}" > /dev/null 2>&1; then
+                echo "The release of ${TAG} could not be created; the tag was removed again, the next run plans it again." >&2
+              else
+                echo "::error::The release of ${TAG} could not be created and the tag could not be removed: delete the tag ${TAG} by hand before the next run." >&2
+              fi
+            else
+              echo "::error::The releases could not be listed, so a draft of ${TAG} cannot be ruled out: the tag stays; check the releases and delete the tag by hand if there is none." >&2
+            fi
+          elif [[ "$status" == "200" ]]; then
+            echo "The release ${TAG} exists although the command failed: the tag stays." >&2
+          else
+            echo "::error::The release status of ${TAG} could not be determined (HTTP ${status:-unknown}): the tag stays; check the release and delete the tag by hand if there is none." >&2
+          fi
+          exit 1
+        fi
+        # The tag was created above; it has to point to the commit that was built.
         tagged=$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${TAG}" --jq .object.sha)
         if [[ "$tagged" != "$SHA" ]]; then
           echo "Tag ${TAG} points to ${tagged}, not to the built commit ${SHA}" >&2
