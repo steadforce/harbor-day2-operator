@@ -362,3 +362,6 @@ pip-selfcheck.json
 
 # helm
 test-output.xml
+
+# IDE
+/.project
